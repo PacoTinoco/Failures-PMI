@@ -123,7 +123,7 @@ if uploaded_file:
     fname = uploaded_file.name.lower()
     try:
         if fname.endswith(".csv"):
-            df = pd.read_csv(uploaded_file, skiprows=8)  # encabezado en fila 9
+            df = pd.read_csv(uploaded_file, skiprows=8)
         elif fname.endswith(".xlsx"):
             xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
             sheet = st.selectbox("Hoja de Excel:", xls.sheet_names, index=0)
