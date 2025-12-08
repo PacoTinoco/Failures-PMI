@@ -80,20 +80,28 @@ if "sub_prefixes" not in st.session_state:
 # =========================
 machine_defaults = {
     "KDF-7": {
-        "principales": [],  # Ejemplo: ["Empalme", "Mov", "Buffer"]
-        "subpalabras": {}   # Ejemplo: {"Empalme": ["emp", "pal"], "Mov": ["mov", "movi"]}
+        "principales": ['Empalme', 'Mov', 'buffer', 'Canal bloq', 'cuchillas' ],  
+        "subpalabras": {'empal', 'movim', 'lleno', 'caps', 'cuch', 'ator', 'bobin', 'canal', 'papel', 'hm'}   
     },
+
     "KDF-8": {
-        "principales": [],  # Aquí agregas tus principales pérdidas
-        "subpalabras": {}   # Aquí agregas sub-palabras precargadas
-    },
-    "KDF-9": {"principales": [], "subpalabras": {}},
-    "KDF-10": {"principales": [], "subpalabras": {}},
-    "KDF-11": {"principales": [], "subpalabras": {}},
-    "KDF-17": {"principales": [], "subpalabras": {}}
+        "principales": ['Suciedad pva', 'Empalme', 'Batea Atorada', 'Polvo ODM', 'Filtro atorado en tambor', 'HCI'],  
+        "subpalabras": {'pva', 'ato', 'tamb', 'filt', 'rue', 'gom', 'caj', 'temp'}},
+
+    "KDF-9": {"principales": ['Suciedad', 'Batea', 'uña', 'banda', 'Canal bloq', 'buffer' ], 
+              "subpalabras": {'lanz', 'charo', 'inser', 'lleno', 'bloq', 'canal', 'hm', 'cap'}},
+
+    "KDF-10": {"principales": ['plug', 'gomero', 'limpieza', 'cola', 'enlace', 'Xepics', 'Papel'], 
+               "subpalabras": {'plu', 'sucie', 'gome', 'tap', 'debaj', 'cola', 'hcf', 'fr', 'atasc', 'ator'}},
+
+    "KDF-11": {"principales": ['varilla', 'filtro', 'empalme', 'hci', 'hcf', 'midas', 'cap'], 
+               "subpalabras": {'limp', 'var', 'pap', 'rued', 'hcf', 'elev', 'resp', 'empal', 'tamb', 'bob'}},
+
+    "KDF-17": {"principales": ['Filtro atorado', 'Varilla ab', 'Capsula ator', 'Empalme', 'cap cae', 'mov', 'batea'], 
+               "subpalabras": {'filt', 'tamb', 'caps', 'bob', 'mov', 'batea'}}
 }
 
-STOPWORDS = {"de","la","el","y","en","por","se","al","a","no","lo","una","un","otro","otros"}
+STOPWORDS = {"de","la","el","y","en","por","se","al","a","no","lo","otro","otros"}
 
 # =========================
 # Paso 1: Subir CSV/XLSX
