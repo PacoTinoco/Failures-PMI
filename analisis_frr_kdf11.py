@@ -1,20 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Analisis de FRR (KDF11) con estimación de combinaciones y sensibilidad por variable.
-
-Este script:
-- Carga el Excel "FRR-11.xlsx" (hoja Sheet2) y limpia columnas.
-- Calcula Producción y valida FRR por tipo y total.
-- Estima un modelo lineal con regularización (ridge) ponderado por Producción.
-- Hace búsqueda de combinaciones (grid) y curvas de sensibilidad por variable.
-- Genera archivos CSV y gráficos PNG para apoyar la toma de decisiones.
-
-Cómo ejecutar (en el mismo directorio del Excel):
-    python analisis_frr_kdf11.py
-
-Requisitos: pandas, numpy, matplotlib, openpyxl.
-"""
-
 import os
 import math
 import numpy as np
