@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Reportes — Secundario</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0F1A;--surface:#111827;--surface2:#1A2235;--border:#1E293B;--text:#E2E8F0;--text-dim:#94A3B8;--text-muted:#64748B;--accent:#F59E0B;--accent2:#3B82F6;--accent3:#10B981;--red:#EF4444;--orange:#F97316}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+
+/* ===== WIZARD LAYOUT ===== */
+.wizard{max-width:900px;margin:0 auto;padding:2rem}
+.wizard-header{text-align:center;margin-bottom:3rem;padding-top:2rem}
+.wizard-header h1{font-family:'Instrument Serif',serif;font-size:2.5rem;color:#fff;margin-bottom:.5rem}
+.wizard-header h1 em{font-style:italic;background:linear-gradient(135deg,var(--accent),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.wizard-header p{color:var(--text-dim);font-size:1rem}
+
+/* Steps indicator */
+.steps{display:flex;justify-content:center;gap:.5rem;margin-bottom:3rem}
+.step-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:600;border:2px solid var(--border);color:var(--text-muted);transition:all .3s;cursor:default}
+.step-dot.active{border-color:var(--accent);color:var(--accent);background:rgba(245,158,11,0.1)}
+.step-dot.done{border-color:var(--accent3);color:var(--accent3);background:rgba(16,185,129,0.1)}
+.step-line{width:40px;height:2px;background:var(--border);align-self:center}
+.step-line.done{background:var(--accent3)}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;margin-bottom:1.5rem}
+.card h2{font-size:1.15rem;font-weight:700;color:#fff;margin-bottom:.5rem}
+.card p{font-size:.9rem;color:var(--text-dim);margin-bottom:1rem}
+
+/* Upload zones */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:2.5rem;text-align:center;cursor:pointer;transition:all .3s;position:relative}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(245,158,11,0.03)}
+.upload-zone.has-file{border-color:var(--accent3);border-style:solid;background:rgba(16,185,129,0.03)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:2rem;margin-bottom:.5rem}
+.upload-zone .file-name{font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--accent3);margin-top:.5rem}
+.upload-zone .file-info{font-size:.78rem;color:var(--text-muted);margin-top:.25rem}
+
+/* Mapping */
+.mapping-grid{display:grid;gap:1rem;margin-top:1rem}
+.map-row{display:grid;grid-template-columns:200px 1fr;gap:1rem;align-items:center}
+.map-label{font-size:.85rem;color:var(--text-dim);display:flex;align-items:center;gap:.5rem}
+.map-label .req{color:var(--red);font-size:.7rem}
+.map-label .opt{color:var(--text-muted);font-size:.65rem;font-style:italic}
+select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.55rem .75rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;width:100%;cursor:pointer;transition:border-color .2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+select:focus{outline:none;border-color:var(--accent)}
+select option{background:var(--surface2);color:var(--text)}
+
+/* Sheet selector */
+.sheet-chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+.sheet-chip{padding:.4rem .9rem;border-radius:8px;font-size:.82rem;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);cursor:pointer;transition:all .2s;user-select:none}
+.sheet-chip:hover{border-color:var(--text-dim)}
+.sheet-chip.selected{border-color:var(--accent);color:var(--accent);background:rgba(245,158,11,0.1)}
+
+/* Machine name input */
+.machine-inputs{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1rem}
+.machine-tag{display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:.85rem}
+.machine-tag input{background:none;border:none;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:600;width:80px;outline:none}
+.machine-tag .sheet-label{color:var(--text-muted);font-size:.75rem}
+
+/* Buttons */
+.btn{padding:.7rem 1.5rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;transition:all .2s;border:none;display:inline-flex;align-items:center;gap:.5rem}
+.btn-primary{background:var(--accent);color:#000}.btn-primary:hover{background:#D97706;transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--text-muted)}
+.btn-success{background:var(--accent3);color:#000}.btn-success:hover{background:#059669}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-row{display:flex;gap:1rem;margin-top:2rem;justify-content:flex-end}
+
+/* Progress */
+.progress-bar{height:4px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:1.5rem}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--orange));border-radius:4px;transition:width .5s ease;width:0%}
+
+/* Preview */
+.preview-table{max-height:200px;overflow:auto;border-radius:8px;border:1px solid var(--border);margin-top:1rem;font-size:.75rem}
+.preview-table table{width:100%;border-collapse:collapse}
+.preview-table th{background:var(--surface2);color:var(--text-muted);padding:.4rem .6rem;text-align:left;position:sticky;top:0;font-size:.65rem;text-transform:uppercase;letter-spacing:.04em}
+.preview-table td{padding:.35rem .6rem;border-bottom:1px solid var(--border);color:var(--text-dim);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+
+/* Section hide/show */
+.wizard-section{display:none}.wizard-section.active{display:block;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+
+/* Toast */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;font-size:.85rem;color:var(--text);box-shadow:0 10px 40px rgba(0,0,0,.4);transition:transform .3s;z-index:999;display:flex;align-items:center;gap:.5rem}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.error{border-color:var(--red)}.toast.success{border-color:var(--accent3)}
+
+/* Optional badge */
+.optional-note{font-size:.75rem;color:var(--text-muted);font-style:italic;margin-bottom:.5rem;display:block}
+
+/* Responsive */
+@media(max-width:700px){.map-row{grid-template-columns:1fr}.wizard{padding:1rem}}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;background:rgba(11,15,26,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000}
+.loading-overlay h2{font-family:'Instrument Serif',serif;font-size:2rem;color:#fff;margin-bottom:1rem}
+.loading-overlay p{color:var(--text-dim);font-size:.95rem}
+.spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:1.5rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{display:none}
+.loading-overlay.show{display:flex}
+</style>
+</head>
+<body>
+
+<div class="wizard" id="app">
+  <!-- HEADER -->
+  <div class="wizard-header">
+    <h1>Generador de <em>Reportes</em></h1>
+    <p>Sube tus archivos Excel de fallas y cambios de marca para generar un reporte ejecutivo automático</p>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps" id="stepsBar">
+    <div class="step-dot active" data-step="1">1</div>
+    <div class="step-line"></div>
+    <div class="step-dot" data-step="2">2</div>
+    <div class="step-line"></div>
+    <div class="step-dot" data-step="3">3</div>
+    <div class="step-line"></div>
+    <div class="step-dot" data-step="4">4</div>
+  </div>
+
+  <!-- ===== STEP 1: UPLOAD ===== -->
+  <div class="wizard-section active" id="step1">
+    <div class="card">
+      <h2>📁 Archivo de Fallas por Máquina</h2>
+      <p>Excel con las principales fallas/paros de cada máquina. Cada pestaña debe ser una máquina diferente.</p>
+      <div class="upload-zone" id="zone-fallas">
+        <div class="upload-icon">📊</div>
+        <div>Arrastra tu archivo aquí o <strong style="color:var(--accent)">haz clic para seleccionar</strong></div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">.xlsx, .xls</div>
+        <input type="file" accept=".xlsx,.xls" id="file-fallas">
+        <div class="file-name" id="fname-fallas"></div>
+        <div class="file-info" id="finfo-fallas"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📁 Archivo de Cambios de Marca (CO)</h2>
+      <p>Excel con los registros de cambios de marca por máquina. Puede tener una o varias pestañas.</p>
+      <span class="optional-note">* Este archivo es opcional — puedes generar un reporte solo con fallas si lo prefieres</span>
+      <div class="upload-zone" id="zone-co">
+        <div class="upload-icon">🔄</div>
+        <div>Arrastra tu archivo aquí o <strong style="color:var(--accent)">haz clic para seleccionar</strong></div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">.xlsx, .xls</div>
+        <input type="file" accept=".xlsx,.xls" id="file-co">
+        <div class="file-name" id="fname-co"></div>
+        <div class="file-info" id="finfo-co"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-next1" disabled onclick="goStep(2)">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: SELECT SHEETS & NAME MACHINES ===== -->
+  <div class="wizard-section" id="step2">
+    <div class="card" id="card-sheets-fallas">
+      <h2>🏭 Pestañas del archivo de Fallas</h2>
+      <p>Selecciona cuáles pestañas corresponden a máquinas y nómbralas:</p>
+      <div id="sheets-fallas-container"></div>
+    </div>
+
+    <div class="card" id="card-sheets-co" style="display:none">
+      <h2>🔄 Pestañas del archivo de Cambios de Marca</h2>
+      <p>Selecciona las pestañas e indica qué máquina(s) contienen. Si una pestaña tiene varias máquinas, la herramienta las separará automáticamente por la columna que indiques.</p>
+      <div id="sheets-co-container"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Atrás</button>
+      <button class="btn btn-primary" id="btn-next2" onclick="goStep(3)">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 3: MAP COLUMNS ===== -->
+  <div class="wizard-section" id="step3">
+    <div class="card" id="card-map-fallas">
+      <h2>🔗 Mapeo de columnas — Fallas</h2>
+      <p>Indica cuál columna de tu archivo corresponde a cada campo. Las columnas marcadas con <span style="color:var(--red)">*</span> son obligatorias.</p>
+      <div class="preview-table" id="preview-fallas"></div>
+      <div class="mapping-grid" id="mapping-fallas"></div>
+    </div>
+
+    <div class="card" id="card-map-co" style="display:none">
+      <h2>🔗 Mapeo de columnas — Cambios de Marca</h2>
+      <p>Indica cuál columna corresponde a cada campo. Las columnas marcadas con <span style="color:var(--red)">*</span> son obligatorias.</p>
+      <div class="preview-table" id="preview-co"></div>
+      <div class="mapping-grid" id="mapping-co"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Atrás</button>
+      <button class="btn btn-success" id="btn-generate" onclick="generateReport()">🚀 Generar Reporte</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 4: DONE ===== -->
+  <div class="wizard-section" id="step4">
+    <div class="card" style="text-align:center;padding:3rem">
+      <div style="font-size:3rem;margin-bottom:1rem">✅</div>
+      <h2 style="font-size:1.5rem;margin-bottom:.75rem">¡Reporte Generado!</h2>
+      <p>Tu reporte se ha descargado automáticamente. Si no se descargó, haz clic en el botón.</p>
+      <div class="btn-row" style="justify-content:center;margin-top:1.5rem">
+        <button class="btn btn-primary" id="btn-download" onclick="downloadReport()">📥 Descargar Reporte</button>
+        <button class="btn btn-secondary" onclick="location.reload()">🔄 Crear otro reporte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <h2>Generando reporte...</h2>
+  <p id="loading-msg">Analizando datos de fallas</p>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+// STATE
+// ==========================================
+const state = {
+  fallasWb: null, fallasSheets: [], fallasData: {},
+  coWb: null, coSheets: [], coData: {},
+  machines: [], // [{name, fallasSheet, coSheet, coFilterCol, coFilterVal}]
+  mappingFallas: {},
+  mappingCo: {},
+  reportHtml: ''
+};
+
+// ==========================================
+// STEP NAVIGATION
+// ==========================================
+function goStep(n) {
+  document.querySelectorAll('.wizard-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  document.querySelectorAll('.step-dot').forEach(d => {
+    const s = +d.dataset.step;
+    d.classList.toggle('active', s === n);
+    d.classList.toggle('done', s < n);
+  });
+  document.querySelectorAll('.step-line').forEach((l, i) => {
+    l.classList.toggle('done', i < n - 1);
+  });
+  if (n === 2) buildStep2();
+  if (n === 3) buildStep3();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==========================================
+// FILE UPLOAD
+// ==========================================
+function setupUpload(zoneId, fileId, fnameId, finfoId, type) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(fileId);
+  
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0], type, fnameId, finfoId, zone);
+  });
+  input.addEventListener('change', e => {
+    if (e.target.files.length) handleFile(e.target.files[0], type, fnameId, finfoId, zone);
+  });
+}
+
+function handleFile(file, type, fnameId, finfoId, zone) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      if (type === 'fallas') {
+        state.fallasWb = wb;
+        state.fallasSheets = wb.SheetNames;
+        wb.SheetNames.forEach(s => {
+          state.fallasData[s] = XLSX.utils.sheet_to_json(wb.Sheets[s], { defval: null });
+        });
+      } else {
+        state.coWb = wb;
+        state.coSheets = wb.SheetNames;
+        wb.SheetNames.forEach(s => {
+          state.coData[s] = XLSX.utils.sheet_to_json(wb.Sheets[s], { defval: null });
+        });
+      }
+      zone.classList.add('has-file');
+      document.getElementById(fnameId).textContent = file.name;
+      document.getElementById(finfoId).textContent = `${wb.SheetNames.length} pestaña(s): ${wb.SheetNames.join(', ')}`;
+      checkStep1();
+      showToast('Archivo cargado correctamente', 'success');
+    } catch(err) {
+      showToast('Error al leer el archivo: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkStep1() {
+  document.getElementById('btn-next1').disabled = !state.fallasWb;
+}
+
+setupUpload('zone-fallas', 'file-fallas', 'fname-fallas', 'finfo-fallas', 'fallas');
+setupUpload('zone-co', 'file-co', 'fname-co', 'finfo-co', 'co');
+
+// ==========================================
+// STEP 2: SHEETS & MACHINE NAMES
+// ==========================================
+function buildStep2() {
+  // Fallas sheets
+  const cf = document.getElementById('sheets-fallas-container');
+  let html = '<div class="machine-inputs" id="fallas-machine-list">';
+  state.fallasSheets.forEach((s, i) => {
+    html += `<div class="machine-tag">
+      <span class="sheet-label">${s}:</span>
+      <input type="text" value="${s}" placeholder="Nombre" data-sheet="${s}" class="fallas-machine-name">
+    </div>`;
+  });
+  html += '</div>';
+  html += '<p style="font-size:.78rem;color:var(--text-muted);margin-top:.75rem">Puedes renombrar cada máquina. Desmarca las pestañas que no quieras incluir.</p>';
+  cf.innerHTML = html;
+
+  // CO sheets
+  if (state.coWb) {
+    document.getElementById('card-sheets-co').style.display = '';
+    const cc = document.getElementById('sheets-co-container');
+    let h2 = '';
+    state.coSheets.forEach(s => {
+      const data = state.coData[s];
+      const cols = data.length > 0 ? Object.keys(data[0]) : [];
+      // Try to detect a "machine" column
+      const possibleMachineCols = cols.filter(c => {
+        const cl = c.toLowerCase();
+        return cl.includes('lu') || cl.includes('maquina') || cl.includes('máquina') || cl.includes('machine') || cl.includes('equipo');
+      });
+      let uniqueVals = [];
+      if (possibleMachineCols.length > 0) {
+        uniqueVals = [...new Set(data.map(r => r[possibleMachineCols[0]]).filter(Boolean))];
+      }
+
+      h2 += `<div style="margin-bottom:1rem;padding:1rem;background:var(--surface2);border-radius:8px">
+        <strong style="color:#fff">${s}</strong> <span style="color:var(--text-muted);font-size:.8rem">(${data.length} filas)</span>`;
+      
+      if (uniqueVals.length > 1) {
+        h2 += `<p style="font-size:.8rem;color:var(--accent);margin-top:.5rem">Se detectaron ${uniqueVals.length} máquinas: ${uniqueVals.join(', ')}</p>
+        <p style="font-size:.75rem;color:var(--text-muted)">Columna de separación: <strong>${possibleMachineCols[0]}</strong></p>`;
+        h2 += `<input type="hidden" class="co-sheet-config" data-sheet="${s}" data-col="${possibleMachineCols[0]}" data-vals="${uniqueVals.join(',')}">`;
+      } else {
+        h2 += `<div style="margin-top:.5rem"><span style="font-size:.8rem;color:var(--text-dim)">Máquina: </span>
+        <input type="text" value="${s}" class="co-sheet-single" data-sheet="${s}" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.3rem .5rem;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.8rem;width:100px"></div>`;
+      }
+      h2 += '</div>';
+    });
+    cc.innerHTML = h2;
+  }
+}
+
+// ==========================================
+// STEP 3: COLUMN MAPPING
+// ==========================================
+const FALLAS_FIELDS = [
+  { key: 'falla', label: 'Razón de paro / Falla', required: true },
+  { key: 'stops', label: 'Cantidad de paros (Stops)', required: true },
+  { key: 'downtime', label: 'Downtime (minutos)', required: true },
+  { key: 'uptime_loss', label: 'Uptime Loss (%)', required: false },
+  { key: 'mtbf', label: 'MTBF', required: false },
+  { key: 'mttr', label: 'MTTR', required: false },
+  { key: 'rejects', label: 'Rejects / Desperdicio (%)', required: false },
+  { key: 'shift1', label: 'Paros Turno 1', required: false },
+  { key: 'shift2', label: 'Paros Turno 2', required: false },
+  { key: 'shift3', label: 'Paros Turno 3', required: false },
+];
+
+const CO_FIELDS = [
+  { key: 'machine_col', label: 'Columna de Máquina (LU)', required: false, note: 'Solo si hay varias máquinas en la misma pestaña' },
+  { key: 'marca_fin', label: 'Marca Finalizada', required: true },
+  { key: 'marca_ini', label: 'Marca Iniciada', required: true },
+  { key: 'tiempo_obj', label: 'Tiempo Objetivo', required: true },
+  { key: 'tiempo_real', label: 'Tiempo Real', required: true },
+  { key: 'variacion', label: 'Variación', required: false },
+  { key: 'stops_2h', label: '# Paros en próximas 2 horas', required: false },
+  { key: 'mtbf_2h', label: 'MTBF próximas 2 horas', required: false },
+  { key: 'razon', label: 'Razón de Desviación', required: false },
+  { key: 'coordinador', label: 'Coordinador / LC', required: false },
+  { key: 'mes', label: 'Mes', required: false },
+  { key: 'comentarios', label: 'Comentarios adicionales', required: false },
+];
+
+function buildStep3() {
+  // Get first fallas sheet columns
+  const firstFallasSheet = state.fallasSheets[0];
+  const fallasData = state.fallasData[firstFallasSheet] || [];
+  const fallasCols = fallasData.length > 0 ? Object.keys(fallasData[0]) : [];
+
+  // Preview table
+  buildPreview('preview-fallas', fallasData, fallasCols);
+
+  // Mapping
+  const mf = document.getElementById('mapping-fallas');
+  mf.innerHTML = FALLAS_FIELDS.map(f => {
+    const auto = autoDetect(f.key, fallasCols, 'fallas');
+    return `<div class="map-row">
+      <div class="map-label">${f.label} ${f.required ? '<span class="req">*</span>' : '<span class="opt">(opcional)</span>'}</div>
+      <select data-field="${f.key}" class="fallas-map">
+        <option value="">— No usar —</option>
+        ${fallasCols.map(c => `<option value="${c}" ${c === auto ? 'selected' : ''}>${c}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+
+  // CO mapping
+  if (state.coWb) {
+    document.getElementById('card-map-co').style.display = '';
+    const firstCoSheet = state.coSheets[0];
+    const coData = state.coData[firstCoSheet] || [];
+    const coCols = coData.length > 0 ? Object.keys(coData[0]) : [];
+
+    buildPreview('preview-co', coData, coCols);
+
+    const mc = document.getElementById('mapping-co');
+    mc.innerHTML = CO_FIELDS.map(f => {
+      const auto = autoDetect(f.key, coCols, 'co');
+      return `<div class="map-row">
+        <div class="map-label">${f.label} ${f.required ? '<span class="req">*</span>' : '<span class="opt">(opcional)</span>'}</div>
+        <select data-field="${f.key}" class="co-map">
+          <option value="">— No usar —</option>
+          ${coCols.map(c => `<option value="${c}" ${c === auto ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('');
+  }
+}
+
+function buildPreview(containerId, data, cols) {
+  const rows = data.slice(0, 5);
+  let h = '<table><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  rows.forEach(r => {
+    h += '<tr>' + cols.map(c => `<td>${r[c] ?? ''}</td>`).join('') + '</tr>';
+  });
+  h += '</table>';
+  document.getElementById(containerId).innerHTML = h;
+}
+
+function autoDetect(key, cols, type) {
+  const lower = cols.map(c => ({ orig: c, low: c.toLowerCase().replace(/[\n\r]/g, ' ') }));
+  const patterns = {
+    // Fallas
+    falla: ['stop reason', 'falla', 'paro', 'reason', 'unplanned'],
+    stops: ['stops', 'paros', 'count', 'cantidad'],
+    downtime: ['downtime', 'tiempo', 'down time'],
+    uptime_loss: ['uptime', 'loss', 'disponibilidad'],
+    mtbf: ['mtbf'],
+    mttr: ['mttr'],
+    rejects: ['reject', 'desperdicio', 'scrap'],
+    shift1: ['shift_1', 'turno 1', 'shift 1', 'turno_1'],
+    shift2: ['shift_2', 'turno 2', 'shift 2', 'turno_2'],
+    shift3: ['shift_3', 'turno 3', 'shift 3', 'turno_3'],
+    // CO
+    machine_col: ['lu', 'maquina', 'máquina', 'machine'],
+    marca_fin: ['finalizado', 'finished', 'terminad', 'nombre [finalizado'],
+    marca_ini: ['iniciado', 'started', 'nueva', 'nombre [iniciado'],
+    tiempo_obj: ['objetivo', 'target', 'planned'],
+    tiempo_real: ['real', 'actual'],
+    variacion: ['variación', 'variacion', 'deviation', 'variation'],
+    stops_2h: ['stops next', 'paros next', '#stops', 'stops next 2'],
+    mtbf_2h: ['mtbf next', 'mtbf 2'],
+    razon: ['razón', 'razon', 'desviación', 'desviacion', 'reason'],
+    coordinador: ['coordinador', 'lc', 'coordinator', 'lider', 'líder'],
+    mes: ['mes', 'month'],
+    comentarios: ['comentario', 'comment', 'column1', 'notas', 'recomendación', 'recomendacion', 'mejora'],
+  };
+
+  const pats = patterns[key] || [];
+  for (const pat of pats) {
+    const match = lower.find(c => c.low.includes(pat));
+    if (match) return match.orig;
+  }
+  return '';
+}
+
+// ==========================================
+// GENERATE REPORT
+// ==========================================
+function generateReport() {
+  showLoading(true, 'Leyendo configuración...');
+  
+  setTimeout(() => {
+    try {
+      // 1. Read mappings
+      const fMap = {};
+      document.querySelectorAll('.fallas-map').forEach(s => {
+        if (s.value) fMap[s.dataset.field] = s.value;
+      });
+      state.mappingFallas = fMap;
+
+      const cMap = {};
+      document.querySelectorAll('.co-map').forEach(s => {
+        if (s.value) cMap[s.dataset.field] = s.value;
+      });
+      state.mappingCo = cMap;
+
+      // Validate required
+      if (!fMap.falla || !fMap.stops || !fMap.downtime) {
+        showLoading(false);
+        showToast('Faltan columnas obligatorias en Fallas (razón, paros, downtime)', 'error');
+        return;
+      }
+
+      // 2. Build machines list
+      const machines = [];
+      document.querySelectorAll('.fallas-machine-name').forEach(inp => {
+        machines.push({
+          name: inp.value.trim() || inp.dataset.sheet,
+          fallasSheet: inp.dataset.sheet,
+          fallasData: state.fallasData[inp.dataset.sheet] || []
+        });
+      });
+
+      // 3. Attach CO data
+      if (state.coWb) {
+        if (!cMap.marca_fin || !cMap.marca_ini || !cMap.tiempo_obj || !cMap.tiempo_real) {
+          showLoading(false);
+          showToast('Faltan columnas obligatorias en CO (marca finalizada, iniciada, tiempo objetivo, tiempo real)', 'error');
+          return;
+        }
+
+        // Check for multi-machine sheets
+        const coConfigs = document.querySelectorAll('.co-sheet-config');
+        const coSingles = document.querySelectorAll('.co-sheet-single');
+
+        coConfigs.forEach(cfg => {
+          const sheet = cfg.dataset.sheet;
+          const col = cfg.dataset.col;
+          const vals = cfg.dataset.vals.split(',');
+          const allData = state.coData[sheet] || [];
+          vals.forEach(v => {
+            const m = machines.find(x => x.name.toLowerCase() === v.toLowerCase() || x.fallasSheet.toLowerCase().includes(v.toLowerCase()));
+            if (m) {
+              m.coData = allData.filter(r => String(r[col]).trim() === v.trim());
+            }
+          });
+        });
+
+        coSingles.forEach(inp => {
+          const sheet = inp.dataset.sheet;
+          const machineName = inp.value.trim();
+          const m = machines.find(x => x.name.toLowerCase() === machineName.toLowerCase() || x.fallasSheet.toLowerCase().includes(machineName.toLowerCase()));
+          if (m) {
+            m.coData = state.coData[sheet] || [];
+          } else if (machineName) {
+            // Try partial match
+            const m2 = machines.find(x => x.name.toLowerCase().includes(machineName.toLowerCase()) || machineName.toLowerCase().includes(x.name.toLowerCase()));
+            if (m2) m2.coData = state.coData[sheet] || [];
+          }
+        });
+      }
+
+      state.machines = machines;
+      showLoading(true, 'Analizando datos...');
+      
+      setTimeout(() => {
+        try {
+          const analysis = analyzeAll(machines, fMap, cMap);
+          showLoading(true, 'Construyendo reporte...');
+          
+          setTimeout(() => {
+            try {
+              state.reportHtml = buildReportHtml(analysis, machines);
+              showLoading(false);
+              goStep(4);
+              downloadReport();
+            } catch(err) {
+              showLoading(false);
+              showToast('Error generando HTML: ' + err.message, 'error');
+              console.error(err);
+            }
+          }, 300);
+        } catch(err) {
+          showLoading(false);
+          showToast('Error en análisis: ' + err.message, 'error');
+          console.error(err);
+        }
+      }, 300);
+    } catch(err) {
+      showLoading(false);
+      showToast('Error: ' + err.message, 'error');
+      console.error(err);
+    }
+  }, 200);
+}
+
+// ==========================================
+// ANALYSIS ENGINE
+// ==========================================
+function analyzeAll(machines, fMap, cMap) {
+  const colors = ['#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#A78BFA', '#06B6D4', '#EF4444', '#F97316'];
+  const result = { machines: [] };
+
+  machines.forEach((m, idx) => {
+    const color = colors[idx % colors.length];
+    const a = { name: m.name, color, fallas: [], summary: {}, shifts: null, co: null };
+
+    // === FALLAS ANALYSIS ===
+    const fd = m.fallasData || [];
+    const top10 = fd.slice(0, Math.min(fd.length, 10));
+    
+    let totalStops = 0, totalDown = 0, totalUloss = 0, mtbfSum = 0, mttrSum = 0, cnt = 0;
+    let t1 = 0, t2 = 0, t3 = 0;
+    
+    fd.forEach(r => {
+      const stops = num(r[fMap.stops]);
+      const down = num(r[fMap.downtime]);
+      totalStops += stops;
+      totalDown += down;
+      if (fMap.uptime_loss) totalUloss += num(r[fMap.uptime_loss]);
+      if (fMap.mtbf) { mtbfSum += num(r[fMap.mtbf]); cnt++; }
+      if (fMap.mttr) mttrSum += num(r[fMap.mttr]);
+      if (fMap.shift1) t1 += num(r[fMap.shift1]);
+      if (fMap.shift2) t2 += num(r[fMap.shift2]);
+      if (fMap.shift3) t3 += num(r[fMap.shift3]);
+    });
+
+    a.summary = {
+      totalStops, totalDown: Math.round(totalDown),
+      uptimeLoss: round(totalUloss, 1),
+      avgMtbf: cnt > 0 ? Math.round(mtbfSum / cnt) : null,
+      avgMttr: cnt > 0 ? round(mttrSum / cnt, 1) : null
+    };
+
+    if (fMap.shift1 && fMap.shift2 && fMap.shift3) {
+      a.shifts = { t1, t2, t3 };
+    }
+
+    a.fallas = top10.map(r => ({
+      falla: r[fMap.falla] || '—',
+      stops: num(r[fMap.stops]),
+      downtime: round(num(r[fMap.downtime]), 1),
+      uloss: fMap.uptime_loss ? round(num(r[fMap.uptime_loss]), 3) : null,
+      mtbf: fMap.mtbf ? num(r[fMap.mtbf]) : null,
+      mttr: fMap.mttr ? round(num(r[fMap.mttr]), 1) : null,
+      rejects: fMap.rejects ? round(num(r[fMap.rejects]), 3) : null
+    }));
+
+    // === CO ANALYSIS ===
+    if (m.coData && m.coData.length > 0 && cMap.marca_ini) {
+      const cd = m.coData;
+      const coA = { total: cd.length };
+
+      // Times
+      const valid = cd.filter(r => num(r[cMap.tiempo_real]) > 0 && num(r[cMap.tiempo_obj]) > 0);
+      coA.avgObj = valid.length > 0 ? round(avg(valid.map(r => num(r[cMap.tiempo_obj]))), 1) : null;
+      coA.avgReal = valid.length > 0 ? round(avg(valid.map(r => num(r[cMap.tiempo_real]))), 1) : null;
+      coA.medianReal = valid.length > 0 ? round(median(valid.map(r => num(r[cMap.tiempo_real]))), 1) : null;
+
+      // Variación
+      let variations;
+      if (cMap.variacion) {
+        variations = valid.map(r => num(r[cMap.variacion]));
+      } else {
+        variations = valid.map(r => {
+          const obj = num(r[cMap.tiempo_obj]);
+          const real = num(r[cMap.tiempo_real]);
+          return obj > 0 ? (real - obj) / obj : 0;
+        });
+      }
+      const onTime = variations.filter(v => v <= 0).length;
+      coA.pctOnTime = valid.length > 0 ? round(onTime / valid.length * 100, 1) : 0;
+
+      // Stops & MTBF post-CO
+      if (cMap.stops_2h) coA.avgStops2h = round(avg(cd.map(r => num(r[cMap.stops_2h])).filter(x => x > 0)), 1);
+      if (cMap.mtbf_2h) coA.avgMtbf2h = round(avg(cd.map(r => num(r[cMap.mtbf_2h])).filter(x => x > 0)), 1);
+
+      // Worst & Best brands
+      const brandGroups = groupBy(valid, r => String(r[cMap.marca_ini] || '').trim());
+      const brandStats = Object.entries(brandGroups)
+        .filter(([k, v]) => k && k !== 'null' && k !== 'nan' && k !== 'undefined' && v.length >= 3)
+        .map(([brand, rows]) => {
+          const vars = cMap.variacion 
+            ? rows.map(r => num(r[cMap.variacion]))
+            : rows.map(r => { const o = num(r[cMap.tiempo_obj]); return o > 0 ? (num(r[cMap.tiempo_real]) - o) / o : 0; });
+          return {
+            brand, count: rows.length,
+            avgReal: round(avg(rows.map(r => num(r[cMap.tiempo_real]))), 1),
+            avgVar: round(avg(vars), 2),
+            avgStops: cMap.stops_2h ? round(avg(rows.map(r => num(r[cMap.stops_2h])).filter(x => x > 0)), 1) : null,
+            maxReal: Math.max(...rows.map(r => num(r[cMap.tiempo_real])))
+          };
+        });
+      coA.worstBrands = [...brandStats].sort((a, b) => b.avgVar - a.avgVar).slice(0, 5);
+      coA.bestBrands = [...brandStats].sort((a, b) => a.avgVar - b.avgVar).slice(0, 5);
+
+      // Transitions
+      if (cMap.marca_fin) {
+        const transValid = valid.filter(r => {
+          const fin = String(r[cMap.marca_fin] || '').trim().toLowerCase();
+          return fin && fin !== 'nan' && fin !== 'null' && fin !== 'arranque' && fin !== 'undefined';
+        });
+        const transGroups = groupBy(transValid, r => String(r[cMap.marca_fin]).trim() + ' → ' + String(r[cMap.marca_ini]).trim());
+        const transStats = Object.entries(transGroups)
+          .filter(([k, v]) => v.length >= 2)
+          .map(([trans, rows]) => {
+            const vars = cMap.variacion
+              ? rows.map(r => num(r[cMap.variacion]))
+              : rows.map(r => { const o = num(r[cMap.tiempo_obj]); return o > 0 ? (num(r[cMap.tiempo_real]) - o) / o : 0; });
+            return {
+              trans, count: rows.length,
+              avgReal: round(avg(rows.map(r => num(r[cMap.tiempo_real]))), 1),
+              avgVar: round(avg(vars), 2),
+              avgStops: cMap.stops_2h ? round(avg(rows.map(r => num(r[cMap.stops_2h])).filter(x => x > 0)), 1) : null
+            };
+          });
+        coA.worstTrans = [...transStats].sort((a, b) => b.avgVar - a.avgVar).slice(0, 6);
+        coA.bestTrans = [...transStats].sort((a, b) => a.avgVar - b.avgVar).slice(0, 6);
+      }
+
+      // Coordinators
+      if (cMap.coordinador) {
+        const lcValid = valid.filter(r => {
+          const lc = String(r[cMap.coordinador] || '').trim();
+          return lc && lc !== 'nan' && lc !== 'null' && !lc.includes('/');
+        });
+        const lcGroups = groupBy(lcValid, r => String(r[cMap.coordinador]).trim());
+        coA.coordinators = Object.entries(lcGroups)
+          .filter(([k, v]) => v.length >= 5)
+          .map(([name, rows]) => {
+            const vars = cMap.variacion
+              ? rows.map(r => num(r[cMap.variacion]))
+              : rows.map(r => { const o = num(r[cMap.tiempo_obj]); return o > 0 ? (num(r[cMap.tiempo_real]) - o) / o : 0; });
+            const onT = vars.filter(v => v <= 0).length;
+            return {
+              name, count: rows.length,
+              avgReal: round(avg(rows.map(r => num(r[cMap.tiempo_real]))), 1),
+              avgVar: round(avg(vars), 2),
+              pctOn: round(onT / rows.length * 100, 1),
+              avgStops: cMap.stops_2h ? round(avg(rows.map(r => num(r[cMap.stops_2h])).filter(x => x > 0)), 1) : null
+            };
+          })
+          .sort((a, b) => a.avgVar - b.avgVar);
+      }
+
+      // Razones
+      if (cMap.razon) {
+        const razones = cd.map(r => String(r[cMap.razon] || '').trim()).filter(x => x && x !== 'nan' && x !== 'null' && x.toLowerCase() !== 'ok' && x.length > 2);
+        const razCount = {};
+        razones.forEach(r => { razCount[r] = (razCount[r] || 0) + 1; });
+        coA.razones = Object.entries(razCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      }
+
+      a.co = coA;
+    }
+
+    result.machines.push(a);
+  });
+
+  return result;
+}
+
+// ==========================================
+// HTML REPORT BUILDER
+// ==========================================
+function buildReportHtml(analysis, machines) {
+  const ms = analysis.machines;
+  const hasCO = ms.some(m => m.co);
+  const hasShifts = ms.some(m => m.shifts);
+  const hasTrans = ms.some(m => m.co && m.co.worstTrans);
+  const hasLC = ms.some(m => m.co && m.co.coordinators && m.co.coordinators.length > 0);
+  const hasRaz = ms.some(m => m.co && m.co.razones && m.co.razones.length > 0);
+
+  let secNum = 0;
+  const sec = () => { secNum++; return secNum < 10 ? '0' + secNum : secNum; };
+
+  // Nav links
+  let navLinks = `<a href="#overview">Overview</a><a href="#fallas">Fallas</a>`;
+  if (hasShifts) navLinks += `<a href="#turnos">Turnos</a>`;
+  if (hasCO) navLinks += `<a href="#cambios">Cambios de Marca</a><a href="#marcas">Marcas</a>`;
+  if (hasTrans) navLinks += `<a href="#transiciones">Transiciones</a>`;
+  if (hasLC) navLinks += `<a href="#coordinadores">Coordinadores</a>`;
+  navLinks += `<a href="#hallazgos">Hallazgos</a>`;
+
+  // Machine pills
+  const pills = ms.map(m => `<div class="hero-machine" style="--mc:${m.color}"><span class="dot" style="background:${m.color};box-shadow:0 0 8px ${m.color}"></span>${m.name}</div>`).join('');
+
+  // Compare cards
+  const compareCards = ms.map(m => {
+    let rows = `<div class="stat-row"><span class="stat-label">Total paros</span><span class="stat-val">${m.summary.totalStops.toLocaleString()}</span></div>
+    <div class="stat-row"><span class="stat-label">Downtime total</span><span class="stat-val">${m.summary.totalDown.toLocaleString()} min</span></div>`;
+    if (m.summary.uptimeLoss) rows += `<div class="stat-row"><span class="stat-label">Uptime Loss</span><span class="stat-val">${m.summary.uptimeLoss}%</span></div>`;
+    if (m.summary.avgMtbf) rows += `<div class="stat-row"><span class="stat-label">MTBF promedio</span><span class="stat-val">${m.summary.avgMtbf} min</span></div>`;
+    if (m.summary.avgMttr) rows += `<div class="stat-row"><span class="stat-label">MTTR promedio</span><span class="stat-val">${m.summary.avgMttr} min</span></div>`;
+    if (m.co) {
+      rows += `<div class="stat-row"><span class="stat-label">Total COs</span><span class="stat-val">${m.co.total}</span></div>`;
+      rows += `<div class="stat-row"><span class="stat-label">% On-time CO</span><span class="stat-val">${m.co.pctOnTime}%</span></div>`;
+    }
+    return `<div class="compare-card" style="--mc:${m.color}"><h3 style="color:${m.color}">${m.name}</h3>${rows}</div>`;
+  }).join('');
+
+  // Fallas tabs + tables
+  const fallasTabs = ms.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-tab="fallas-${i}" style="--tc:${m.color}">${m.name}</div>`).join('');
+  
+  const fallasContents = ms.map((m, i) => {
+    const hasUloss = m.fallas.some(f => f.uloss !== null);
+    const hasMtbf = m.fallas.some(f => f.mtbf !== null);
+    const hasMttr = m.fallas.some(f => f.mttr !== null);
+    const hasRej = m.fallas.some(f => f.rejects !== null);
+
+    let ths = '<th>#</th><th>Falla</th><th>Paros</th><th>Downtime</th>';
+    if (hasUloss) ths += '<th>Uptime Loss %</th>';
+    if (hasMtbf) ths += '<th>MTBF</th>';
+    if (hasMttr) ths += '<th>MTTR</th>';
+    if (hasRej) ths += '<th>Rejects %</th>';
+
+    const rows = m.fallas.map((f, j) => {
+      let r = `<td>${j + 1}</td><td>${f.falla}</td><td class="num">${f.stops.toLocaleString()}</td><td class="num">${f.downtime.toLocaleString()}</td>`;
+      if (hasUloss) r += `<td class="num">${f.uloss ?? ''}</td>`;
+      if (hasMtbf) r += `<td class="num">${f.mtbf ?? ''}</td>`;
+      if (hasMttr) r += `<td class="num">${f.mttr ?? ''}</td>`;
+      if (hasRej) r += `<td class="num">${f.rejects ?? ''}</td>`;
+      return `<tr>${r}</tr>`;
+    }).join('');
+
+    return `<div class="tab-content ${i === 0 ? 'active' : ''}" id="fallas-${i}">
+      <div class="table-wrap"><table><tr>${ths}</tr>${rows}</table></div></div>`;
+  }).join('');
+
+  // Shifts section
+  let shiftsHtml = '';
+  if (hasShifts) {
+    const shiftCards = ms.filter(m => m.shifts).map(m => {
+      const max = Math.max(m.shifts.t1, m.shifts.t2, m.shifts.t3);
+      return `<div class="shift-card"><h4 style="color:${m.color}">${m.name}</h4>
+        ${['Turno 1:t1', 'Turno 2:t2', 'Turno 3:t3'].map(s => {
+          const [label, key] = s.split(':');
+          const val = m.shifts[key];
+          return `<div class="sbi"><span class="sl">${label}</span><div class="sb"><div class="sf" style="width:${Math.round(val / max * 100)}%;background:${m.color}${key === 't3' ? ';opacity:0.7' : ''}"></div></div><span class="sv">${val.toLocaleString()}</span></div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+    shiftsHtml = `<section id="turnos"><div class="container">
+      <div class="section-number">${sec()} — Análisis por Turno</div>
+      <h2 class="section-title">Distribución de paros por turno</h2>
+      <div class="shift-grid">${shiftCards}</div>
+    </div></section>`;
+  }
+
+  // CO section
+  let coHtml = '';
+  if (hasCO) {
+    const coMs = ms.filter(m => m.co);
+    const kpiCards = coMs.map(m => `
+      <div class="kpi-card" style="--mc:${m.color}"><div class="kpi-label">${m.name} — Tiempo prom. CO</div>
+        <div class="kpi-value">${m.co.avgReal || '—'} <span style="font-size:.9rem;color:var(--text-dim)">min</span></div>
+        <div class="kpi-sub">Objetivo: ${m.co.avgObj || '—'} min · Mediana: ${m.co.medianReal || '—'} min</div></div>
+      ${m.co.avgStops2h ? `<div class="kpi-card" style="--mc:${m.color}"><div class="kpi-label">${m.name} — Paros 2h post-CO</div><div class="kpi-value">${m.co.avgStops2h}</div><div class="kpi-sub">MTBF post-CO: ${m.co.avgMtbf2h || '—'} min</div></div>` : ''}
+    `).join('');
+
+    const donuts = coMs.map(m => `<div class="donut-item"><svg viewBox="0 0 36 36"><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--surface2)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="${m.color}" stroke-width="3" stroke-dasharray="${m.co.pctOnTime},100" stroke-linecap="round"/><text x="18" y="18.5" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" font-weight="700" fill="#fff">${m.co.pctOnTime}%</text></svg><div class="donut-label" style="color:${m.color}">${m.name}</div></div>`).join('');
+
+    coHtml = `<section id="cambios"><div class="container">
+      <div class="section-number">${sec()} — Cambios de Marca (CO)</div>
+      <h2 class="section-title">Eficiencia en changeovers</h2>
+      <div class="kpi-grid">${kpiCards}</div>
+      <h3 style="text-align:center;color:#fff;font-size:1.1rem">% de COs completados a tiempo</h3>
+      <div class="donut-row">${donuts}</div>
+    </div></section>`;
+  }
+
+  // Brands section
+  let brandsHtml = '';
+  if (hasCO) {
+    const coMs = ms.filter(m => m.co && m.co.worstBrands);
+    const bTabs = coMs.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-tab="marca-${i}" style="--tc:${m.color}">${m.name}</div>`).join('');
+    const bContents = coMs.map((m, i) => {
+      const wRows = m.co.worstBrands.map(b => {
+        const vp = Math.round(b.avgVar * 100);
+        const cls = vp > 20 ? 'heat-bad' : (vp > 10 ? 'heat-warn' : 'heat-good');
+        return `<tr><td>${b.brand}</td><td class="num">${b.count}</td><td class="num">${b.avgReal} min</td><td class="num ${cls}">${vp > 0 ? '+' : ''}${vp}%</td><td class="num">${b.avgStops || '—'}</td></tr>`;
+      }).join('');
+      const bRows = m.co.bestBrands.map(b => {
+        const vp = Math.round(b.avgVar * 100);
+        const cls = vp > 20 ? 'heat-bad' : (vp > 10 ? 'heat-warn' : 'heat-good');
+        return `<tr><td>${b.brand}</td><td class="num">${b.count}</td><td class="num">${b.avgReal} min</td><td class="num ${cls}">${vp > 0 ? '+' : ''}${vp}%</td><td class="num">${b.avgStops || '—'}</td></tr>`;
+      }).join('');
+      return `<div class="tab-content ${i === 0 ? 'active' : ''}" id="marca-${i}">
+        <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">🔴 Marcas más problemáticas</h3>
+        <div class="table-wrap"><table><tr><th>Marca</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>${wRows}</table></div>
+        <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">🟢 Marcas con mejor desempeño</h3>
+        <div class="table-wrap"><table><tr><th>Marca</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>${bRows}</table></div>
+      </div>`;
+    }).join('');
+
+    brandsHtml = `<section id="marcas"><div class="container">
+      <div class="section-number">${sec()} — Análisis por Marca</div>
+      <h2 class="section-title">¿Qué marcas causan más problemas?</h2>
+      <p class="section-desc">Marcas con al menos 3 COs. Variación promedio indica exceso (+) o reducción (−) del tiempo objetivo.</p>
+      <div class="tabs" data-group="marcas">${bTabs}</div>${bContents}
+    </div></section>`;
+  }
+
+  // Transitions
+  let transHtml = '';
+  if (hasTrans) {
+    const tMs = ms.filter(m => m.co && m.co.worstTrans);
+    const tTabs = tMs.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-tab="trans-${i}" style="--tc:${m.color}">${m.name}</div>`).join('');
+    const tContents = tMs.map((m, i) => {
+      const makeRows = (arr) => arr.map(t => {
+        const vp = Math.round(t.avgVar * 100);
+        const cls = vp > 20 ? 'heat-bad' : (vp > 0 ? 'heat-warn' : 'heat-good');
+        return `<tr><td style="font-size:.78rem">${t.trans}</td><td class="num">${t.count}</td><td class="num">${t.avgReal} min</td><td class="num ${cls}">${vp > 0 ? '+' : ''}${vp}%</td><td class="num">${t.avgStops || '—'}</td></tr>`;
+      }).join('');
+      return `<div class="tab-content ${i === 0 ? 'active' : ''}" id="trans-${i}">
+        <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">⚠️ Peores transiciones</h3>
+        <div class="table-wrap"><table><tr><th>Transición</th><th># Veces</th><th>T. Real</th><th>Variación</th><th>Paros 2h</th></tr>${makeRows(m.co.worstTrans)}</table></div>
+        <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">✅ Mejores transiciones</h3>
+        <div class="table-wrap"><table><tr><th>Transición</th><th># Veces</th><th>T. Real</th><th>Variación</th><th>Paros 2h</th></tr>${makeRows(m.co.bestTrans)}</table></div>
+      </div>`;
+    }).join('');
+    transHtml = `<section id="transiciones"><div class="container">
+      <div class="section-number">${sec()} — Transiciones entre Marcas</div>
+      <h2 class="section-title">¿Qué cambios marca→marca son más difíciles?</h2>
+      <div class="tabs" data-group="trans">${tTabs}</div>${tContents}
+    </div></section>`;
+  }
+
+  // Coordinators
+  let lcHtml = '';
+  if (hasLC) {
+    const lcMs = ms.filter(m => m.co && m.co.coordinators && m.co.coordinators.length > 0);
+    const lcTabs = lcMs.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-tab="lc-${i}" style="--tc:${m.color}">${m.name}</div>`).join('');
+    const lcContents = lcMs.map((m, i) => {
+      const rows = m.co.coordinators.map(c => {
+        const vp = Math.round(c.avgVar * 100);
+        const cls = vp > 15 ? 'heat-bad' : (vp > 5 ? 'heat-warn' : 'heat-good');
+        const onCls = c.pctOn >= 50 ? 'heat-good' : (c.pctOn >= 35 ? 'heat-warn' : 'heat-bad');
+        return `<tr><td style="font-weight:600">${c.name}</td><td class="num">${c.count}</td><td class="num">${c.avgReal} min</td><td class="num ${cls}">${vp > 0 ? '+' : ''}${vp}%</td><td class="num ${onCls}">${c.pctOn}%</td><td class="num">${c.avgStops || '—'}</td></tr>`;
+      }).join('');
+      return `<div class="tab-content ${i === 0 ? 'active' : ''}" id="lc-${i}">
+        <div class="table-wrap"><table><tr><th>Coordinador</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>% On-Time</th><th>Paros 2h</th></tr>${rows}</table></div>
+      </div>`;
+    }).join('');
+    lcHtml = `<section id="coordinadores"><div class="container">
+      <div class="section-number">${sec()} — Desempeño por Coordinador</div>
+      <h2 class="section-title">¿Quién ejecuta mejor los cambios?</h2>
+      <div class="tabs" data-group="lc">${lcTabs}</div>${lcContents}
+    </div></section>`;
+  }
+
+  // Razones
+  let razHtml = '';
+  if (hasRaz) {
+    const rMs = ms.filter(m => m.co && m.co.razones && m.co.razones.length > 0);
+    const rTabs = rMs.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-tab="raz-${i}" style="--tc:${m.color}">${m.name}</div>`).join('');
+    const rContents = rMs.map((m, i) => {
+      const items = m.co.razones.map(([txt, cnt]) => `<li class="razon-item"><span class="razon-count">${cnt}</span><span class="razon-text">${txt.substring(0, 150)}</span></li>`).join('');
+      return `<div class="tab-content ${i === 0 ? 'active' : ''}" id="raz-${i}"><ul class="razon-list">${items}</ul></div>`;
+    }).join('');
+    razHtml = `<div style="margin-top:4rem"><div class="section-number">${sec()} — Razones de Desviación</div>
+      <h2 class="section-title">¿Por qué se excede el tiempo?</h2>
+      <div class="tabs" data-group="raz">${rTabs}</div>${rContents}</div>`;
+  }
+
+  // Conclusions
+  const conclusionCards = ms.map(m => {
+    let findings = '';
+    if (m.summary.avgMtbf) findings += `<p style="margin-bottom:.5rem">MTBF promedio: <strong style="color:#fff">${m.summary.avgMtbf} min</strong></p>`;
+    if (m.co) {
+      findings += `<p style="margin-bottom:.5rem">Cumplimiento CO: <strong style="color:${m.co.pctOnTime >= 50 ? 'var(--accent3)' : 'var(--red)'}">${m.co.pctOnTime}% on-time</strong></p>`;
+      if (m.co.worstBrands && m.co.worstBrands[0]) {
+        findings += `<p style="margin-bottom:.5rem">Marca más difícil: <strong style="color:#fff">${m.co.worstBrands[0].brand}</strong> (+${Math.round(m.co.worstBrands[0].avgVar * 100)}%)</p>`;
+      }
+    }
+    if (m.fallas[0]) findings += `<p>Falla #1: <strong style="color:#fff">${m.fallas[0].falla}</strong> (${m.fallas[0].stops.toLocaleString()} paros)</p>`;
+    return `<div class="compare-card" style="border-left:3px solid ${m.color}"><h3 style="color:${m.color};font-size:1rem">${m.name}</h3><div style="font-size:.85rem;color:var(--text-dim);line-height:1.7;margin-top:.75rem">${findings}</div></div>`;
+  }).join('');
+
+  // FULL HTML
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Reporte — Análisis de Máquinas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0F1A;--surface:#111827;--surface2:#1A2235;--border:#1E293B;--text:#E2E8F0;--text-dim:#94A3B8;--text-muted:#64748B;--accent:#F59E0B;--accent3:#10B981;--red:#EF4444;--orange:#F97316}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(245,158,11,0.08) 0%,transparent 60%),var(--bg)}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")}
+.hero-label{font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:1.5rem;position:relative;animation:fadeUp .8s ease both}
+.hero h1{font-family:'Instrument Serif',serif;font-size:clamp(2.8rem,7vw,5.5rem);font-weight:400;line-height:1.1;color:#fff;margin-bottom:1rem;position:relative;animation:fadeUp .8s ease .1s both}
+.hero h1 em{font-style:italic;background:linear-gradient(135deg,var(--accent),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:1.15rem;color:var(--text-dim);max-width:600px;position:relative;animation:fadeUp .8s ease .2s both}
+.hero-machines{display:flex;gap:1.5rem;margin-top:3rem;position:relative;animation:fadeUp .8s ease .3s both;flex-wrap:wrap;justify-content:center}
+.hero-machine{display:flex;align-items:center;gap:.5rem;padding:.6rem 1.2rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-weight:600;font-size:.9rem}
+.dot{width:8px;height:8px;border-radius:50%}
+.scroll-ind{position:absolute;bottom:2rem;animation:bounce 2s infinite;color:var(--text-muted);font-size:1.5rem}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(11,15,26,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;height:56px;transform:translateY(-100%);transition:transform .3s}
+.nav.visible{transform:translateY(0)}.nav-brand{font-family:'Instrument Serif',serif;font-size:1.15rem;color:#fff;margin-right:auto}
+.nav-links{display:flex;gap:.25rem;flex-wrap:wrap}.nav-links a{color:var(--text-dim);text-decoration:none;font-size:.78rem;padding:.4rem .7rem;border-radius:6px;transition:all .2s}.nav-links a:hover{color:#fff;background:var(--surface)}
+.container{max-width:1280px;margin:0 auto;padding:0 2rem}section{padding:5rem 0;border-top:1px solid var(--border)}
+.section-number{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+.section-title{font-family:'Instrument Serif',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:400;color:#fff;line-height:1.2;margin-bottom:.75rem}
+.section-desc{font-size:1rem;color:var(--text-dim);max-width:700px;margin-bottom:2rem}
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-bottom:2rem}
+.compare-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;position:relative}
+.compare-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;background:var(--mc,var(--accent))}
+.stat-row{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.85rem}.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--text-dim)}.stat-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff}
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:var(--surface);margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:var(--surface2);color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:.7rem;padding:.9rem 1rem;text-align:left;white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:.75rem 1rem;border-bottom:1px solid var(--border);color:var(--text)}tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,0.02)}
+td.num{font-family:'JetBrains Mono',monospace;font-size:.82rem}
+.tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:.55rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);transition:all .2s;user-select:none}
+.tab:hover{color:var(--text);border-color:var(--text-muted)}.tab.active{background:rgba(245,158,11,0.12);border-color:var(--tc,var(--accent));color:var(--tc,var(--accent))}
+.tab-content{display:none;animation:fadeUp .4s ease}.tab-content.active{display:block}
+.insight-box{background:var(--surface);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:1.25rem 1.5rem;margin:2rem 0;font-size:.9rem;line-height:1.7}
+.insight-box strong{color:var(--accent)}.insight-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.5rem;font-weight:700}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--mc,var(--accent))}
+.kpi-label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.kpi-value{font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;color:#fff}.kpi-sub{font-size:.8rem;color:var(--text-dim);margin-top:.25rem}
+.shift-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-bottom:2rem}
+.shift-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.shift-card h4{font-size:.9rem;font-weight:600;margin-bottom:1rem}
+.sbi{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}.sbi .sl{flex:0 0 55px;font-size:.75rem;color:var(--text-dim)}
+.sbi .sb{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden}.sbi .sf{height:100%;border-radius:4px}
+.sbi .sv{flex:0 0 50px;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-dim);text-align:right}
+.donut-row{display:flex;justify-content:center;gap:3rem;flex-wrap:wrap;margin:2rem 0}.donut-item{text-align:center}.donut-item svg{width:130px;height:130px}
+.donut-label{margin-top:.5rem;font-size:.9rem;font-weight:600}
+.heat-good{color:var(--accent3)}.heat-warn{color:var(--orange)}.heat-bad{color:var(--red)}
+.razon-list{list-style:none;padding:0}.razon-item{display:flex;gap:.75rem;align-items:flex-start;padding:.6rem 0;border-bottom:1px solid var(--border);font-size:.85rem}.razon-item:last-child{border-bottom:none}
+.razon-count{font-family:'JetBrains Mono',monospace;font-size:.75rem;background:var(--surface2);padding:.2rem .5rem;border-radius:4px;color:var(--accent);flex-shrink:0;min-width:30px;text-align:center}
+.razon-text{color:var(--text-dim)}
+.footer{padding:3rem 0;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:.8rem}
+@media(max-width:900px){.compare-grid,.shift-grid{grid-template-columns:1fr}}
+</style></head><body>
+<nav class="nav" id="nav"><div class="nav-brand">Reporte</div><div class="nav-links">${navLinks}</div></nav>
+<header class="hero"><div class="hero-label">Reporte de Análisis</div><h1>Análisis de <em>Máquinas</em></h1>
+<p class="hero-sub">Diagnóstico integral de fallas, cambios de marca y rendimiento operativo</p>
+<div class="hero-machines">${pills}</div><div class="scroll-ind">↓</div></header>
+
+<section id="overview"><div class="container">
+  <div class="section-number">${sec()} — Panorama General</div>
+  <h2 class="section-title">Las máquinas en números</h2>
+  <div class="compare-grid">${compareCards}</div>
+</div></section>
+
+<section id="fallas"><div class="container">
+  <div class="section-number">${sec()} — Principales Fallas</div>
+  <h2 class="section-title">Top paros no planeados por máquina</h2>
+  <div class="tabs" data-group="fallas">${fallasTabs}</div>${fallasContents}
+</div></section>
+
+${shiftsHtml}${coHtml}${brandsHtml}${transHtml}${lcHtml}
+
+<section id="hallazgos"><div class="container">
+  ${razHtml}
+  <div style="margin-top:4rem"><div class="section-number">${sec()} — Resumen por Máquina</div>
+  <h2 class="section-title">Hallazgos clave</h2></div>
+  <div class="compare-grid" style="margin-top:2rem">${conclusionCards}</div>
+</div></section>
+
+<footer class="footer"><p>Reporte generado automáticamente · ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</p></footer>
+
+<script>
+document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{const g=tab.parentElement;g.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');let p=g.parentElement;p.querySelectorAll(':scope>.tab-content').forEach(tc=>tc.classList.remove('active'));document.getElementById(tab.dataset.tab).classList.add('active')})});
+const nav=document.getElementById('nav');window.addEventListener('scroll',()=>{if(window.scrollY>400)nav.classList.add('visible');else nav.classList.remove('visible')});
+document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const el=document.querySelector(a.getAttribute('href'));if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})});
+<\/script></body></html>`;
+}
+
+// ==========================================
+// UTILITIES
+// ==========================================
+function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function round(v, d) { const f = Math.pow(10, d); return Math.round(v * f) / f; }
+function avg(arr) { return arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+function median(arr) { const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function groupBy(arr, fn) { const g = {}; arr.forEach(r => { const k = fn(r); if (!g[k]) g[k] = []; g[k].push(r); }); return g; }
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'error' ? '❌ ' : '✅ ') + msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function showLoading(show, msg) {
+  const el = document.getElementById('loading');
+  if (show) { el.classList.add('show'); if (msg) document.getElementById('loading-msg').textContent = msg; }
+  else el.classList.remove('show');
+}
+
+function downloadReport() {
+  if (!state.reportHtml) return;
+  const blob = new Blob([state.reportHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'reporte_maquinas_' + new Date().toISOString().slice(0, 10) + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
