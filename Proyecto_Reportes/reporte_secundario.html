@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte Secundario — B9 · H12 · H13</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0B0F1A;--surface:#111827;--surface2:#1A2235;--border:#1E293B;
+  --text:#E2E8F0;--text-dim:#94A3B8;--text-muted:#64748B;
+  --accent:#F59E0B;--accent2:#3B82F6;--accent3:#10B981;
+  --red:#EF4444;--orange:#F97316;--cyan:#06B6D4;--purple:#A78BFA;--pink:#EC4899;
+  --b9:#F59E0B;--h12:#3B82F6;--h13:#10B981;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem;overflow:hidden;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(245,158,11,0.08) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 50% at 20% 80%,rgba(59,130,246,0.06) 0%,transparent 50%),
+  radial-gradient(ellipse 60% 50% at 80% 80%,rgba(16,185,129,0.06) 0%,transparent 50%),var(--bg)}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")}
+.hero-label{font-family:'JetBrains Mono',monospace;font-size:0.75rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:1.5rem;position:relative;animation:fadeUp .8s ease both}
+.hero h1{font-family:'Instrument Serif',serif;font-size:clamp(2.8rem,7vw,5.5rem);font-weight:400;line-height:1.1;letter-spacing:-0.02em;color:#fff;margin-bottom:1rem;position:relative;animation:fadeUp .8s ease .1s both}
+.hero h1 em{font-style:italic;background:linear-gradient(135deg,var(--accent),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:1.15rem;color:var(--text-dim);max-width:600px;position:relative;animation:fadeUp .8s ease .2s both}
+.hero-machines{display:flex;gap:1.5rem;margin-top:3rem;position:relative;animation:fadeUp .8s ease .3s both;flex-wrap:wrap;justify-content:center}
+.hero-machine{display:flex;align-items:center;gap:.5rem;padding:.6rem 1.2rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-weight:600;font-size:.9rem;transition:all .3s}
+.hero-machine:hover{transform:translateY(-2px)}
+.dot{width:8px;height:8px;border-radius:50%}
+.b9 .dot{background:var(--b9);box-shadow:0 0 8px var(--b9)}.h12 .dot{background:var(--h12);box-shadow:0 0 8px var(--h12)}.h13 .dot{background:var(--h13);box-shadow:0 0 8px var(--h13)}
+.scroll-ind{position:absolute;bottom:2rem;animation:bounce 2s infinite;color:var(--text-muted);font-size:1.5rem}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(11,15,26,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;height:56px;transform:translateY(-100%);transition:transform .3s}
+.nav.visible{transform:translateY(0)}
+.nav-brand{font-family:'Instrument Serif',serif;font-size:1.15rem;color:#fff;margin-right:auto}
+.nav-links{display:flex;gap:.25rem;flex-wrap:wrap}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:.78rem;padding:.4rem .7rem;border-radius:6px;transition:all .2s}
+.nav-links a:hover{color:#fff;background:var(--surface)}
+
+/* LAYOUT */
+.container{max-width:1280px;margin:0 auto;padding:0 2rem}
+section{padding:5rem 0;border-top:1px solid var(--border)}
+.section-number{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+.section-title{font-family:'Instrument Serif',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:400;color:#fff;line-height:1.2;margin-bottom:.75rem}
+.section-desc{font-size:1rem;color:var(--text-dim);max-width:700px;margin-bottom:2rem}
+
+/* COMPARE */
+.compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
+.compare-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;position:relative}
+.compare-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.compare-card.b9::before{background:var(--b9)}.compare-card.h12::before{background:var(--h12)}.compare-card.h13::before{background:var(--h13)}
+.compare-card h3{font-size:1.2rem;font-weight:700;margin-bottom:1rem}
+.compare-card.b9 h3{color:var(--b9)}.compare-card.h12 h3{color:var(--h12)}.compare-card.h13 h3{color:var(--h13)}
+.stat-row{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--text-dim)}.stat-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:#fff}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:var(--surface);margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:var(--surface2);color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:.7rem;padding:.9rem 1rem;text-align:left;white-space:nowrap;border-bottom:1px solid var(--border);position:sticky;top:0}
+td{padding:.75rem 1rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,0.02)}
+td.num{font-family:'JetBrains Mono',monospace;font-size:.82rem}
+
+/* TABS */
+.tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:.55rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);transition:all .2s;user-select:none}
+.tab:hover{color:var(--text);border-color:var(--text-muted)}
+.tab.active.b9{background:rgba(245,158,11,0.15);border-color:var(--b9);color:var(--b9)}
+.tab.active.h12{background:rgba(59,130,246,0.15);border-color:var(--h12);color:var(--h12)}
+.tab.active.h13{background:rgba(16,185,129,0.15);border-color:var(--h13);color:var(--h13)}
+.tab-content{display:none;animation:fadeUp .4s ease}.tab-content.active{display:block}
+
+/* INSIGHT */
+.insight-box{background:var(--surface);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:1.25rem 1.5rem;margin:2rem 0;font-size:.9rem;line-height:1.7}
+.insight-box strong{color:var(--accent)}
+.insight-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.5rem;font-weight:700}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:all .3s}
+.kpi-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.08)}
+.kpi-label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.kpi-value{font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;color:#fff}
+.kpi-sub{font-size:.8rem;color:var(--text-dim);margin-top:.25rem}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-card.b9::after{background:var(--b9)}.kpi-card.h12::after{background:var(--h12)}.kpi-card.h13::after{background:var(--h13)}
+
+/* SHIFT */
+.shift-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
+.shift-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.shift-card h4{font-size:.9rem;font-weight:600;margin-bottom:1rem}
+.sbi{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.sbi .sl{flex:0 0 55px;font-size:.75rem;color:var(--text-dim)}.sbi .sb{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.sbi .sf{height:100%;border-radius:4px;transition:width .8s ease}.sbi .sv{flex:0 0 50px;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-dim);text-align:right}
+
+/* DONUT */
+.donut-row{display:flex;justify-content:center;gap:3rem;flex-wrap:wrap;margin:2rem 0}
+.donut-item{text-align:center}.donut-item svg{width:130px;height:130px}
+.donut-label{margin-top:.5rem;font-size:.9rem;font-weight:600}
+
+/* HEAT COLORS */
+td.heat-good,.heat-good{color:var(--accent3)}td.heat-warn,.heat-warn{color:var(--orange)}td.heat-bad,.heat-bad{color:var(--red)}
+
+/* FOOTER */
+.footer{padding:3rem 0;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:.8rem}
+
+/* RESPONSIVE */
+@media(max-width:900px){.compare-grid,.shift-grid{grid-template-columns:1fr}.hero-machines{flex-direction:column;align-items:center}}
+
+/* RAZONES LIST */
+.razon-list{list-style:none;padding:0}
+.razon-item{display:flex;gap:.75rem;align-items:flex-start;padding:.6rem 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.razon-item:last-child{border-bottom:none}
+.razon-count{font-family:'JetBrains Mono',monospace;font-size:.75rem;background:var(--surface2);padding:.2rem .5rem;border-radius:4px;color:var(--accent);flex-shrink:0;min-width:30px;text-align:center}
+.razon-text{color:var(--text-dim)}
+
+/* MONTHLY BARS */
+.month-chart{display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 .5rem;margin:1rem 0}
+.month-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.month-bar{width:100%;border-radius:4px 4px 0 0;margin-top:auto;transition:height .6s ease;min-height:4px;position:relative}
+.month-bar:hover{opacity:0.8}
+.month-lbl{font-size:.65rem;color:var(--text-muted);margin-top:4px}
+.month-val{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text-dim);position:absolute;top:-14px;left:50%;transform:translateX(-50%);white-space:nowrap}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-brand">Secundario</div>
+  <div class="nav-links">
+    <a href="#overview">Overview</a><a href="#fallas">Fallas</a><a href="#turnos">Turnos</a>
+    <a href="#cambios">Cambios de Marca</a><a href="#marcas">Marcas</a><a href="#transiciones">Transiciones</a>
+    <a href="#coordinadores">Coordinadores</a><a href="#hallazgos">Hallazgos</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-label">Reporte Anual 2025</div>
+  <h1>Análisis de <em>Secundario</em></h1>
+  <p class="hero-sub">Diagnóstico integral de fallas, cambios de marca y rendimiento operativo de las 3 máquinas de empaque secundario</p>
+  <div class="hero-machines">
+    <div class="hero-machine b9"><span class="dot"></span> B9</div>
+    <div class="hero-machine h12"><span class="dot"></span> H12</div>
+    <div class="hero-machine h13"><span class="dot"></span> H13</div>
+  </div>
+  <div class="scroll-ind">↓</div>
+</header>
+
+<!-- ======== S1: OVERVIEW ======== -->
+<section id="overview"><div class="container">
+  <div class="section-number">01 — Panorama General</div>
+  <h2 class="section-title">Las 3 máquinas en números</h2>
+  <p class="section-desc">Resumen ejecutivo del desempeño anual. B9 cubre enero 2025 – enero 2026; H12 y H13 de mayo a diciembre 2025.</p>
+
+  <div class="compare-grid">
+    <div class="compare-card b9"><h3>B9</h3>
+      <div class="stat-row"><span class="stat-label">Total paros</span><span class="stat-val">8,727</span></div>
+      <div class="stat-row"><span class="stat-label">Downtime total</span><span class="stat-val">35,127 min</span></div>
+      <div class="stat-row"><span class="stat-label">Uptime Loss</span><span class="stat-val">10.1%</span></div>
+      <div class="stat-row"><span class="stat-label">MTBF promedio</span><span class="stat-val">978 min</span></div>
+      <div class="stat-row"><span class="stat-label">MTTR promedio</span><span class="stat-val">4.0 min</span></div>
+      <div class="stat-row"><span class="stat-label">Total COs</span><span class="stat-val">274</span></div>
+      <div class="stat-row"><span class="stat-label">% On-time CO</span><span class="stat-val">56.9%</span></div>
+    </div>
+    <div class="compare-card h12"><h3>H12</h3>
+      <div class="stat-row"><span class="stat-label">Total paros</span><span class="stat-val">4,957</span></div>
+      <div class="stat-row"><span class="stat-label">Downtime total</span><span class="stat-val">20,649 min</span></div>
+      <div class="stat-row"><span class="stat-label">Uptime Loss</span><span class="stat-val">12.6%</span></div>
+      <div class="stat-row"><span class="stat-label">MTBF promedio</span><span class="stat-val">716 min</span></div>
+      <div class="stat-row"><span class="stat-label">MTTR promedio</span><span class="stat-val">4.1 min</span></div>
+      <div class="stat-row"><span class="stat-label">Total COs</span><span class="stat-val">250</span></div>
+      <div class="stat-row"><span class="stat-label">% On-time CO</span><span class="stat-val">45.1%</span></div>
+    </div>
+    <div class="compare-card h13"><h3>H13</h3>
+      <div class="stat-row"><span class="stat-label">Total paros</span><span class="stat-val">2,642</span></div>
+      <div class="stat-row"><span class="stat-label">Downtime total</span><span class="stat-val">11,210 min</span></div>
+      <div class="stat-row"><span class="stat-label">Uptime Loss</span><span class="stat-val">17.8%</span></div>
+      <div class="stat-row"><span class="stat-label">MTBF promedio</span><span class="stat-val">533 min</span></div>
+      <div class="stat-row"><span class="stat-label">MTTR promedio</span><span class="stat-val">4.5 min</span></div>
+      <div class="stat-row"><span class="stat-label">Total COs</span><span class="stat-val">168</span></div>
+      <div class="stat-row"><span class="stat-label">% On-time CO</span><span class="stat-val">39.8%</span></div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <div class="insight-title">💡 Insight clave</div>
+    <strong>H13 es la máquina más crítica</strong>: a pesar de tener menos paros (periodo más corto), presenta el mayor Uptime Loss (17.8%), el MTBF más bajo (533 min) y el peor cumplimiento de CO (solo 39.8% on-time). <strong>B9</strong> tiene el mayor volumen de paros pero el mejor MTBF y mejor cumplimiento de CO. <strong>H12</strong> queda en punto intermedio.
+  </div>
+</div></section>
+
+<!-- ======== S2: FALLAS ======== -->
+<section id="fallas"><div class="container">
+  <div class="section-number">02 — Principales Fallas</div>
+  <h2 class="section-title">Top 10 paros no planeados por máquina</h2>
+  <p class="section-desc">Ordenados por cantidad de paros. Downtime en minutos. Uptime Loss indica el % de disponibilidad perdido por esa falla.</p>
+
+  <div class="tabs" data-group="fallas">
+    <div class="tab active b9" data-tab="fallas-b9">B9</div>
+    <div class="tab h12" data-tab="fallas-h12">H12</div>
+    <div class="tab h13" data-tab="fallas-h13">H13</div>
+  </div>
+
+  <div class="tab-content active" id="fallas-b9">
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Falla</th><th>Paros</th><th>Downtime</th><th>Uptime Loss %</th><th>MTBF</th><th>MTTR</th><th>Rejects %</th></tr>
+      <tr><td>1</td><td>DISCHARGE FULL</td><td class="num">723</td><td class="num">2,764</td><td class="num">0.803</td><td class="num">331</td><td class="num">3.8</td><td class="num">0.007</td></tr>
+<tr><td>2</td><td>TURRET COVER, LEFT</td><td class="num">677</td><td class="num">1,713</td><td class="num">0.493</td><td class="num">354</td><td class="num">2.5</td><td class="num">0.008</td></tr>
+<tr><td>3</td><td>INNER FRAME IN BENDING STATION</td><td class="num">423</td><td class="num">1,211</td><td class="num">0.352</td><td class="num">566</td><td class="num">2.9</td><td class="num">0.005</td></tr>
+<tr><td>4</td><td>EMPTY FEEDER FINAL CUT</td><td class="num">416</td><td class="num">1,129</td><td class="num">0.325</td><td class="num">576</td><td class="num">2.7</td><td class="num">0.002</td></tr>
+<tr><td>5</td><td>STOP BUTTON, OP.'S PANEL</td><td class="num">402</td><td class="num">2,857</td><td class="num">0.825</td><td class="num">596</td><td class="num">7.1</td><td class="num">0.007</td></tr>
+<tr><td>6</td><td>MAX atas. pl.enroll.</td><td class="num">395</td><td class="num">2,837</td><td class="num">0.813</td><td class="num">606</td><td class="num">7.2</td><td class="num">0.005</td></tr>
+<tr><td>7</td><td>STANDBY</td><td class="num">391</td><td class="num">738</td><td class="num">0.212</td><td class="num">612</td><td class="num">1.9</td><td class="num">0.002</td></tr>
+<tr><td>8</td><td>FOLDING GUIDE 1</td><td class="num">390</td><td class="num">1,706</td><td class="num">0.492</td><td class="num">614</td><td class="num">4.4</td><td class="num">0.007</td></tr>
+<tr><td>9</td><td>ELEVADOR</td><td class="num">379</td><td class="num">1,594</td><td class="num">0.459</td><td class="num">632</td><td class="num">4.2</td><td class="num">0.003</td></tr>
+<tr><td>10</td><td>TURRET COVER, RIGHT</td><td class="num">318</td><td class="num">762</td><td class="num">0.219</td><td class="num">753</td><td class="num">2.4</td><td class="num">0.004</td></tr>
+
+    </table></div>
+    <div class="insight-box"><div class="insight-title">Análisis B9</div>
+      Las 2 fallas principales — <strong>DISCHARGE FULL</strong> (723 paros) y <strong>TURRET COVER LEFT</strong> (677 paros) — representan el 16% de todos los paros. El <strong>STOP BUTTON OP PANEL</strong> destaca con el downtime más alto (2,857 min) y el MTTR más largo (7.1 min), indicando paros manuales prolongados.
+    </div>
+  </div>
+  <div class="tab-content" id="fallas-h12">
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Falla</th><th>Paros</th><th>Downtime</th><th>Uptime Loss %</th><th>MTBF</th><th>MTTR</th><th>Rejects %</th></tr>
+      <tr><td>1</td><td>S SHELL TRANSFER</td><td class="num">480</td><td class="num">1,575</td><td class="num">0.967</td><td class="num">204</td><td class="num">3.3</td><td class="num">0.015</td></tr>
+<tr><td>2</td><td>S FILM DETECTOR, LEFT</td><td class="num">381</td><td class="num">991</td><td class="num">0.608</td><td class="num">257</td><td class="num">2.6</td><td class="num">0.004</td></tr>
+<tr><td>3</td><td>FOLDING GUIDE 1</td><td class="num">352</td><td class="num">2,823</td><td class="num">1.72</td><td class="num">278</td><td class="num">8.0</td><td class="num">0.019</td></tr>
+<tr><td>4</td><td>TOP GUIDE, SHRINKING HEATER</td><td class="num">223</td><td class="num">1,078</td><td class="num">0.655</td><td class="num">439</td><td class="num">4.8</td><td class="num">0.005</td></tr>
+<tr><td>5</td><td>S FLAP DETECTOR</td><td class="num">223</td><td class="num">841</td><td class="num">0.513</td><td class="num">439</td><td class="num">3.8</td><td class="num">0.008</td></tr>
+<tr><td>6</td><td>SHELL FEED UNIT: BACK-UP</td><td class="num">211</td><td class="num">757</td><td class="num">0.463</td><td class="num">464</td><td class="num">3.6</td><td class="num">0.004</td></tr>
+<tr><td>7</td><td>STOP BUTTON, OP.'S PANEL</td><td class="num">204</td><td class="num">1,503</td><td class="num">0.929</td><td class="num">480</td><td class="num">7.4</td><td class="num">0.009</td></tr>
+<tr><td>8</td><td>TURRET COVER, LEFT</td><td class="num">175</td><td class="num">815</td><td class="num">0.498</td><td class="num">559</td><td class="num">4.7</td><td class="num">0.007</td></tr>
+<tr><td>9</td><td>HOT STAMP FRONT CAMERA</td><td class="num">174</td><td class="num">804</td><td class="num">0.49</td><td class="num">563</td><td class="num">4.6</td><td class="num">0.004</td></tr>
+<tr><td>10</td><td>S FILM DETECTOR, RIGHT</td><td class="num">174</td><td class="num">540</td><td class="num">0.328</td><td class="num">563</td><td class="num">3.1</td><td class="num">0.002</td></tr>
+
+    </table></div>
+    <div class="insight-box"><div class="insight-title">Análisis H12</div>
+      <strong>FOLDING GUIDE 1</strong> es la falla más costosa: 3er lugar en frecuencia (352 paros) pero genera el mayor downtime (2,823 min) con MTTR de 8.0 min y el peor Uptime Loss (1.72%). <strong>STOP BUTTON OP PANEL</strong> tiene un MTTR alarmante de 12.6 min — el más alto de todas las máquinas.
+    </div>
+  </div>
+  <div class="tab-content" id="fallas-h13">
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Falla</th><th>Paros</th><th>Downtime</th><th>Uptime Loss %</th><th>MTBF</th><th>MTTR</th><th>Rejects %</th></tr>
+      <tr><td>1</td><td>SHELL FEED UNIT: BACK-UP</td><td class="num">298</td><td class="num">926</td><td class="num">1.46</td><td class="num">110</td><td class="num">3.1</td><td class="num">0.011</td></tr>
+<tr><td>2</td><td>SLIDE INSERTION DETECTOR</td><td class="num">290</td><td class="num">873</td><td class="num">1.41</td><td class="num">113</td><td class="num">3.0</td><td class="num">0.023</td></tr>
+<tr><td>3</td><td>SHELL IN PACKET TRACK</td><td class="num">254</td><td class="num">755</td><td class="num">1.24</td><td class="num">129</td><td class="num">3.0</td><td class="num">0.024</td></tr>
+<tr><td>4</td><td>BLANK MISSING IN TURRET, BOTTOM</td><td class="num">161</td><td class="num">1,389</td><td class="num">2.19</td><td class="num">204</td><td class="num">8.6</td><td class="num">0.02</td></tr>
+<tr><td>5</td><td>FOLDING GUIDE 1</td><td class="num">131</td><td class="num">783</td><td class="num">1.24</td><td class="num">251</td><td class="num">6.0</td><td class="num">0.017</td></tr>
+<tr><td>6</td><td>S FLAP DETECTOR</td><td class="num">117</td><td class="num">382</td><td class="num">0.615</td><td class="num">281</td><td class="num">3.3</td><td class="num">0.012</td></tr>
+<tr><td>7</td><td>TOP GUIDE, PACKET TRACK</td><td class="num">102</td><td class="num">364</td><td class="num">0.608</td><td class="num">322</td><td class="num">3.6</td><td class="num">0.013</td></tr>
+<tr><td>8</td><td>SE parada manual</td><td class="num">89</td><td class="num">469</td><td class="num">0.787</td><td class="num">369</td><td class="num">5.3</td><td class="num">0.004</td></tr>
+<tr><td>9</td><td>SUCTION FAULT</td><td class="num">82</td><td class="num">88</td><td class="num">0.149</td><td class="num">401</td><td class="num">1.1</td><td class="num">0.001</td></tr>
+<tr><td>10</td><td>STOP BUTTON, OP.'S PANEL</td><td class="num">80</td><td class="num">440</td><td class="num">0.702</td><td class="num">411</td><td class="num">5.5</td><td class="num">0.009</td></tr>
+
+    </table></div>
+    <div class="insight-box"><div class="insight-title">Análisis H13</div>
+      H13 presenta los MTBF más bajos de las 3 máquinas — las fallas top tienen MTBF de solo 110–130 min, indicando fallas muy frecuentes. <strong>BLANK MISSING IN TURRET</strong> destaca con 2.19% de Uptime Loss y MTTR de 8.6 min. Los <strong>Rejects son significativamente más altos</strong> (0.023–0.024%) vs B9 y H12.
+    </div>
+  </div>
+</div></section>
+
+<!-- ======== S3: TURNOS ======== -->
+<section id="turnos"><div class="container">
+  <div class="section-number">03 — Análisis por Turno</div>
+  <h2 class="section-title">Distribución de paros por turno</h2>
+  <p class="section-desc">Comparación del rendimiento entre los 3 turnos en cada máquina.</p>
+
+  <div class="shift-grid">
+    <div class="shift-card"><h4 style="color:var(--b9)">B9</h4>
+      <div class="sbi"><span class="sl">Turno 1</span><div class="sb"><div class="sf" style="width:94%;background:var(--b9)"></div></div><span class="sv">3,185</span></div>
+      <div class="sbi"><span class="sl">Turno 2</span><div class="sb"><div class="sf" style="width:100%;background:var(--b9)"></div></div><span class="sv">3,385</span></div>
+      <div class="sbi"><span class="sl">Turno 3</span><div class="sb"><div class="sf" style="width:64%;background:var(--b9);opacity:0.7"></div></div><span class="sv">2,157</span></div>
+    </div>
+    <div class="shift-card"><h4 style="color:var(--h12)">H12</h4>
+      <div class="sbi"><span class="sl">Turno 1</span><div class="sb"><div class="sf" style="width:100%;background:var(--h12)"></div></div><span class="sv">2,211</span></div>
+      <div class="sbi"><span class="sl">Turno 2</span><div class="sb"><div class="sf" style="width:95%;background:var(--h12)"></div></div><span class="sv">2,092</span></div>
+      <div class="sbi"><span class="sl">Turno 3</span><div class="sb"><div class="sf" style="width:30%;background:var(--h12);opacity:0.7"></div></div><span class="sv">654</span></div>
+    </div>
+    <div class="shift-card"><h4 style="color:var(--h13)">H13</h4>
+      <div class="sbi"><span class="sl">Turno 1</span><div class="sb"><div class="sf" style="width:100%;background:var(--h13)"></div></div><span class="sv">1,117</span></div>
+      <div class="sbi"><span class="sl">Turno 2</span><div class="sb"><div class="sf" style="width:97%;background:var(--h13)"></div></div><span class="sv">1,081</span></div>
+      <div class="sbi"><span class="sl">Turno 3</span><div class="sb"><div class="sf" style="width:40%;background:var(--h13);opacity:0.7"></div></div><span class="sv">444</span></div>
+    </div>
+  </div>
+
+  <div class="insight-box"><div class="insight-title">💡 Hallazgo</div>
+    En las 3 máquinas, el <strong>Turno 3 tiene significativamente menos paros</strong> (25-30% del total en H12/H13). Esto puede deberse a menor volumen de producción. <strong>B9</strong> muestra al Turno 2 como el de mayor incidencia (3,385), mientras que en <strong>H12</strong> y <strong>H13</strong> los turnos 1 y 2 están parejos.
+  </div>
+</div></section>
+
+<!-- ======== S4: CAMBIOS DE MARCA ======== -->
+<section id="cambios"><div class="container">
+  <div class="section-number">04 — Cambios de Marca (CO)</div>
+  <h2 class="section-title">Eficiencia en changeovers</h2>
+  <p class="section-desc">Análisis del tiempo real vs. objetivo. Variación positiva = exceso de tiempo; negativa = más rápido que el objetivo.</p>
+
+  <div class="kpi-grid">
+    <div class="kpi-card b9"><div class="kpi-label">B9 — Tiempo prom. CO</div><div class="kpi-value">46.6 <span style="font-size:.9rem;color:var(--text-dim)">min</span></div><div class="kpi-sub">Objetivo: 45.0 min · Mediana: 45.0 min</div></div>
+    <div class="kpi-card h12"><div class="kpi-label">H12 — Tiempo prom. CO</div><div class="kpi-value">33.9 <span style="font-size:.9rem;color:var(--text-dim)">min</span></div><div class="kpi-sub">Objetivo: 27.0 min · Mediana: 25.0 min</div></div>
+    <div class="kpi-card h13"><div class="kpi-label">H13 — Tiempo prom. CO</div><div class="kpi-value">34.7 <span style="font-size:.9rem;color:var(--text-dim)">min</span></div><div class="kpi-sub">Objetivo: 26.8 min · Mediana: 28.0 min</div></div>
+    <div class="kpi-card b9"><div class="kpi-label">B9 — Paros en 2h post-CO</div><div class="kpi-value">6.1</div><div class="kpi-sub">MTBF post-CO: 23.3 min</div></div>
+    <div class="kpi-card h12"><div class="kpi-label">H12 — Paros en 2h post-CO</div><div class="kpi-value">5.5</div><div class="kpi-sub">MTBF post-CO: 20.8 min</div></div>
+    <div class="kpi-card h13"><div class="kpi-label">H13 — Paros en 2h post-CO</div><div class="kpi-value">4.4</div><div class="kpi-sub">MTBF post-CO: 16.9 min</div></div>
+  </div>
+
+  <h3 style="text-align:center;color:#fff;margin-bottom:.5rem;font-size:1.1rem">% de COs completados a tiempo</h3>
+  <p style="text-align:center;color:var(--text-dim);font-size:.85rem;margin-bottom:1.5rem">Variación ≤ 0 = a tiempo o antes del objetivo</p>
+  <div class="donut-row">
+    <div class="donut-item"><svg viewBox="0 0 36 36"><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--surface2)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--b9)" stroke-width="3" stroke-dasharray="56.9,100" stroke-linecap="round"/><text x="18" y="18.5" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" font-weight="700" fill="#fff">56.9%</text></svg><div class="donut-label" style="color:var(--b9)">B9</div></div>
+    <div class="donut-item"><svg viewBox="0 0 36 36"><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--surface2)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--h12)" stroke-width="3" stroke-dasharray="45.1,100" stroke-linecap="round"/><text x="18" y="18.5" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" font-weight="700" fill="#fff">45.1%</text></svg><div class="donut-label" style="color:var(--h12)">H12</div></div>
+    <div class="donut-item"><svg viewBox="0 0 36 36"><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--surface2)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="var(--h13)" stroke-width="3" stroke-dasharray="39.8,100" stroke-linecap="round"/><text x="18" y="18.5" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" font-weight="700" fill="#fff">39.8%</text></svg><div class="donut-label" style="color:var(--h13)">H13</div></div>
+  </div>
+
+  <div class="insight-box"><div class="insight-title">💡 Insight</div>
+    <strong>B9 es la más eficiente en COs</strong> (57% a tiempo), aunque su objetivo (45 min) es más holgado que H12/H13 (~27 min). <strong>H13 tiene el peor MTBF post-CO (16.9 min)</strong> — tras un CO, falla cada 17 min en promedio durante las siguientes 2 horas, indicando problemas severos de estabilización. H12 y H13 exceden su objetivo por ~7 min en promedio.
+  </div>
+</div></section>
+
+<!-- ======== S5: MARCAS ======== -->
+<section id="marcas"><div class="container">
+  <div class="section-number">05 — Análisis por Marca</div>
+  <h2 class="section-title">¿Qué marcas causan más problemas?</h2>
+  <p class="section-desc">Marcas con al menos 3 COs registrados. La variación promedio indica qué tanto se excede (+) o reduce (−) el tiempo objetivo.</p>
+
+  <div class="tabs" data-group="marcas">
+    <div class="tab active b9" data-tab="marcas-b9">B9</div>
+    <div class="tab h12" data-tab="marcas-h12">H12</div>
+    <div class="tab h13" data-tab="marcas-h13">H13</div>
+  </div>
+
+  <div class="tab-content active" id="marcas-b9">
+    <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">🔴 Marcas más problemáticas</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Marca (iniciado)</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th><th>T. Máx.</th></tr>
+      <tr><td>CARIBE KS BOX 20</td><td class="num">6</td><td class="num">67.0 min</td><td class="num heat-bad">+49%</td><td class="num">5.17</td><td class="num">86.0</td></tr>
+<tr><td>MARLBORO CRAFTED(RED) KS BOX 20</td><td class="num">5</td><td class="num">62.0 min</td><td class="num heat-bad">+38%</td><td class="num">4.5</td><td class="num">120.0</td></tr>
+<tr><td>L&M GREEN LABEL (5.0 CFB) MNT KS BOX 20</td><td class="num">5</td><td class="num">58.0 min</td><td class="num heat-bad">+29%</td><td class="num">5.2</td><td class="num">84.0</td></tr>
+<tr><td>MARLBORO BLUE SELECTION KS BOX 20</td><td class="num">3</td><td class="num">54.33 min</td><td class="num heat-bad">+21%</td><td class="num">71.0</td><td class="num">72.0</td></tr>
+<tr><td>L&M RED LABEL (5.0 CFB) KS BOX 20</td><td class="num">12</td><td class="num">54.08 min</td><td class="num heat-warn">+20%</td><td class="num">5.75</td><td class="num">98.0</td></tr>
+
+    </table></div>
+    <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">🟢 Marcas con mejor desempeño</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Marca (iniciado)</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td>MARLBORO C2M MNT KS BOX 20</td><td class="num">10</td><td class="num">40.3 min</td><td class="num heat-good">-10%</td><td class="num">3.22</td></tr>
+<tr><td>MARLBORO CRAFTED 3 RED KS BOX 20</td><td class="num">12</td><td class="num">40.92 min</td><td class="num heat-good">-9%</td><td class="num">4.83</td></tr>
+<tr><td>CHESTERFIELD RED (4.0) KS BOX 20</td><td class="num">5</td><td class="num">41.0 min</td><td class="num heat-good">-9%</td><td class="num">5.8</td></tr>
+<tr><td>MARLBORO RED 3.5 KS BOX 20</td><td class="num">70</td><td class="num">42.99 min</td><td class="num heat-good">-4%</td><td class="num">4.73</td></tr>
+<tr><td>L&M RED LABEL ( 5.0 CFB) KS BOX 20</td><td class="num">3</td><td class="num">43.0 min</td><td class="num heat-good">-4%</td><td class="num">8.0</td></tr>
+
+    </table></div>
+  </div>
+  <div class="tab-content" id="marcas-h12">
+    <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">🔴 Marcas más problemáticas</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Marca (iniciado)</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th><th>T. Máx.</th></tr>
+      <tr><td>BENSON & HEDGES KS (ON)</td><td class="num">4</td><td class="num">33.75 min</td><td class="num heat-bad">+87%</td><td class="num">4.5</td><td class="num">58.0</td></tr>
+<tr><td>NEXT SEVEN SPECIAL KS S&S 25</td><td class="num">36</td><td class="num">31.81 min</td><td class="num heat-bad">+60%</td><td class="num">7.42</td><td class="num">180.0</td></tr>
+<tr><td>NEXT PM OROGINAL KS</td><td class="num">4</td><td class="num">36.75 min</td><td class="num heat-bad">+58%</td><td class="num">3.0</td><td class="num">65.0</td></tr>
+<tr><td>NEXT SMOOTH KS S&S 25</td><td class="num">9</td><td class="num">34.22 min</td><td class="num heat-bad">+45%</td><td class="num">4.0</td><td class="num">61.0</td></tr>
+<tr><td>NEXT KS</td><td class="num">7</td><td class="num">65.14 min</td><td class="num heat-bad">+45%</td><td class="num">6.14</td><td class="num">86.0</td></tr>
+
+    </table></div>
+    <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">🟢 Marcas con mejor desempeño</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Marca (iniciado)</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td>MARK TEN KS (QC)</td><td class="num">4</td><td class="num">43.75 min</td><td class="num heat-good">-3%</td><td class="num">4.0</td></tr>
+<tr><td>NEXT Q C SPECIALE KS S&S 25</td><td class="num">9</td><td class="num">36.33 min</td><td class="num heat-good">-3%</td><td class="num">5.12</td></tr>
+<tr><td>ROTHMANS SPECIAL KS S&S 25</td><td class="num">5</td><td class="num">36.4 min</td><td class="num heat-good">-2%</td><td class="num">10.2</td></tr>
+<tr><td>BENSON & HEDGES KS</td><td class="num">5</td><td class="num">26.0 min</td><td class="num heat-good">+5%</td><td class="num">3.2</td></tr>
+<tr><td>ROTHMANS KS S&S 25</td><td class="num">9</td><td class="num">35.11 min</td><td class="num heat-good">+9%</td><td class="num">3.56</td></tr>
+
+    </table></div>
+  </div>
+  <div class="tab-content" id="marcas-h13">
+    <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">🔴 Marcas más problemáticas</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Marca (iniciado)</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th><th>T. Máx.</th></tr>
+      <tr><td>NEXT P M ORIGINAL KS S&S 20</td><td class="num">3</td><td class="num">89.0 min</td><td class="num heat-bad">+411%</td><td class="num">5.67</td><td class="num">200.0</td></tr>
+<tr><td>NEXT SEVEN SPECIAL KS</td><td class="num">10</td><td class="num">29.1 min</td><td class="num heat-bad">+71%</td><td class="num">3.3</td><td class="num">66.0</td></tr>
+<tr><td>NEXT P M SPECIAL KS S&S 20</td><td class="num">6</td><td class="num">31.0 min</td><td class="num heat-bad">+70%</td><td class="num">5.0</td><td class="num">65.0</td></tr>
+<tr><td>CANADIAN CLASSICS RICH KS</td><td class="num">4</td><td class="num">39.5 min</td><td class="num heat-bad">+56%</td><td class="num">6.5</td><td class="num">97.0</td></tr>
+<tr><td>BENSON & HEDGES CRAVEN KS S&S 20</td><td class="num">8</td><td class="num">54.25 min</td><td class="num heat-bad">+52%</td><td class="num">3.38</td><td class="num">101.0</td></tr>
+
+    </table></div>
+    <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">🟢 Marcas con mejor desempeño</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Marca (iniciado)</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td>NEXT SMOOTH KS</td><td class="num">3</td><td class="num">41.67 min</td><td class="num heat-good">-7%</td><td class="num">4.0</td></tr>
+<tr><td>NEXT P M ORIGINAL KS S&S 25</td><td class="num">4</td><td class="num">19.75 min</td><td class="num heat-good">-4%</td><td class="num">3.5</td></tr>
+<tr><td>NEXT Q C SPECIALE KS S&S 20</td><td class="num">4</td><td class="num">43.25 min</td><td class="num heat-good">-3%</td><td class="num">7.25</td></tr>
+<tr><td>ROTHMANS KS S&S 25</td><td class="num">4</td><td class="num">49.32 min</td><td class="num heat-good">-2%</td><td class="num">5.0</td></tr>
+<tr><td>NEXT SEVEN SPECIAL KS S&S 25</td><td class="num">3</td><td class="num">16.67 min</td><td class="num heat-warn">+11%</td><td class="num">1.33</td></tr>
+
+    </table></div>
+  </div>
+
+  <div class="insight-box"><div class="insight-title">💡 Insight por marca</div>
+    <strong>B9:</strong> CARIBE y MARLBORO CRAFTED(RED) son las más problemáticas (+38-49% variación). MARLBORO RED 3.5 (la más frecuente con 70 COs) tiene buen desempeño (−4%).
+    <strong>H12:</strong> Las marcas NEXT presentan los mayores problemas, especialmente NEXT SEVEN SPECIAL S&S 25 (+60% en 36 COs — alta frecuencia y alta desviación).
+    <strong>H13:</strong> NEXT P M ORIGINAL S&S 20 tiene variación extrema de +411% (89 min reales vs ~17 min objetivo), sugiriendo problemas graves de compatibilidad.
+  </div>
+</div></section>
+
+<!-- ======== S6: TRANSICIONES ======== -->
+<section id="transiciones"><div class="container">
+  <div class="section-number">06 — Transiciones entre Marcas</div>
+  <h2 class="section-title">¿Qué cambios de marca a marca son más difíciles?</h2>
+  <p class="section-desc">Transiciones con al menos 2 ocurrencias. Se muestran las peores y mejores combinaciones FROM → TO.</p>
+
+  <div class="tabs" data-group="trans">
+    <div class="tab active b9" data-tab="trans-b9">B9</div>
+    <div class="tab h12" data-tab="trans-h12">H12</div>
+    <div class="tab h13" data-tab="trans-h13">H13</div>
+  </div>
+
+  <div class="tab-content active" id="trans-b9">
+    <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">⚠️ Peores transiciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Transición (De → A)</th><th># Veces</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td style="font-size:0.78rem">L&M RED LABEL (5.0 CFB) KS BOX 20 → MARLBORO RED 3.5 KS BOX 20</td><td class="num">3</td><td class="num">87.0 min</td><td class="num heat-bad">+93%</td><td class="num">2.33</td></tr>
+<tr><td style="font-size:0.78rem">L&M RED LABEL (5.0 CFB) KS BOX 20 → L&M BLUE LABEL 5.1 CWB KS BOX 20</td><td class="num">3</td><td class="num">57.67 min</td><td class="num heat-bad">+28%</td><td class="num">5.33</td></tr>
+<tr><td style="font-size:0.78rem">FAROS KS BOX 20 → L&M BLUE LABEL 5.1 CWB KS BOX 20</td><td class="num">2</td><td class="num">57.5 min</td><td class="num heat-bad">+28%</td><td class="num">8.0</td></tr>
+<tr><td style="font-size:0.78rem">L&M FIRST CUT RED KS BOX 20 → L&M RED LABEL (5.0 CFB) KS BOX 20</td><td class="num">2</td><td class="num">55.0 min</td><td class="num heat-bad">+22%</td><td class="num">3.0</td></tr>
+<tr><td style="font-size:0.78rem">MARLBORO RED 3.5 KS BOX 20 → L&M GREEN LABEL (5.0 CFB) MNT KS BOX 20</td><td class="num">2</td><td class="num">54.5 min</td><td class="num heat-bad">+21%</td><td class="num">6.0</td></tr>
+<tr><td style="font-size:0.78rem">L&M FIRST CUT RED KS BOX 20 → MARLBORO RED 3.5 KS BOX 20</td><td class="num">3</td><td class="num">54.33 min</td><td class="num heat-bad">+21%</td><td class="num">10.0</td></tr>
+
+    </table></div>
+    <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">✅ Mejores transiciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Transición (De → A)</th><th># Veces</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td style="font-size:0.78rem">MARLBORO CRAFTED 3 RED KS BOX 20 → MARLBORO CRAFTED 3 RED KS BOX 20</td><td class="num">2</td><td class="num">15.5 min</td><td class="num heat-good">-66%</td><td class="num">6.5</td></tr>
+<tr><td style="font-size:0.78rem">L&M RED EVO KS BOX 20 → FAROS KS BOX 20</td><td class="num">2</td><td class="num">31.0 min</td><td class="num heat-good">-31%</td><td class="num">3.0</td></tr>
+<tr><td style="font-size:0.78rem">MARLBORO CRAFTED 3 RED KS BOX 20 → MARLBORO CRAFTED 2.0 RED KS BOX 20</td><td class="num">2</td><td class="num">33.0 min</td><td class="num heat-good">-27%</td><td class="num">2.5</td></tr>
+<tr><td style="font-size:0.78rem">L&M BLUE LABEL 5.1 CWB KS BOX 20 → MARLBORO CRAFTED 3 RED KS BOX 20</td><td class="num">2</td><td class="num">36.0 min</td><td class="num heat-good">-20%</td><td class="num">8.5</td></tr>
+<tr><td style="font-size:0.78rem">MARLBORO RED 3.5 KS BOX 20 → MARLBORO RED 3.5 KS BOX 20</td><td class="num">41</td><td class="num">36.06 min</td><td class="num heat-good">-20%</td><td class="num">4.41</td></tr>
+<tr><td style="font-size:0.78rem">CHESTERFIELD RED (4.0) KS BOX 20 → CHESTERFIELD BLUE (4.0) KS BOX 20</td><td class="num">3</td><td class="num">37.33 min</td><td class="num heat-good">-17%</td><td class="num">8.33</td></tr>
+
+    </table></div>
+  </div>
+  <div class="tab-content" id="trans-h12">
+    <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">⚠️ Peores transiciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Transición (De → A)</th><th># Veces</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td style="font-size:0.78rem">BENSON & HEDGES KS → BENSON & HEDGES KS (ON)</td><td class="num">2</td><td class="num">37.0 min</td><td class="num heat-bad">+147%</td><td class="num">4.5</td></tr>
+<tr><td style="font-size:0.78rem">NEXT SEVEN SPECIAL KS S&S 25 → NEXT SEVEN SPECIAL</td><td class="num">2</td><td class="num">33.5 min</td><td class="num heat-bad">+123%</td><td class="num">1.0</td></tr>
+<tr><td style="font-size:0.78rem">NEXT SMOOTH AC KS → NEXT SMOOTH KS S&S 25</td><td class="num">2</td><td class="num">39.0 min</td><td class="num heat-bad">+122%</td><td class="num">3.5</td></tr>
+<tr><td style="font-size:0.78rem">NEXT P M SPECIAL KS S&S 25 → NEXT PM SPECIAL KS S&S 25</td><td class="num">2</td><td class="num">30.5 min</td><td class="num heat-bad">+103%</td><td class="num">3.0</td></tr>
+<tr><td style="font-size:0.78rem">NEXT PM SPECIAL KS → NEXT P M SPECIAL KS S&S 25</td><td class="num">4</td><td class="num">30.5 min</td><td class="num heat-bad">+103%</td><td class="num">3.75</td></tr>
+<tr><td style="font-size:0.78rem">NEXT SEVEN SPECIAL KS S&S 25 → NEXT SEVEN SPECIAL KS S&S 25</td><td class="num">28</td><td class="num">27.46 min</td><td class="num heat-bad">+70%</td><td class="num">8.14</td></tr>
+
+    </table></div>
+    <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">✅ Mejores transiciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Transición (De → A)</th><th># Veces</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td style="font-size:0.78rem">NEXT Q C SPECIALE KS S&S 25 → NEXT Q C SPECIALE KS S&S 25</td><td class="num">2</td><td class="num">5.0 min</td><td class="num heat-good">-33%</td><td class="num">2.0</td></tr>
+<tr><td style="font-size:0.78rem">ROTHMANS SPECIAL KS S&S 25 → NEXT SEVEN SPECIAL KS S&S 25</td><td class="num">2</td><td class="num">18.5 min</td><td class="num heat-good">-28%</td><td class="num">6.5</td></tr>
+<tr><td style="font-size:0.78rem">BENSON & HEDGES KS (QC) → BENSON & HEDGES KS</td><td class="num">2</td><td class="num">12.5 min</td><td class="num heat-good">-17%</td><td class="num">5.0</td></tr>
+<tr><td style="font-size:0.78rem">NEXT SEVEN SPECIAL KS S&S 25 → CANADIAN CLASSICS RICH KS S&S 25</td><td class="num">3</td><td class="num">38.33 min</td><td class="num heat-good">-15%</td><td class="num">2.0</td></tr>
+<tr><td style="font-size:0.78rem">ROTHMANS KS S&S 25 → ROTHMANS SPECIAL KS S&S 25</td><td class="num">2</td><td class="num">42.5 min</td><td class="num heat-good">-6%</td><td class="num">4.5</td></tr>
+<tr><td style="font-size:0.78rem">ROTHMANS KS S&S 25 → ROTHMANS KS S&S 25</td><td class="num">5</td><td class="num">12.0 min</td><td class="num heat-good">-5%</td><td class="num">2.4</td></tr>
+
+    </table></div>
+  </div>
+  <div class="tab-content" id="trans-h13">
+    <h3 style="color:var(--red);font-size:1rem;margin-bottom:1rem">⚠️ Peores transiciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Transición (De → A)</th><th># Veces</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td style="font-size:0.78rem">NEXT SEVEN SPECIAL KS → NEXT SEVEN SPECIAL KS</td><td class="num">6</td><td class="num">31.33 min</td><td class="num heat-bad">+109%</td><td class="num">4.0</td></tr>
+<tr><td style="font-size:0.78rem">BENSON & HEDGES DELUXE KS S&S 20 → BENSON & HEDGES CRAVEN KS S&S 20</td><td class="num">3</td><td class="num">81.67 min</td><td class="num heat-bad">+81%</td><td class="num">4.33</td></tr>
+<tr><td style="font-size:0.78rem">NEXT P M SPECIAL KS S&S 20 → NEXT P M SPECIAL KS S&S 20</td><td class="num">5</td><td class="num">27.2 min</td><td class="num heat-bad">+81%</td><td class="num">5.0</td></tr>
+<tr><td style="font-size:0.78rem">NEXT SEVEN SPECIALKS → NEXT SEVEN SPECIAL KS</td><td class="num">2</td><td class="num">26.0 min</td><td class="num heat-bad">+73%</td><td class="num">1.5</td></tr>
+<tr><td style="font-size:0.78rem">NEXT PM SPECIAL KS → NEXT PM SPECIAL KS</td><td class="num">17</td><td class="num">24.53 min</td><td class="num heat-bad">+65%</td><td class="num">2.53</td></tr>
+<tr><td style="font-size:0.78rem">BENSON & HEDGES DELUXE KS S&S 20 → BENSON & HEDGES DELUXE KS S&S 20</td><td class="num">21</td><td class="num">25.29 min</td><td class="num heat-bad">+44%</td><td class="num">4.33</td></tr>
+
+    </table></div>
+    <h3 style="color:var(--accent3);font-size:1rem;margin:1.5rem 0 1rem">✅ Mejores transiciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Transición (De → A)</th><th># Veces</th><th>T. Real Prom.</th><th>Variación</th><th>Paros 2h</th></tr>
+      <tr><td style="font-size:0.78rem">BENSON AND HEDGES KS 20 → NEXT SMOOTH AC KS</td><td class="num">2</td><td class="num">24.0 min</td><td class="num heat-good">-47%</td><td class="num">5.5</td></tr>
+<tr><td style="font-size:0.78rem">ROTHMANS KS S&S 25 → ROTHMANS KS S&S 25</td><td class="num">2</td><td class="num">34.64 min</td><td class="num heat-good">-46%</td><td class="num">6.0</td></tr>
+<tr><td style="font-size:0.78rem">NEXT P M ORIGINAL KS S&S 20 → BENSON AND HEDGES KS 20</td><td class="num">2</td><td class="num">31.0 min</td><td class="num heat-good">-31%</td><td class="num">3.5</td></tr>
+<tr><td style="font-size:0.78rem">CANADIAN CLASSICS RICH KS S&S 20 → BENSON & HEDGES RESERVE KS S&S 20</td><td class="num">2</td><td class="num">34.0 min</td><td class="num heat-good">-24%</td><td class="num">7.0</td></tr>
+<tr><td style="font-size:0.78rem">NEXT PM SPECIAL → NEXT PM SPECIAL KS</td><td class="num">2</td><td class="num">12.0 min</td><td class="num heat-good">-20%</td><td class="num">3.0</td></tr>
+<tr><td style="font-size:0.78rem">BENSON & HEDGES UNISION KS S&S 20 → NEXT SEVEN ORIGINAL KS S&S 20</td><td class="num">2</td><td class="num">41.0 min</td><td class="num heat-good">-9%</td><td class="num">8.0</td></tr>
+
+    </table></div>
+  </div>
+
+  <div class="insight-box"><div class="insight-title">💡 Hallazgo en transiciones</div>
+    <strong>B9:</strong> La transición L&M RED LABEL → MARLBORO RED 3.5 es la peor (+93% variación). Las transiciones dentro de la misma marca (MARLBORO RED 3.5 → MARLBORO RED 3.5) son las más eficientes (−20%, 41 ocurrencias), lo que confirma que los cambios entre familias similares son más fluidos.
+    <strong>H12/H13:</strong> Varias transiciones entre variantes de NEXT generan desviaciones altas (+100%+), lo que sugiere que los ajustes de formato entre sub-variantes de NEXT son particularmente complicados.
+  </div>
+</div></section>
+
+<!-- ======== S7: COORDINADORES ======== -->
+<section id="coordinadores"><div class="container">
+  <div class="section-number">07 — Desempeño por Line Coordinator</div>
+  <h2 class="section-title">¿Quién ejecuta mejor los cambios?</h2>
+  <p class="section-desc">Coordinadores de línea con al menos 5 COs realizados. Se muestra variación promedio y % de COs completados a tiempo.</p>
+
+  <div class="tabs" data-group="lc">
+    <div class="tab active b9" data-tab="lc-b9">B9</div>
+    <div class="tab h12" data-tab="lc-h12">H12</div>
+    <div class="tab h13" data-tab="lc-h13">H13</div>
+  </div>
+
+  <div class="tab-content active" id="lc-b9">
+    <div class="table-wrap"><table>
+      <tr><th>Line Coordinator</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>% On-Time</th><th>Paros 2h</th></tr>
+      <tr><td style="font-weight:600">Julio</td><td class="num">12</td><td class="num">40.83 min</td><td class="num heat-good">-9%</td><td class="num heat-good">75.0%</td><td class="num">3.0</td></tr>
+<tr><td style="font-weight:600">Marisol</td><td class="num">44</td><td class="num">43.86 min</td><td class="num heat-good">-3%</td><td class="num heat-good">63.64%</td><td class="num">5.88</td></tr>
+<tr><td style="font-weight:600">Fidel</td><td class="num">70</td><td class="num">44.05 min</td><td class="num heat-good">-2%</td><td class="num heat-good">61.43%</td><td class="num">7.16</td></tr>
+<tr><td style="font-weight:600">Felipe</td><td class="num">21</td><td class="num">47.14 min</td><td class="num heat-good">+5%</td><td class="num heat-warn">42.86%</td><td class="num">10.76</td></tr>
+<tr><td style="font-weight:600">Pita</td><td class="num">36</td><td class="num">47.31 min</td><td class="num heat-good">+5%</td><td class="num heat-good">55.56%</td><td class="num">5.15</td></tr>
+<tr><td style="font-weight:600">Eli</td><td class="num">23</td><td class="num">52.57 min</td><td class="num heat-bad">+17%</td><td class="num heat-warn">47.83%</td><td class="num">4.45</td></tr>
+
+    </table></div>
+  </div>
+  <div class="tab-content" id="lc-h12">
+    <div class="table-wrap"><table>
+      <tr><th>Coordinador</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>% On-Time</th><th>Paros 2h</th></tr>
+      <tr><td style="font-weight:600">Adriana</td><td class="num">7</td><td class="num">25.22 min</td><td class="num heat-good">+0%</td><td class="num heat-good">100.0%</td><td class="num">8.83</td></tr>
+<tr><td style="font-weight:600">Galicia</td><td class="num">51</td><td class="num">33.95 min</td><td class="num heat-bad">+37%</td><td class="num heat-warn">37.25%</td><td class="num">4.22</td></tr>
+<tr><td style="font-weight:600">Marcos</td><td class="num">136</td><td class="num">33.82 min</td><td class="num heat-bad">+38%</td><td class="num heat-warn">47.79%</td><td class="num">5.34</td></tr>
+<tr><td style="font-weight:600">Leopoldo</td><td class="num">30</td><td class="num">32.9 min</td><td class="num heat-bad">+40%</td><td class="num heat-bad">30.0%</td><td class="num">3.59</td></tr>
+
+    </table></div>
+  </div>
+  <div class="tab-content" id="lc-h13">
+    <div class="table-wrap"><table>
+      <tr><th>Coordinador</th><th># COs</th><th>T. Real Prom.</th><th>Variación</th><th>% On-Time</th><th>Paros 2h</th></tr>
+      <tr><td style="font-weight:600">Leopoldo</td><td class="num">14</td><td class="num">37.29 min</td><td class="num heat-bad">+22%</td><td class="num heat-good">50.0%</td><td class="num">5.5</td></tr>
+<tr><td style="font-weight:600">Galicia</td><td class="num">57</td><td class="num">34.63 min</td><td class="num heat-bad">+28%</td><td class="num heat-warn">35.09%</td><td class="num">4.82</td></tr>
+<tr><td style="font-weight:600">Marcos</td><td class="num">93</td><td class="num">34.1 min</td><td class="num heat-bad">+50%</td><td class="num heat-warn">40.86%</td><td class="num">3.99</td></tr>
+
+    </table></div>
+  </div>
+
+  <div class="insight-box"><div class="insight-title">💡 Insight por coordinador</div>
+    <strong>B9:</strong> <strong>Julio</strong> es el mejor coordinador (−9% variación, 75% on-time, solo 3.0 paros post-CO), seguido de Marisol y Fidel. <strong>Eli</strong> presenta el peor desempeño (+17% variación, 47.8% on-time). <strong>Felipe</strong> tiene los paros post-CO más altos (10.76), lo que sugiere que la estabilización post-cambio necesita refuerzo.
+    <strong>H12:</strong> <strong>Adriana</strong> destaca con 100% on-time (7 COs), aunque con muestra pequeña. Marcos y Galicia tienen desempeño similar (~37-48% on-time).
+    <strong>H13:</strong> <strong>Leopoldo</strong> tiene el mejor desempeño (50% on-time), mientras que Marcos tiene 40.9% on-time pero con la variación más alta (+50%).
+  </div>
+</div></section>
+
+<!-- ======== S8: RAZONES Y HALLAZGOS ======== -->
+<section id="hallazgos"><div class="container">
+  <div class="section-number">08 — Razones de Desviación & Hallazgos Finales</div>
+  <h2 class="section-title">¿Por qué se excede el tiempo?</h2>
+  <p class="section-desc">Principales razones reportadas cuando un CO se excede del tiempo objetivo. Solo se muestran razones distintas a "OK".</p>
+
+  <div class="tabs" data-group="raz">
+    <div class="tab active b9" data-tab="raz-b9">B9</div>
+    <div class="tab h12" data-tab="raz-h12">H12</div>
+    <div class="tab h13" data-tab="raz-h13">H13</div>
+  </div>
+<div class="tab-content active" id="raz-b9">
+<ul class="razon-list">
+<li class="razon-item"><span class="razon-count">3</span><span class="razon-text">Despeje de linea</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Cuadre de cuotas</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Relevos de comedor</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Falta de cambio de DIL // Falla electrica en programación 550 (se encontraba actividad una parte que no existe en la máquina) // Ajuste de altura de c</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Retraso de 15 min por hebra, ya que comentó el operador que no había vines disponibles para realizar el vaciado del volcador</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Guarda de seguridad de cabezal de corte (Protos) // Ajuste de cámara de paquete incompleto por exceso de expulsiones</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Arranque de máquina y cambio de marca</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Falla de insert en el arranque, garantizar limpieza de válvula en arranques con insert</span></li>
+</ul>
+</div>
+<div class="tab-content" id="raz-h12">
+<ul class="razon-list">
+<li class="razon-item"><span class="razon-count">13</span><span class="razon-text">Cuadre de cuota</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Cuadre de cuota, limpieza de guias y glue jets exceso de suciedad</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Problemas en LESMES con cambio de orden</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Cuadre de cuotas</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Cuadre de cuota y reporceso de cajetilla</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">PROTOTIPOS</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Espera de tiempo por impresion de corrugados</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Reproceso  de cajetilla</span></li>
+</ul>
+</div>
+<div class="tab-content" id="raz-h13">
+<ul class="razon-list">
+<li class="razon-item"><span class="razon-count">7</span><span class="razon-text">Cuadre de cuota</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">Cuadrar cuota</span></li>
+<li class="razon-item"><span class="razon-count">2</span><span class="razon-text">PRUEBAS MATERIALES Cuadre de cuota</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Logopack daña disco duro, cn datos de cbl. Rutina con sensores de calidad  y revision de rutina doble bloque.</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Espera para imprimir 5 corrugados + 10mn en scanear CBL y ajuste d tax x esceso de corte cuando entra hay variacion.</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">CILy CO - cambio de polycord f519 dañadas , posible aire en linea se realizo calibracion de boquillas</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">Reproceso de corrugado por falta de CBL e impresion por pack  no aplica CBL  atascado en aplicador recorre 4mm atras. Se elevan sensores de paquete 12</span></li>
+<li class="razon-item"><span class="razon-count">1</span><span class="razon-text">internet lento / atasco de tolvalado izqyuierdo</span></li>
+</ul>
+</div>
+
+  <div class="insight-box"><div class="insight-title">💡 Razones principales</div>
+    La razón más frecuente en <strong>H12 y H13</strong> es <strong>"Cuadre de cuota"</strong> (19 veces en H12, 7 en H13), indicando que el ajuste de conteo de producción al final de una orden es un cuello de botella recurrente. En <strong>B9</strong> las razones son más diversas: despeje de línea, fallas en protos, problemas de hebra, y cuadre de cuotas. Varias razones mencionan fallas eléctricas y de programación, sugiriendo oportunidad de mejora en mantenimiento preventivo eléctrico.
+  </div>
+
+  <!-- ======== HALLAZGOS FINALES ======== -->
+  <div style="margin-top:4rem">
+    <div class="section-number">09 — Conclusiones & Recomendaciones</div>
+    <h2 class="section-title">Hallazgos clave del análisis</h2>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem;margin-top:2rem">
+
+    <div class="compare-card" style="border-left:3px solid var(--red)">
+      <h3 style="color:var(--red);font-size:1rem">🔴 Áreas Críticas</h3>
+      <div style="font-size:.88rem;color:var(--text-dim);line-height:1.7;margin-top:.75rem">
+        <p style="margin-bottom:.75rem"><strong style="color:var(--text)">H13 requiere atención prioritaria:</strong> Uptime Loss de 17.8%, MTBF de solo 533 min, y solo 39.8% de COs a tiempo. El MTBF post-CO de 16.9 min indica que la máquina no se estabiliza bien tras los cambios.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--text)">STOP BUTTON OP PANEL</strong> aparece en las 3 máquinas con MTTRs de 7-12 min. Estos paros manuales son los más costosos por evento y necesitan análisis de causa raíz.</p>
+        <p><strong style="color:var(--text)">Marcas NEXT en H12/H13</strong> generan las mayores desviaciones en COs, especialmente las transiciones entre sub-variantes (NEXT SEVEN, NEXT PM, NEXT SMOOTH).</p>
+      </div>
+    </div>
+
+    <div class="compare-card" style="border-left:3px solid var(--accent3)">
+      <h3 style="color:var(--accent3);font-size:1rem">🟢 Oportunidades de Mejora</h3>
+      <div style="font-size:.88rem;color:var(--text-dim);line-height:1.7;margin-top:.75rem">
+        <p style="margin-bottom:.75rem"><strong style="color:var(--text)">Estandarizar el "Cuadre de Cuota":</strong> Es la razón #1 de desviación en H12/H13. Un procedimiento estándar podría reducir 10-15 min por CO afectado.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--text)">Optimizar secuencias de producción:</strong> Los COs entre marcas de la misma familia son 20-60% más rápidos. Planificar la secuencia de producción para minimizar cambios entre familias distintas.</p>
+        <p><strong style="color:var(--text)">Coaching dirigido a coordinadores:</strong> En B9, Julio logra −9% variación y 75% on-time. Documentar y replicar sus prácticas con los demás coordinadores, especialmente Eli (+17%) y Felipe (10.8 paros post-CO).</p>
+      </div>
+    </div>
+
+    <div class="compare-card" style="border-left:3px solid var(--accent)">
+      <h3 style="color:var(--accent);font-size:1rem">📊 Datos a Considerar</h3>
+      <div style="font-size:.88rem;color:var(--text-dim);line-height:1.7;margin-top:.75rem">
+        <p style="margin-bottom:.75rem"><strong style="color:var(--text)">Periodos diferentes:</strong> B9 tiene ~13 meses de datos vs ~8 meses de H12/H13. Las comparaciones absolutas deben tomarse con esta consideración.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--text)">Completitud de datos en B9:</strong> OP Packer/Maker tiene ~50% de completitud. La columna "Espera de Soporte Técnico" está prácticamente vacía (~1%) en las 3 máquinas.</p>
+        <p><strong style="color:var(--text)">Turno 3:</strong> Significativamente menos paros en todas las máquinas. Se recomienda validar si es por menor producción o por diferencias reales en operación.</p>
+      </div>
+    </div>
+
+  </div>
+</div></section>
+
+<footer class="footer">
+  <p>Reporte generado automáticamente · Datos: Machines_New.xlsx & CO_Secundario.xlsx · Periodo: Enero 2025 – Enero 2026</p>
+  <p style="margin-top:.5rem;opacity:.6">Análisis de Secundario — B9 · H12 · H13</p>
+</footer>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const group = tab.parentElement;
+    const targetId = tab.dataset.tab;
+    group.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    let parent = group.parentElement;
+    parent.querySelectorAll(':scope > .tab-content').forEach(tc => tc.classList.remove('active'));
+    document.getElementById(targetId).classList.add('active');
+  });
+});
+
+// Nav show on scroll
+const nav = document.getElementById('nav');
+let lastY = 0;
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 400) nav.classList.add('visible');
+  else nav.classList.remove('visible');
+  lastY = window.scrollY;
+});
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const el = document.querySelector(a.getAttribute('href'));
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+</script>
+</body></html>
