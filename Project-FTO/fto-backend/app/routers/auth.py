@@ -8,14 +8,15 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 @router.post("/magic-link")
 async def send_magic_link(request: MagicLinkRequest):
-    """Envía un Magic Link al correo corporativo @PMINTL.NET."""
+    """Envía un Magic Link al correo autorizado."""
     settings = get_settings()
 
-    # Validar dominio
-    if not request.email.endswith(f"@{settings.allowed_email_domain}"):
+    # Validar dominio contra lista permitida
+    email_domain = request.email.split("@")[-1].lower()
+    if email_domain not in settings.email_domains_list:
         raise HTTPException(
             status_code=400,
-            detail=f"Solo se permiten correos @{settings.allowed_email_domain}"
+            detail=f"Solo se permiten correos de: {', '.join(settings.email_domains_list)}"
         )
 
     try:

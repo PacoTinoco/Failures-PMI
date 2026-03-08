@@ -1,0 +1,117 @@
+import { supabase } from './supabase'
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://pmi-platform.onrender.com'
+
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('No hay sesión activa')
+  }
+  return {
+    'Authorization': `Bearer ${session.access_token}`,
+    'Content-Type': 'application/json'
+  }
+}
+
+async function apiRequest(path, options = {}) {
+  const headers = await getAuthHeaders()
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: { ...headers, ...options.headers }
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+
+  return response.json()
+}
+
+// ============================================================
+// EQUIPOS
+// ============================================================
+
+export async function getCedulas() {
+  return apiRequest('/equipos/cedulas')
+}
+
+export async function getDetalleCedula(cedulaId) {
+  return apiRequest(`/equipos/cedulas/${cedulaId}`)
+}
+
+export async function getLineCoordinators(cedulaId) {
+  return apiRequest(`/equipos/lc?cedula_id=${cedulaId}`)
+}
+
+export async function getOperadores(cedulaId, lcId = null) {
+  let path = `/equipos/operadores?cedula_id=${cedulaId}`
+  if (lcId) path += `&lc_id=${lcId}`
+  return apiRequest(path)
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+
+export async function getResumenLC(cedulaId, semana = null, lcId = null) {
+  let path = `/dashboard/resumen-lc?cedula_id=${cedulaId}`
+  if (semana) path += `&semana=${semana}`
+  if (lcId) path += `&lc_id=${lcId}`
+  return apiRequest(path)
+}
+
+export async function getSemanas(cedulaId) {
+  return apiRequest(`/dashboard/semanas?cedula_id=${cedulaId}`)
+}
+
+export async function getIndicadores() {
+  return apiRequest('/dashboard/indicadores')
+}
+
+export async function getOperadoresSemana(cedulaId, semana, lcId = null) {
+  let path = `/dashboard/operadores-semana?cedula_id=${cedulaId}&semana=${semana}`
+  if (lcId) path += `&lc_id=${lcId}`
+  return apiRequest(path)
+}
+
+export async function getTendencia(cedulaId, campo, options = {}) {
+  let path = `/dashboard/tendencia?cedula_id=${cedulaId}&campo=${campo}`
+  if (options.operadorId) path += `&operador_id=${options.operadorId}`
+  if (options.lcId) path += `&lc_id=${options.lcId}`
+  if (options.semanas) path += `&semanas=${options.semanas}`
+  return apiRequest(path)
+}
+
+// ============================================================
+// REGISTROS
+// ============================================================
+
+export async function getRegistros(params = {}) {
+  const searchParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, val]) => {
+    if (val != null) searchParams.set(key, val)
+  })
+  return apiRequest(`/registros/?${searchParams.toString()}`)
+}
+
+export async function crearRegistro(registro) {
+  return apiRequest('/registros/', {
+    method: 'POST',
+    body: JSON.stringify(registro)
+  })
+}
+
+export async function crearRegistrosBatch(registros) {
+  return apiRequest('/registros/batch', {
+    method: 'POST',
+    body: JSON.stringify(registros)
+  })
+}
+
+export async function actualizarRegistro(registroId, update) {
+  return apiRequest(`/registros/${registroId}`, {
+    method: 'PUT',
+    body: JSON.stringify(update)
+  })
+}

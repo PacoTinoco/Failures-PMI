@@ -14,8 +14,9 @@ class MagicLinkRequest(BaseModel):
     @classmethod
     def validate_corporate_email(cls, v: str) -> str:
         v = v.strip().lower()
-        if not v.endswith("@pmintl.net"):
-            raise ValueError("Solo se permiten correos corporativos @PMINTL.NET")
+        # Validación de dominio se hace en el router usando config.allowed_email_domains
+        if "@" not in v:
+            raise ValueError("Email inválido")
         return v
 
 
