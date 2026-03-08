@@ -1,6 +1,0 @@
-streamlit
-pandas
-scikit-learn
-joblib
-psycopg2-binary
-openpyxl
