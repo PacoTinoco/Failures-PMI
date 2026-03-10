@@ -45,7 +45,7 @@ const features = [
     iconBg: 'bg-yellow-100',
     iconColor: 'text-yellow-600',
     title: 'Autenticación Segura',
-    desc: 'Magic Link sin contraseñas. Solo correo @PMINTL.NET con políticas RLS para seguridad a nivel de fila.'
+    desc: 'Email y contraseña seguros. Registro rápido con cualquier correo y políticas RLS para seguridad a nivel de fila.'
   },
   {
     icon: (
@@ -72,7 +72,7 @@ const features = [
 ]
 
 const steps = [
-  { num: '1', color: 'from-blue-500 to-blue-600', title: 'Inicia Sesión', desc: 'Ingresa tu correo corporativo @PMINTL.NET y recibe un Magic Link instantáneo. Sin contraseñas que recordar.' },
+  { num: '1', color: 'from-blue-500 to-blue-600', title: 'Crea tu Cuenta', desc: 'Regístrate con tu correo y una contraseña. Inicia sesión cuando quieras, tu sesión se mantiene activa.' },
   { num: '2', color: 'from-green-500 to-green-600', title: 'Captura Datos', desc: 'Registra los 17 indicadores SQDCM por operador cada semana. Interfaz intuitiva con validaciones en tiempo real.' },
   { num: '3', color: 'from-purple-500 to-purple-600', title: 'Visualiza Resultados', desc: 'Accede a dashboards interactivos, tendencias históricas y exporta reportes para tus presentaciones.' },
 ]
@@ -106,10 +106,10 @@ export default function Landing() {
           </div>
 
           <Link
-            to={ctaLink}
+            to="/login"
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors"
           >
-            Ver Mi Dashboard
+            {user ? 'Ir al Dashboard' : 'Iniciar Sesión'}
           </Link>
         </div>
       </nav>
@@ -172,7 +172,7 @@ export default function Landing() {
                 <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Magic Link Seguro
+                Acceso Seguro
               </span>
               <span className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

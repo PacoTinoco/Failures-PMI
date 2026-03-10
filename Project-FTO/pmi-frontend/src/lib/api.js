@@ -32,6 +32,8 @@ async function apiRequest(path, options = {}) {
 // EQUIPOS
 // ============================================================
 
+// --- CÉDULAS ---
+
 export async function getCedulas() {
   return apiRequest('/equipos/cedulas')
 }
@@ -40,14 +42,78 @@ export async function getDetalleCedula(cedulaId) {
   return apiRequest(`/equipos/cedulas/${cedulaId}`)
 }
 
+export async function createCedula(cedula) {
+  return apiRequest('/equipos/cedulas', {
+    method: 'POST',
+    body: JSON.stringify(cedula)
+  })
+}
+
+export async function updateCedula(cedulaId, cedula) {
+  return apiRequest(`/equipos/cedulas/${cedulaId}`, {
+    method: 'PUT',
+    body: JSON.stringify(cedula)
+  })
+}
+
+export async function deleteCedula(cedulaId) {
+  return apiRequest(`/equipos/cedulas/${cedulaId}`, {
+    method: 'DELETE'
+  })
+}
+
+// --- LINE COORDINATORS ---
+
 export async function getLineCoordinators(cedulaId) {
   return apiRequest(`/equipos/lc?cedula_id=${cedulaId}`)
 }
+
+export async function createLC(lc) {
+  return apiRequest('/equipos/lc', {
+    method: 'POST',
+    body: JSON.stringify(lc)
+  })
+}
+
+export async function updateLC(lcId, lc) {
+  return apiRequest(`/equipos/lc/${lcId}`, {
+    method: 'PUT',
+    body: JSON.stringify(lc)
+  })
+}
+
+export async function deleteLC(lcId) {
+  return apiRequest(`/equipos/lc/${lcId}`, {
+    method: 'DELETE'
+  })
+}
+
+// --- OPERADORES ---
 
 export async function getOperadores(cedulaId, lcId = null) {
   let path = `/equipos/operadores?cedula_id=${cedulaId}`
   if (lcId) path += `&lc_id=${lcId}`
   return apiRequest(path)
+}
+
+export async function createOperador(operador) {
+  return apiRequest('/equipos/operadores', {
+    method: 'POST',
+    body: JSON.stringify(operador)
+  })
+}
+
+export async function updateOperador(operadorId, operador) {
+  return apiRequest(`/equipos/operadores/${operadorId}`, {
+    method: 'PUT',
+    body: JSON.stringify(operador)
+  })
+}
+
+export async function deleteOperador(operadorId) {
+  return apiRequest(`/equipos/operadores/${operadorId}`, {
+    method: 'DELETE'
+  })
 }
 
 // ============================================================

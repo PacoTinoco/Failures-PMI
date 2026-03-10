@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import WeekSelector from '../components/WeekSelector'
 import FilterBar from '../components/FilterBar'
+import CedulaSelector from '../components/CedulaSelector'
 import { getSemaforoColor } from '../components/SemaforoIndicador'
 import * as api from '../lib/api'
 
@@ -99,20 +100,24 @@ function getClosestMonday() {
 }
 
 export default function Dashboard() {
+  const [cedulas, setCedulas] = useState([])
   const [cedulaId, setCedulaId] = useState(null)
+  const [cedulasLoading, setCedulasLoading] = useState(true)
   const [semana, setSemana] = useState(getClosestMonday())
   const [lcs, setLcs] = useState([])
   const [selectedLC, setSelectedLC] = useState(null)
   const [resumenData, setResumenData] = useState([])
   const [operadoresData, setOperadoresData] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch cedula
+  // Fetch cedulas
   useEffect(() => {
     api.getCedulas().then(res => {
+      setCedulas(res.data || [])
       if (res.data?.length > 0) setCedulaId(res.data[0].id)
     }).catch(err => setError(err.message))
+      .finally(() => setCedulasLoading(false))
   }, [])
 
   // Fetch LCs
@@ -174,6 +179,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <CedulaSelector cedulas={cedulas} selectedCedulaId={cedulaId} onChange={setCedulaId} loading={cedulasLoading} />
           <WeekSelector value={semana} onChange={setSemana} />
           <FilterBar lineCoordinators={lcs} selectedLC={selectedLC} onLCChange={setSelectedLC} />
         </div>
@@ -281,7 +287,7 @@ export default function Dashboard() {
                     </tr>
                   ) : (
                     resumenData.map((lc, idx) => (
-                      <tr key={idx} className="border-b border-white/5/50 hover:bg-slate-700/20">
+                      <tr key={idx} className="border-b border-white/5 hover:bg-slate-700/20">
                         <td className="px-4 py-2.5 text-white font-medium whitespace-nowrap">
                           {lc.lc_nombre || lc.nombre || `LC ${idx + 1}`}
                         </td>
