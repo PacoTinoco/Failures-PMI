@@ -84,6 +84,21 @@ class RegistroSemanalUpdate(BaseModel):
 # OPERADORES / LC
 # ============================================================
 
+class CedulaCreate(BaseModel):
+    nombre: str
+    turno: Optional[str] = None
+    grupo: Optional[str] = None
+    notas: Optional[str] = None
+
+
+class CedulaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    turno: Optional[str] = None
+    grupo: Optional[str] = None
+    notas: Optional[str] = None
+    activa: Optional[bool] = None
+
+
 class OperadorCreate(BaseModel):
     nombre: str
     lc_id: str
@@ -92,12 +107,28 @@ class OperadorCreate(BaseModel):
     maquina: Optional[str] = None
 
 
+class OperadorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    lc_id: Optional[str] = None
+    turno: Optional[str] = None
+    maquina: Optional[str] = None
+    activo: Optional[bool] = None
+
+
 class LCCreate(BaseModel):
     nombre: str
     cedula_id: str
     turno: Optional[str] = None
     grupo: Optional[str] = None
     email: Optional[str] = None
+
+
+class LCUpdate(BaseModel):
+    nombre: Optional[str] = None
+    turno: Optional[str] = None
+    grupo: Optional[str] = None
+    email: Optional[str] = None
+    activo: Optional[bool] = None
 
 
 # ============================================================

@@ -11,13 +11,14 @@ async def send_magic_link(request: MagicLinkRequest):
     """Envía un Magic Link al correo autorizado."""
     settings = get_settings()
 
-    # Validar dominio contra lista permitida
-    email_domain = request.email.split("@")[-1].lower()
-    if email_domain not in settings.email_domains_list:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Solo se permiten correos de: {', '.join(settings.email_domains_list)}"
-        )
+    # Validar dominio contra lista permitida (skip si es "*")
+    if settings.allowed_email_domains != "*":
+        email_domain = request.email.split("@")[-1].lower()
+        if email_domain not in settings.email_domains_list:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Solo se permiten correos de: {', '.join(settings.email_domains_list)}"
+            )
 
     try:
         sb = get_supabase()
