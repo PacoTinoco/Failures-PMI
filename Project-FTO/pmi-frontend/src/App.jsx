@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import Captura from './pages/Captura'
 import Dashboard from './pages/Dashboard'
+import Administrar from './pages/Administrar'
 
 export default function App() {
   return (
@@ -32,6 +33,17 @@ export default function App() {
           <ProtectedRoute>
             <Layout>
               <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/administrar"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Administrar />
             </Layout>
           </ProtectedRoute>
         }

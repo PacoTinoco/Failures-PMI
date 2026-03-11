@@ -1,5 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.models.schemas import OperadorCreate, LCCreate, UsuarioCreate
+from app.models.schemas import (
+    OperadorCreate, OperadorUpdate,
+    LCCreate, LCUpdate,
+    CedulaCreate, CedulaUpdate,
+    UsuarioCreate
+)
 from app.services.supabase_client import get_supabase_admin
 from app.services.auth import get_current_user
 
@@ -13,7 +18,7 @@ router = APIRouter(prefix="/equipos", tags=["Gestión de Equipos"])
 @router.get("/cedulas")
 async def listar_cedulas(user=Depends(get_current_user)):
     sb = get_supabase_admin()
-    result = sb.table("cedulas").select("*").eq("activa", True).execute()
+    result = sb.table("cedulas").select("*").eq("activa", True).order("nombre").execute()
     return {"data": result.data}
 
 
@@ -33,6 +38,39 @@ async def detalle_cedula(cedula_id: str, user=Depends(get_current_user)):
         "total_lc": len(lcs.data) if lcs.data else 0,
         "total_operadores": len(ops.data) if ops.data else 0
     }
+
+
+@router.post("/cedulas")
+async def crear_cedula(cedula: CedulaCreate, user=Depends(get_current_user)):
+    sb = get_supabase_admin()
+    try:
+        result = sb.table("cedulas").insert(
+            cedula.model_dump(exclude_none=True)
+        ).execute()
+        return {"success": True, "data": result.data[0] if result.data else None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/cedulas/{cedula_id}")
+async def actualizar_cedula(cedula_id: str, cedula: CedulaUpdate, user=Depends(get_current_user)):
+    sb = get_supabase_admin()
+    result = sb.table("cedulas").update(
+        cedula.model_dump(exclude_none=True)
+    ).eq("id", cedula_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Cédula no encontrada")
+    return {"success": True, "data": result.data[0]}
+
+
+@router.delete("/cedulas/{cedula_id}")
+async def eliminar_cedula(cedula_id: str, user=Depends(get_current_user)):
+    """Soft delete — marca como inactiva."""
+    sb = get_supabase_admin()
+    result = sb.table("cedulas").update({"activa": False}).eq("id", cedula_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Cédula no encontrada")
+    return {"success": True, "message": "Cédula desactivada"}
 
 
 # ============================================================
@@ -59,7 +97,7 @@ async def crear_lc(lc: LCCreate, user=Depends(get_current_user)):
 
 
 @router.put("/lc/{lc_id}")
-async def actualizar_lc(lc_id: str, lc: LCCreate, user=Depends(get_current_user)):
+async def actualizar_lc(lc_id: str, lc: LCUpdate, user=Depends(get_current_user)):
     sb = get_supabase_admin()
     result = sb.table("line_coordinators").update(
         lc.model_dump(exclude_none=True)
@@ -67,6 +105,16 @@ async def actualizar_lc(lc_id: str, lc: LCCreate, user=Depends(get_current_user)
     if not result.data:
         raise HTTPException(status_code=404, detail="LC no encontrado")
     return {"success": True, "data": result.data[0]}
+
+
+@router.delete("/lc/{lc_id}")
+async def eliminar_lc(lc_id: str, user=Depends(get_current_user)):
+    """Soft delete — marca como inactivo."""
+    sb = get_supabase_admin()
+    result = sb.table("line_coordinators").update({"activo": False}).eq("id", lc_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="LC no encontrado")
+    return {"success": True, "message": "LC desactivado"}
 
 
 # ============================================================
@@ -98,7 +146,7 @@ async def crear_operador(op: OperadorCreate, user=Depends(get_current_user)):
 
 
 @router.put("/operadores/{op_id}")
-async def actualizar_operador(op_id: str, op: OperadorCreate, user=Depends(get_current_user)):
+async def actualizar_operador(op_id: str, op: OperadorUpdate, user=Depends(get_current_user)):
     sb = get_supabase_admin()
     result = sb.table("operadores").update(
         op.model_dump(exclude_none=True)

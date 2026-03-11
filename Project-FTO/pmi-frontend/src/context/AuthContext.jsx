@@ -28,14 +28,30 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signInWithMagicLink(email) {
-    const redirectUrl = `${window.location.origin}/auth/callback`
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirectUrl }
+  async function signUp(email, password) {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.toLowerCase().trim(),
+      password,
+      options: {
+        emailRedirectTo: window.location.origin + '/auth/callback'
+      }
     })
     if (error) throw error
-    return { success: true }
+
+    // Check if email confirmation is required
+    // When confirmation is ON: data.session is null, data.user exists but email_confirmed_at is null
+    // When confirmation is OFF: data.session exists immediately
+    const needsConfirmation = data.user && !data.session
+    return { success: true, user: data.user, needsConfirmation }
+  }
+
+  async function signInWithPassword(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password
+    })
+    if (error) throw error
+    return { success: true, user: data.user }
   }
 
   async function signOut() {
@@ -49,7 +65,8 @@ export function AuthProvider({ children }) {
     user,
     session,
     loading,
-    signInWithMagicLink,
+    signUp,
+    signInWithPassword,
     signOut
   }
 
