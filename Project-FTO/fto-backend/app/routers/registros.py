@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import date
 from app.models.schemas import RegistroSemanalCreate, RegistroSemanalUpdate
 from app.services.supabase_client import get_supabase_admin
-from app.services.auth import get_current_user
 
 router = APIRouter(prefix="/registros", tags=["Registros Semanales"])
 
@@ -15,8 +14,7 @@ async def listar_registros(
     cedula_id: Optional[str] = Query(None, description="Filtrar por cédula"),
     lc_id: Optional[str] = Query(None, description="Filtrar por Line Coordinator"),
     limit: int = Query(100, le=500),
-    offset: int = Query(0, ge=0),
-    user=Depends(get_current_user)
+    offset: int = Query(0, ge=0)
 ):
     """Lista registros semanales con filtros opcionales."""
     sb = get_supabase_admin()
@@ -46,7 +44,7 @@ async def listar_registros(
 
 
 @router.post("/")
-async def crear_registro(registro: RegistroSemanalCreate, user=Depends(get_current_user)):
+async def crear_registro(registro: RegistroSemanalCreate):
     """Crea un nuevo registro semanal para un operador."""
     sb = get_supabase_admin()
 
@@ -57,11 +55,6 @@ async def crear_registro(registro: RegistroSemanalCreate, user=Depends(get_curre
 
     data = registro.model_dump(exclude_none=True)
     data["cedula_id"] = op.data["cedula_id"]
-
-    # Buscar usuario para created_by
-    usr = sb.table("usuarios").select("id").eq("email", user.email).maybe_single().execute()
-    if usr.data:
-        data["created_by"] = usr.data["id"]
 
     try:
         result = sb.table("registros_semanales").insert(data).execute()
@@ -76,11 +69,9 @@ async def crear_registro(registro: RegistroSemanalCreate, user=Depends(get_curre
 
 
 @router.post("/batch")
-async def crear_registros_batch(registros: list[RegistroSemanalCreate], user=Depends(get_current_user)):
+async def crear_registros_batch(registros: list[RegistroSemanalCreate]):
     """Crea múltiples registros en una sola operación (para captura rápida)."""
     sb = get_supabase_admin()
-    usr = sb.table("usuarios").select("id").eq("email", user.email).maybe_single().execute()
-    created_by = usr.data["id"] if usr.data else None
 
     records = []
     for reg in registros:
@@ -89,8 +80,6 @@ async def crear_registros_batch(registros: list[RegistroSemanalCreate], user=Dep
             continue
         data = reg.model_dump(exclude_none=True)
         data["cedula_id"] = op.data["cedula_id"]
-        if created_by:
-            data["created_by"] = created_by
         records.append(data)
 
     if not records:
@@ -104,7 +93,7 @@ async def crear_registros_batch(registros: list[RegistroSemanalCreate], user=Dep
 
 
 @router.put("/{registro_id}")
-async def actualizar_registro(registro_id: str, update: RegistroSemanalUpdate, user=Depends(get_current_user)):
+async def actualizar_registro(registro_id: str, update: RegistroSemanalUpdate):
     """Actualiza un registro semanal existente."""
     sb = get_supabase_admin()
     data = update.model_dump(exclude_none=True)
@@ -123,7 +112,7 @@ async def actualizar_registro(registro_id: str, update: RegistroSemanalUpdate, u
 
 
 @router.delete("/{registro_id}")
-async def eliminar_registro(registro_id: str, user=Depends(get_current_user)):
+async def eliminar_registro(registro_id: str):
     """Elimina un registro semanal."""
     sb = get_supabase_admin()
     try:
