@@ -78,7 +78,7 @@ async def crear_registros_batch(registros: list[RegistroSemanalCreate]):
         op = sb.table("operadores").select("cedula_id").eq("id", reg.operador_id).single().execute()
         if not op.data:
             continue
-        data = reg.model_dump(exclude_none=True)
+        data = reg.model_dump(exclude_none=True, mode='json')
         data["cedula_id"] = op.data["cedula_id"]
         records.append(data)
 

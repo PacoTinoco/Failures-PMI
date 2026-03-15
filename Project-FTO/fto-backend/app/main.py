@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import auth, registros, dashboard, equipos
+from app.routers import registros, dashboard, equipos
 
 settings = get_settings()
 
@@ -27,7 +27,6 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(auth.router)
 app.include_router(registros.router)
 app.include_router(dashboard.router)
 app.include_router(equipos.router)
