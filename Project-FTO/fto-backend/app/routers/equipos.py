@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from app.models.schemas import (
     OperadorCreate, OperadorUpdate,
     LCCreate, LCUpdate,
@@ -6,7 +6,6 @@ from app.models.schemas import (
     UsuarioCreate
 )
 from app.services.supabase_client import get_supabase_admin
-from app.services.auth import get_current_user
 
 router = APIRouter(prefix="/equipos", tags=["Gestión de Equipos"])
 
@@ -16,14 +15,14 @@ router = APIRouter(prefix="/equipos", tags=["Gestión de Equipos"])
 # ============================================================
 
 @router.get("/cedulas")
-async def listar_cedulas(user=Depends(get_current_user)):
+async def listar_cedulas():
     sb = get_supabase_admin()
     result = sb.table("cedulas").select("*").eq("activa", True).order("nombre").execute()
     return {"data": result.data}
 
 
 @router.get("/cedulas/{cedula_id}")
-async def detalle_cedula(cedula_id: str, user=Depends(get_current_user)):
+async def detalle_cedula(cedula_id: str):
     sb = get_supabase_admin()
     cedula = sb.table("cedulas").select("*").eq("id", cedula_id).single().execute()
     lcs = sb.table("line_coordinators").select("*").eq("cedula_id", cedula_id).eq("activo", True).execute()
@@ -41,7 +40,7 @@ async def detalle_cedula(cedula_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/cedulas")
-async def crear_cedula(cedula: CedulaCreate, user=Depends(get_current_user)):
+async def crear_cedula(cedula: CedulaCreate):
     sb = get_supabase_admin()
     try:
         result = sb.table("cedulas").insert(
@@ -53,7 +52,7 @@ async def crear_cedula(cedula: CedulaCreate, user=Depends(get_current_user)):
 
 
 @router.put("/cedulas/{cedula_id}")
-async def actualizar_cedula(cedula_id: str, cedula: CedulaUpdate, user=Depends(get_current_user)):
+async def actualizar_cedula(cedula_id: str, cedula: CedulaUpdate):
     sb = get_supabase_admin()
     result = sb.table("cedulas").update(
         cedula.model_dump(exclude_none=True)
@@ -64,7 +63,7 @@ async def actualizar_cedula(cedula_id: str, cedula: CedulaUpdate, user=Depends(g
 
 
 @router.delete("/cedulas/{cedula_id}")
-async def eliminar_cedula(cedula_id: str, user=Depends(get_current_user)):
+async def eliminar_cedula(cedula_id: str):
     """Soft delete — marca como inactiva."""
     sb = get_supabase_admin()
     result = sb.table("cedulas").update({"activa": False}).eq("id", cedula_id).execute()
@@ -78,7 +77,7 @@ async def eliminar_cedula(cedula_id: str, user=Depends(get_current_user)):
 # ============================================================
 
 @router.get("/lc")
-async def listar_lcs(cedula_id: str, user=Depends(get_current_user)):
+async def listar_lcs(cedula_id: str):
     sb = get_supabase_admin()
     result = sb.table("line_coordinators").select("*").eq(
         "cedula_id", cedula_id
@@ -87,7 +86,7 @@ async def listar_lcs(cedula_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/lc")
-async def crear_lc(lc: LCCreate, user=Depends(get_current_user)):
+async def crear_lc(lc: LCCreate):
     sb = get_supabase_admin()
     try:
         result = sb.table("line_coordinators").insert(lc.model_dump(exclude_none=True)).execute()
@@ -97,7 +96,7 @@ async def crear_lc(lc: LCCreate, user=Depends(get_current_user)):
 
 
 @router.put("/lc/{lc_id}")
-async def actualizar_lc(lc_id: str, lc: LCUpdate, user=Depends(get_current_user)):
+async def actualizar_lc(lc_id: str, lc: LCUpdate):
     sb = get_supabase_admin()
     result = sb.table("line_coordinators").update(
         lc.model_dump(exclude_none=True)
@@ -108,7 +107,7 @@ async def actualizar_lc(lc_id: str, lc: LCUpdate, user=Depends(get_current_user)
 
 
 @router.delete("/lc/{lc_id}")
-async def eliminar_lc(lc_id: str, user=Depends(get_current_user)):
+async def eliminar_lc(lc_id: str):
     """Soft delete — marca como inactivo."""
     sb = get_supabase_admin()
     result = sb.table("line_coordinators").update({"activo": False}).eq("id", lc_id).execute()
@@ -122,7 +121,7 @@ async def eliminar_lc(lc_id: str, user=Depends(get_current_user)):
 # ============================================================
 
 @router.get("/operadores")
-async def listar_operadores(cedula_id: str, lc_id: str = None, user=Depends(get_current_user)):
+async def listar_operadores(cedula_id: str, lc_id: str = None):
     sb = get_supabase_admin()
     query = sb.table("operadores").select(
         "*, line_coordinators(nombre, grupo)"
@@ -136,7 +135,7 @@ async def listar_operadores(cedula_id: str, lc_id: str = None, user=Depends(get_
 
 
 @router.post("/operadores")
-async def crear_operador(op: OperadorCreate, user=Depends(get_current_user)):
+async def crear_operador(op: OperadorCreate):
     sb = get_supabase_admin()
     try:
         result = sb.table("operadores").insert(op.model_dump(exclude_none=True)).execute()
@@ -146,7 +145,7 @@ async def crear_operador(op: OperadorCreate, user=Depends(get_current_user)):
 
 
 @router.put("/operadores/{op_id}")
-async def actualizar_operador(op_id: str, op: OperadorUpdate, user=Depends(get_current_user)):
+async def actualizar_operador(op_id: str, op: OperadorUpdate):
     sb = get_supabase_admin()
     result = sb.table("operadores").update(
         op.model_dump(exclude_none=True)
@@ -157,7 +156,7 @@ async def actualizar_operador(op_id: str, op: OperadorUpdate, user=Depends(get_c
 
 
 @router.delete("/operadores/{op_id}")
-async def desactivar_operador(op_id: str, user=Depends(get_current_user)):
+async def desactivar_operador(op_id: str):
     """Soft delete — marca como inactivo."""
     sb = get_supabase_admin()
     result = sb.table("operadores").update({"activo": False}).eq("id", op_id).execute()
@@ -169,7 +168,7 @@ async def desactivar_operador(op_id: str, user=Depends(get_current_user)):
 # ============================================================
 
 @router.get("/usuarios")
-async def listar_usuarios(cedula_id: str = None, user=Depends(get_current_user)):
+async def listar_usuarios(cedula_id: str = None):
     sb = get_supabase_admin()
     query = sb.table("usuarios").select("*, cedulas(nombre)").eq("activo", True)
     if cedula_id:
@@ -179,7 +178,7 @@ async def listar_usuarios(cedula_id: str = None, user=Depends(get_current_user))
 
 
 @router.post("/usuarios")
-async def crear_usuario(usuario: UsuarioCreate, user=Depends(get_current_user)):
+async def crear_usuario(usuario: UsuarioCreate):
     sb = get_supabase_admin()
     try:
         result = sb.table("usuarios").insert(usuario.model_dump()).execute()

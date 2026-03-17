@@ -1,23 +1,14 @@
-import { supabase } from './supabase'
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://pmi-platform.onrender.com'
-
-async function getAuthHeaders() {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.access_token) {
-    throw new Error('No hay sesión activa')
-  }
-  return {
-    'Authorization': `Bearer ${session.access_token}`,
-    'Content-Type': 'application/json'
-  }
-}
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 async function apiRequest(path, options = {}) {
-  const headers = await getAuthHeaders()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { ...headers, ...options.headers }
+    headers
   })
 
   if (!response.ok) {

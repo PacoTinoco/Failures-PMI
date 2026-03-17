@@ -1,8 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import date
 from app.services.supabase_client import get_supabase_admin
-from app.services.auth import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -11,9 +10,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 async def resumen_por_lc(
     cedula_id: str,
     semana: Optional[date] = Query(None),
-    lc_id: Optional[str] = Query(None),
-    user=Depends(get_current_user)
-):
+    lc_id: Optional[str] = Query(None)):
     """Obtiene el resumen (promedios) por Line Coordinator usando la vista SQL."""
     sb = get_supabase_admin()
     query = sb.table("resumen_lc").select("*").eq("cedula_id", cedula_id)
@@ -30,7 +27,7 @@ async def resumen_por_lc(
 
 
 @router.get("/semanas")
-async def listar_semanas(cedula_id: str, user=Depends(get_current_user)):
+async def listar_semanas(cedula_id: str):
     """Lista todas las semanas que tienen registros para una cédula."""
     sb = get_supabase_admin()
     result = sb.table("registros_semanales").select(
@@ -42,7 +39,7 @@ async def listar_semanas(cedula_id: str, user=Depends(get_current_user)):
 
 
 @router.get("/indicadores")
-async def obtener_indicadores(user=Depends(get_current_user)):
+async def obtener_indicadores():
     """Retorna la configuración de todos los indicadores con sus targets."""
     sb = get_supabase_admin()
     result = sb.table("indicadores_config").select("*").order("orden").execute()
@@ -53,9 +50,7 @@ async def obtener_indicadores(user=Depends(get_current_user)):
 async def operadores_por_semana(
     cedula_id: str,
     semana: date,
-    lc_id: Optional[str] = Query(None),
-    user=Depends(get_current_user)
-):
+    lc_id: Optional[str] = Query(None)):
     """Obtiene todos los registros de operadores para una semana específica,
     con info del operador y su LC. Ideal para la vista tipo spreadsheet."""
     sb = get_supabase_admin()
@@ -97,9 +92,7 @@ async def tendencia_indicador(
     campo: str,
     operador_id: Optional[str] = Query(None),
     lc_id: Optional[str] = Query(None),
-    semanas: int = Query(12, description="Número de semanas hacia atrás"),
-    user=Depends(get_current_user)
-):
+    semanas: int = Query(12, description="Número de semanas hacia atrás")):
     """Retorna la evolución de un indicador específico a lo largo del tiempo.
     Útil para gráficas de tendencia."""
     campos_validos = [
