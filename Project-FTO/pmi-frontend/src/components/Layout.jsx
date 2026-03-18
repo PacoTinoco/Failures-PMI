@@ -15,6 +15,7 @@ const sections = [
       { to: '/fto/captura', label: 'Captura' },
       { to: '/fto/dashboard', label: 'Dashboard' },
       { to: '/fto/admin', label: 'Administración' },
+      { to: '/fto/dh', label: 'DH Defectos' },
     ]
   },
   {
