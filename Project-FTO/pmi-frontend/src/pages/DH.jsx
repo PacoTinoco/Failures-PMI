@@ -196,6 +196,8 @@ export default function DH() {
                       <th className="px-4 py-2 text-left text-xs text-slate-400 font-medium">Semana</th>
                       <th className="px-4 py-2 text-center text-xs text-purple-400 font-medium">DH Enc [#]</th>
                       <th className="px-4 py-2 text-center text-xs text-blue-400 font-medium">DH Rep [#]</th>
+                      <th className="px-4 py-2 text-center text-xs text-emerald-400 font-medium">Curva Aut [%]</th>
+                      <th className="px-4 py-2 text-center text-xs text-orange-400 font-medium">Contram [%]</th>
                       <th className="px-4 py-2 text-center text-xs text-slate-400 font-medium">Estado</th>
                     </tr>
                   </thead>
@@ -211,6 +213,12 @@ export default function DH() {
                           </td>
                           <td className="px-4 py-2 text-center">
                             <span className="text-blue-400 font-medium">{d.dh_reparados}</span>
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <span className="text-emerald-400 font-medium">{d.curva_autonomia ?? 0}%</span>
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <span className="text-orange-400 font-medium">{d.contramedidas_defectos ?? 0}%</span>
                           </td>
                           <td className="px-4 py-2 text-center">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>

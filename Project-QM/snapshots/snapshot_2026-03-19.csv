@@ -1,0 +1,1010 @@
+Employee,Competency,Role,Current_DN,Target_QM,En_Target
+Aguilar Pedro,5S,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,AM Overview,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,AM step 1,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,AM step 2,Line Coordinator - Phase 1,2.0,3,0
+Aguilar Pedro,AM step 3,Line Coordinator - Phase 1,2.0,3,0
+Aguilar Pedro,BDE,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,Behavioral Observation,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,CIL DMS,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,CL DMS,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,CO DMS,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,Coaching on the floor,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,Daily Direction Setting (DDS),Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,DH DMS,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,EHS Risk Assessment,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,ET Training Basic,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,FPQ,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,High Risk Management,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,IOS OVERVIEW,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,IPS,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,Job Safety Analysis,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,Kaizen,Line Coordinator - Phase 1,2.0,3,0
+Aguilar Pedro,Machine Safety fundamentals,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,OPL and TI,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,PDM,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,PM overview,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,PM step 1,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,PM step 2,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,PR&MTBF Data Integrity,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,Q BOS,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,QIE,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,QRP,Line Coordinator - Phase 1,2.0,3,0
+Aguilar Pedro,Qualification Process and Skills Management System,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,Reapplication Management,Line Coordinator - Phase 1,3.0,3,1
+Aguilar Pedro,Safety Map,Line Coordinator - Phase 1,2.0,3,0
+Aguilar Pedro,Safety Trigger,Line Coordinator - Phase 1,2.0,3,0
+Aguilar Pedro,Sustainability Incident Management,Line Coordinator - Phase 1,2.0,2,1
+Aguilar Pedro,Unsafe Conditions and Near Misses Management,Line Coordinator - Phase 1,1.0,3,0
+Aguilar Pedro,UPS,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,5S,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,AM Overview,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,AM step 1,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,AM step 2,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,AM step 3,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,BDE,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,Behavioral Observation,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,CIL DMS,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,CL DMS,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,CO DMS,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,Coaching on the floor,Line Coordinator - Phase 1,1.0,2,0
+Baltazar Andres,Daily Direction Setting (DDS),Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,DH DMS,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,EHS Risk Assessment,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,ET Training Basic,Line Coordinator - Phase 1,1.0,2,0
+Baltazar Andres,FPQ,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,High Risk Management,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,IOS OVERVIEW,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,IPS,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,Job Safety Analysis,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,Kaizen,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,Machine Safety fundamentals,Line Coordinator - Phase 1,1.0,2,0
+Baltazar Andres,OPL and TI,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,PDM,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,PM overview,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,PM step 1,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,PM step 2,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,PR&MTBF Data Integrity,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,Q BOS,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,QIE,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,QRP,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,Qualification Process and Skills Management System,Line Coordinator - Phase 1,3.0,3,1
+Baltazar Andres,Reapplication Management,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,Safety Map,Line Coordinator - Phase 1,1.0,3,0
+Baltazar Andres,Safety Trigger,Line Coordinator - Phase 1,2.0,3,0
+Baltazar Andres,Sustainability Incident Management,Line Coordinator - Phase 1,2.0,2,1
+Baltazar Andres,Unsafe Conditions and Near Misses Management,Line Coordinator - Phase 1,1.0,3,0
+Baltazar Andres,UPS,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,5S,Line Coordinator - Phase 1,2.0,3,0
+Hernandez Mayra,AM Overview,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,AM step 1,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,AM step 2,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,AM step 3,Line Coordinator - Phase 1,2.0,3,0
+Hernandez Mayra,BDE,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,Behavioral Observation,Line Coordinator - Phase 1,1.0,3,0
+Hernandez Mayra,CIL DMS,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,CL DMS,Line Coordinator - Phase 1,4.0,3,1
+Hernandez Mayra,CO DMS,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,Coaching on the floor,Line Coordinator - Phase 1,1.0,2,0
+Hernandez Mayra,Daily Direction Setting (DDS),Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,DH DMS,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,EHS Risk Assessment,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,ET Training Basic,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,FPQ,Line Coordinator - Phase 1,2.0,3,0
+Hernandez Mayra,High Risk Management,Line Coordinator - Phase 1,1.0,2,0
+Hernandez Mayra,IOS OVERVIEW,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,IPS,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,Job Safety Analysis,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,Kaizen,Line Coordinator - Phase 1,2.0,3,0
+Hernandez Mayra,Machine Safety fundamentals,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,OPL and TI,Line Coordinator - Phase 1,4.0,3,1
+Hernandez Mayra,PDM,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,PM overview,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,PM step 1,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,PM step 2,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,PR&MTBF Data Integrity,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,Q BOS,Line Coordinator - Phase 1,2.0,3,0
+Hernandez Mayra,QIE,Line Coordinator - Phase 1,2.0,3,0
+Hernandez Mayra,QRP,Line Coordinator - Phase 1,1.0,3,0
+Hernandez Mayra,Qualification Process and Skills Management System,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,Reapplication Management,Line Coordinator - Phase 1,3.0,3,1
+Hernandez Mayra,Safety Map,Line Coordinator - Phase 1,1.0,3,0
+Hernandez Mayra,Safety Trigger,Line Coordinator - Phase 1,1.0,3,0
+Hernandez Mayra,Sustainability Incident Management,Line Coordinator - Phase 1,2.0,2,1
+Hernandez Mayra,Unsafe Conditions and Near Misses Management,Line Coordinator - Phase 1,1.0,3,0
+Hernandez Mayra,UPS,Line Coordinator - Phase 1,2.0,2,1
+Bautista Marco,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bautista Marco,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bautista Marco,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bautista Marco,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,FPQ,Equipment Owner Secondary - Phase 1,1.0,3,0
+Bautista Marco,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,Operational RTT,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bautista Marco,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Bautista Marco,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bautista Marco,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,Reapplication Management,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Bautista Marco,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bautista Marco,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,AM step 2,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bernardo Jahzzel Uriel,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bernardo Jahzzel Uriel,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bernardo Jahzzel Uriel,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bernardo Jahzzel Uriel,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,PDM,Equipment Owner Secondary - Phase 1,3.0,2,1
+Bernardo Jahzzel Uriel,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Bernardo Jahzzel Uriel,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bernardo Jahzzel Uriel,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Bernardo Jahzzel Uriel,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,Reapplication Management,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,RPN,Equipment Owner Secondary - Phase 1,3.0,2,1
+Bernardo Jahzzel Uriel,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Bernardo Jahzzel Uriel,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Dominguez Guadalupe,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Dominguez Guadalupe,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,FPQ,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,Operational RTT,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,Q BOS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,QIE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Dominguez Guadalupe,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Dominguez Guadalupe,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Dominguez Guadalupe,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Dominguez Guadalupe,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Flores Silvia,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Flores Silvia,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Flores Silvia,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Flores Silvia,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Flores Silvia,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Flores Silvia,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Flores Silvia,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Flores Silvia,Behavioral Observation,Safety Champion - Phase 1,1.0,3,0
+Flores Silvia,EHS Pillar overview,Safety Champion - Phase 1,1.0,2,0
+Flores Silvia,EHS Risk Assessment,Safety Champion - Phase 1,2.0,2,1
+Flores Silvia,Job Safety Analysis,Safety Champion - Phase 1,1.0,2,0
+Flores Silvia,QRP,Safety Champion - Phase 1,1.0,3,0
+Flores Silvia,Safety Map,Safety Champion - Phase 1,1.0,3,0
+Flores Silvia,Safety Trigger,Safety Champion - Phase 1,1.0,3,0
+Gonzalez Milton,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Gonzalez Milton,CL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Gonzalez Milton,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,1.0,2,0
+Gonzalez Milton,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Gonzalez Milton,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Gonzalez Milton,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Gonzalez Milton,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Guirao Beatriz,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,3.0,2,1
+Guirao Beatriz,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,PDM,Equipment Owner Secondary - Phase 1,1.0,2,0
+Guirao Beatriz,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Guirao Beatriz,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Guirao Beatriz,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Guirao Beatriz,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Guirao Beatriz,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Guirao Beatriz,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Guirao Beatriz,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Martinez Julio Cesar,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Martinez Julio Cesar,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Martinez Julio Cesar,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,CO DMS,Equipment Owner Secondary - Phase 1,3.0,2,1
+Martinez Julio Cesar,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,FPQ,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,Operational RTT,Equipment Owner Secondary - Phase 1,1.0,3,0
+Martinez Julio Cesar,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,PDM,Equipment Owner Secondary - Phase 1,3.0,2,1
+Martinez Julio Cesar,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Martinez Julio Cesar,Q BOS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,QIE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,Reapplication Management,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,RPN,Equipment Owner Secondary - Phase 1,4.0,2,1
+Martinez Julio Cesar,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Martinez Julio Cesar,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,AM step 2,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,AM step 3,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,CO DMS,Equipment Owner Secondary - Phase 1,3.0,2,1
+Preciado Edith Soledad,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,3.0,2,1
+Preciado Edith Soledad,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,FPQ,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Preciado Edith Soledad,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,Q BOS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,QIE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,Reapplication Management,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Preciado Edith Soledad,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Preciado Edith Soledad,5S,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,AM Overview,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,AM step 1,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,AM step 2,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,AM step 3,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,BDE,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Behavioral Observation,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,CIL DMS,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,CL DMS,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,CO DMS,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Coaching on the floor,Line Coordinator - Phase 1,1.0,2,0
+Preciado Edith Soledad,Daily Direction Setting (DDS),Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,DH DMS,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,EHS Risk Assessment,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,ET Training Basic,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,FPQ,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,High Risk Management,Line Coordinator - Phase 1,1.0,2,0
+Preciado Edith Soledad,IOS OVERVIEW,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,IPS,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Job Safety Analysis,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,Kaizen,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Machine Safety fundamentals,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,OPL and TI,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,PDM,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,PM overview,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,PM step 1,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,PM step 2,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,PR&MTBF Data Integrity,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,Q BOS,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,QIE,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,QRP,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Qualification Process and Skills Management System,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Reapplication Management,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Safety Map,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Safety Trigger,Line Coordinator - Phase 1,3.0,3,1
+Preciado Edith Soledad,Sustainability Incident Management,Line Coordinator - Phase 1,3.0,2,1
+Preciado Edith Soledad,Unsafe Conditions and Near Misses Management,Line Coordinator - Phase 1,1.0,3,0
+Preciado Edith Soledad,UPS,Line Coordinator - Phase 1,2.0,2,1
+Preciado Edith Soledad,FPQ,Quality Champion - Phase 1,3.0,3,1
+Preciado Edith Soledad,PDM,Quality Champion - Phase 1,2.0,2,1
+Preciado Edith Soledad,Q BOS,Quality Champion - Phase 1,3.0,3,1
+Preciado Edith Soledad,Q Pillar Overview,Quality Champion - Phase 1,2.0,2,1
+Preciado Edith Soledad,QIE,Quality Champion - Phase 1,3.0,3,1
+Ramirez Fernando,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Ramirez Fernando,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Ramirez Fernando,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Ramirez Fernando,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,1.0,2,0
+Ramirez Fernando,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,1.0,2,0
+Ramirez Fernando,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Ramirez Fernando,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Ramirez Fernando,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ramirez Fernando,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ramirez Fernando,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Ramirez Fernando,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,FPQ,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,Q BOS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,QIE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Roblero Marcos,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Roblero Marcos,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Roblero Marcos,FPQ,Quality Champion - Phase 1,3.0,3,1
+Roblero Marcos,PDM,Quality Champion - Phase 1,2.0,2,1
+Roblero Marcos,Q BOS,Quality Champion - Phase 1,3.0,3,1
+Roblero Marcos,Q Pillar Overview,Quality Champion - Phase 1,2.0,2,1
+Roblero Marcos,QIE,Quality Champion - Phase 1,3.0,3,1
+Rodriguez Jose Raul,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,1.0,2,0
+Rodriguez Jose Raul,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,1.0,2,0
+Rodriguez Jose Raul,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Rodriguez Jose Raul,Q BOS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,QIE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,Reapplication Management,Equipment Owner Secondary - Phase 1,3.0,3,1
+Rodriguez Jose Raul,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Rodriguez Jose Raul,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Rodriguez Jose Raul,FPQ,Quality Champion - Phase 1,2.0,3,0
+Rodriguez Jose Raul,PDM,Quality Champion - Phase 1,2.0,2,1
+Rodriguez Jose Raul,Q BOS,Quality Champion - Phase 1,3.0,3,1
+Rodriguez Jose Raul,Q Pillar Overview,Quality Champion - Phase 1,2.0,2,1
+Rodriguez Jose Raul,QIE,Quality Champion - Phase 1,3.0,3,1
+Solorzano Nicolas,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,AM step 3,Equipment Owner Secondary - Phase 1,1.0,3,0
+Solorzano Nicolas,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Solorzano Nicolas,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Solorzano Nicolas,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Solorzano Nicolas,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,PM step 1,Equipment Owner Secondary - Phase 1,1.0,2,0
+Solorzano Nicolas,PM step 2,Equipment Owner Secondary - Phase 1,1.0,2,0
+Solorzano Nicolas,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Solorzano Nicolas,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Solorzano Nicolas,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Solorzano Nicolas,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Solorzano Nicolas,Behavioral Observation,Safety Champion - Phase 1,2.0,3,0
+Solorzano Nicolas,EHS Pillar overview,Safety Champion - Phase 1,2.0,2,1
+Solorzano Nicolas,EHS Risk Assessment,Safety Champion - Phase 1,2.0,2,1
+Solorzano Nicolas,Job Safety Analysis,Safety Champion - Phase 1,2.0,2,1
+Solorzano Nicolas,QRP,Safety Champion - Phase 1,3.0,3,1
+Solorzano Nicolas,Safety Map,Safety Champion - Phase 1,2.0,3,0
+Solorzano Nicolas,Safety Trigger,Safety Champion - Phase 1,3.0,3,1
+Vela Eduardo,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,AM Overview,Equipment Owner Secondary - Phase 1,3.0,2,1
+Vela Eduardo,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Vela Eduardo,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Vela Eduardo,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Vela Eduardo,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Vela Eduardo,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Vela Eduardo,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,AM Overview,Equipment Owner Secondary - Phase 1,3.0,2,1
+Zuniga Victor,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,CIL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Zuniga Victor,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,Reapplication Management,Equipment Owner Secondary - Phase 1,3.0,3,1
+Zuniga Victor,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Zuniga Victor,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Zuniga Victor,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Landin Atxel,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Landin Atxel,AM Overview,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,AM step 1,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,AM step 2,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,AM step 3,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,BDE,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Landin Atxel,CL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Landin Atxel,CO DMS,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Landin Atxel,DH DMS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Landin Atxel,FPQ,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Landin Atxel,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,Operational RTT,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Landin Atxel,PDM,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,PM overview,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,PM step 1,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,PM step 2,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Landin Atxel,QIE,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,3.0,3,1
+Landin Atxel,Reapplication Management,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Landin Atxel,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Landin Atxel,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Mejia Leonardo,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Mejia Leonardo,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,CL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Mejia Leonardo,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,1.0,2,0
+Mejia Leonardo,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Mejia Leonardo,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Mejia Leonardo,Operational RTT,Equipment Owner Secondary - Phase 1,1.0,3,0
+Mejia Leonardo,OPL and TI,Equipment Owner Secondary - Phase 1,1.0,3,0
+Mejia Leonardo,PDM,Equipment Owner Secondary - Phase 1,1.0,2,0
+Mejia Leonardo,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Mejia Leonardo,PM step 1,Equipment Owner Secondary - Phase 1,1.0,2,0
+Mejia Leonardo,PM step 2,Equipment Owner Secondary - Phase 1,1.0,2,0
+Mejia Leonardo,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Mejia Leonardo,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Mejia Leonardo,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Mejia Leonardo,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Mejia Leonardo,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Mejia Leonardo,UPS,Equipment Owner Secondary - Phase 1,1.0,2,0
+Urbina Gabrielle,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,CL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,FPQ,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,RPN,Equipment Owner Secondary - Phase 1,2.0,2,1
+Urbina Gabrielle,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Urbina Gabrielle,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Barajas Omar,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Barajas Omar,AM step 1,Equipment Owner Secondary - Phase 1,1.0,3,0
+Barajas Omar,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,CL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,CO DMS,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Barajas Omar,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,FPQ,Equipment Owner Secondary - Phase 1,1.0,3,0
+Barajas Omar,IPS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,Operational RTT,Equipment Owner Secondary - Phase 1,1.0,3,0
+Barajas Omar,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,PDM,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Barajas Omar,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Barajas Omar,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Barajas Omar,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,Q BOS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Barajas Omar,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Barajas Omar,Reapplication Management,Equipment Owner Secondary - Phase 1,1.0,3,0
+Barajas Omar,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,1.0,3,0
+Barajas Omar,UPS,Equipment Owner Secondary - Phase 1,1.0,2,0
+Barajas Omar,AM Overview,MT/ MT Specialists - Phase 1,2.0,2,1
+Barajas Omar,BDE,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,Behavioral Observation,MT/ MT Specialists - Phase 1,3.0,3,1
+Barajas Omar,CIL DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,CL DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,Daily Direction Setting (DDS),MT/ MT Specialists - Phase 1,2.0,2,1
+Barajas Omar,DH DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,High Risk Management,MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,IOS OVERVIEW,MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,IPS,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,Lubrication,MT/ MT Specialists - Phase 1,1.0,3,0
+Barajas Omar,Machine Safety fundamentals,MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,Maintenance Cost Management,MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,MMIS,MT/ MT Specialists - Phase 1,1.0,3,0
+Barajas Omar,MPS,MT/ MT Specialists - Phase 1,1.0,3,0
+Barajas Omar,OPL and TI,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,Parts and Supplies,MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,PM overview,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,Q BOS,MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,QIE,MT/ MT Specialists - Phase 1,2.0,2,1
+Barajas Omar,QRP,MT/ MT Specialists - Phase 1,2.0,3,0
+Barajas Omar,Reapplication Management,MT/ MT Specialists - Phase 1,1.0,3,0
+Barajas Omar,Run To Target (RTT),MT/ MT Specialists - Phase 1,1.0,2,0
+Barajas Omar,Safety Map,MT/ MT Specialists - Phase 1,2.0,2,1
+Barajas Omar,Safety Trigger,MT/ MT Specialists - Phase 1,1.0,3,0
+Barajas Omar,Sustainability Incident Elimination DMS,MT/ MT Specialists - Phase 1,1.0,3,0
+Barajas Omar,UPS,MT/ MT Specialists - Phase 1,1.0,2,0
+Farias Villalvazo Julio Cesar,5S,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,AM step 1,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,AM step 2,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,AM step 3,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,BDE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,CL DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,DH DMS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,1.0,2,0
+Farias Villalvazo Julio Cesar,FPQ,Equipment Owner Secondary - Phase 1,1.0,3,0
+Farias Villalvazo Julio Cesar,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,1.0,2,0
+Farias Villalvazo Julio Cesar,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,OPL and TI,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Farias Villalvazo Julio Cesar,Q BOS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Farias Villalvazo Julio Cesar,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,AM Overview,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,BDE,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Behavioral Observation,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,CIL DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,CL DMS,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,Daily Direction Setting (DDS),MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,DH DMS,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,High Risk Management,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,IOS OVERVIEW,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,IPS,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,Lubrication,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Machine Safety fundamentals,MT/ MT Specialists - Phase 1,1.0,2,0
+Farias Villalvazo Julio Cesar,Maintenance Cost Management,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,MMIS,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,MPS,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,OPL and TI,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,Parts and Supplies,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,PM overview,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Q BOS,MT/ MT Specialists - Phase 1,3.0,2,1
+Farias Villalvazo Julio Cesar,QIE,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,QRP,MT/ MT Specialists - Phase 1,3.0,3,1
+Farias Villalvazo Julio Cesar,Reapplication Management,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Run To Target (RTT),MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,Safety Map,MT/ MT Specialists - Phase 1,2.0,2,1
+Farias Villalvazo Julio Cesar,Safety Trigger,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,Sustainability Incident Elimination DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Farias Villalvazo Julio Cesar,UPS,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,5S,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,AM Overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,AM step 1,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,AM step 2,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,AM step 3,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,BDE,Equipment Owner Secondary - Phase 1,3.0,3,1
+Ocegueda Omar,CIL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,CL DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,CO DMS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,Daily Direction Setting (DDS),Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,DH DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,EHS Risk Assessment,Equipment Owner Secondary - Phase 1,1.0,2,0
+Ocegueda Omar,FPQ,Equipment Owner Secondary - Phase 1,1.0,3,0
+Ocegueda Omar,IPS,Equipment Owner Secondary - Phase 1,3.0,3,1
+Ocegueda Omar,Machine Safety fundamentals,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,Operational RTT,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,OPL and TI,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,PDM,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,PM overview,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,PM step 1,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,PM step 2,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,PR&MTBF Data Integrity,Equipment Owner Secondary - Phase 1,1.0,2,0
+Ocegueda Omar,Q BOS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,QIE,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,Qualification Process and Skills Management System,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,Reapplication Management,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,RPN,Equipment Owner Secondary - Phase 1,1.0,2,0
+Ocegueda Omar,Sustainability Incident Elimination DMS,Equipment Owner Secondary - Phase 1,2.0,3,0
+Ocegueda Omar,UPS,Equipment Owner Secondary - Phase 1,2.0,2,1
+Ocegueda Omar,AM Overview,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,BDE,MT/ MT Specialists - Phase 1,3.0,3,1
+Ocegueda Omar,Behavioral Observation,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,CIL DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,CL DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Daily Direction Setting (DDS),MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,DH DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,High Risk Management,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,IOS OVERVIEW,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,IPS,MT/ MT Specialists - Phase 1,3.0,3,1
+Ocegueda Omar,Lubrication,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Machine Safety fundamentals,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,Maintenance Cost Management,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,MMIS,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,MPS,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,OPL and TI,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Parts and Supplies,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,PM overview,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Q BOS,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,QIE,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,QRP,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Reapplication Management,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Run To Target (RTT),MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,Safety Map,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,Safety Trigger,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,Sustainability Incident Elimination DMS,MT/ MT Specialists - Phase 1,2.0,3,0
+Ocegueda Omar,UPS,MT/ MT Specialists - Phase 1,2.0,2,1
+Ocegueda Omar,BDE,PM Champion - Phase 2,3.0,3,1
+Pellegrini Oscar,5 Steps improvement,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,5S,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,AM Overview,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,AM step 1,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,AM step 2,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,AM step 3,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,Behavioral Observation,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,CIL DMS,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,CL DMS,Process Lead - Phase 1,3.0,4,0
+Pellegrini Oscar,CO DMS,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,Daily Direction Setting (DDS),Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,DH DMS,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,EHS Risk Assessment,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,Environmental Fundamentals,Process Lead - Phase 1,1.0,2,0
+Pellegrini Oscar,FPQ,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,IOS OVERVIEW,Process Lead - Phase 1,1.0,2,0
+Pellegrini Oscar,IPS,Process Lead - Phase 1,4.0,4,1
+Pellegrini Oscar,Kaizen,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,LGA,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,Loss Analysis,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,Machine Safety fundamentals,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,Onboarding and Early Development,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,OPL and TI,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,PDM,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,Plan-Do-Check-Act (PDCA),Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,PM overview,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,PM step 1,Process Lead - Phase 1,2.0,2,1
+Pellegrini Oscar,PM step 2,Process Lead - Phase 1,1.0,2,0
+Pellegrini Oscar,PR&MTBF Data Integrity,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,Q BOS,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,QIE,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,QRP,Process Lead - Phase 1,2.0,3,0
+Pellegrini Oscar,Qualification Process and Skills Management System,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,Reapplication Management,Process Lead - Phase 1,3.0,4,0
+Pellegrini Oscar,RPN,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,Run To Target (RTT),Process Lead - Phase 1,1.0,4,0
+Pellegrini Oscar,Safety Trigger,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,Sustainability Incident Elimination DMS,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,Sustainability Incident Management,Process Lead - Phase 1,1.0,3,0
+Pellegrini Oscar,UPS,Process Lead - Phase 1,2.0,3,0
+Olvera Bernardette,Behavioral Observation,IM Pillar Member - Phase 1,3.0,3,1
+Olvera Bernardette,EHS Risk Assessment,IM Pillar Member - Phase 1,3.0,2,1
+Olvera Bernardette,I&IM Overview,IM Pillar Member - Phase 1,2.0,2,1
+Olvera Bernardette,IM (FTD) Feedback to Design,IM Pillar Member - Phase 1,2.0,3,0
+Olvera Bernardette,IM CQV,IM Pillar Member - Phase 1,2.0,3,0
+Olvera Bernardette,IM Design package,IM Pillar Member - Phase 1,2.0,3,0
+Olvera Bernardette,IM eFMEA,IM Pillar Member - Phase 1,3.0,3,1
+Olvera Bernardette,IM PLA (Project Loss Analysis),IM Pillar Member - Phase 1,2.0,3,0
+Olvera Bernardette,IM Technology Transfer and Training,IM Pillar Member - Phase 1,2.0,3,0
+Olvera Bernardette,IM VSU Risk Assessment,IM Pillar Member - Phase 1,3.0,3,1
+Olvera Bernardette,IOS OVERVIEW,IM Pillar Member - Phase 1,2.0,2,1
+Olvera Bernardette,OPL and TI,IM Pillar Member - Phase 1,3.0,2,1
+Olvera Bernardette,Plan-Do-Check-Act (PDCA),IM Pillar Member - Phase 1,2.0,2,1
+Olvera Bernardette,Qualification Process and Skills Management System,IM Pillar Member - Phase 1,3.0,3,1
+Olvera Bernardette,Reapplication Management,IM Pillar Member - Phase 1,3.0,2,1
+Olvera Bernardette,Run To Target (RTT),IM Pillar Member - Phase 1,2.0,2,1
+Olvera Bernardette,SDDS,IM Pillar Member - Phase 1,2.0,2,1
+Olvera Bernardette,5 Steps improvement,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,5S,Line Lead - Phase 1,3.0,4,0
+Olvera Bernardette,AM Overview,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,AM step 1,Line Lead - Phase 1,3.0,4,0
+Olvera Bernardette,AM step 2,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,AM step 3,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,Behavioral Observation,Line Lead - Phase 1,3.0,4,0
+Olvera Bernardette,CIL DMS,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,CL DMS,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,CO DMS,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,Coaching on the floor,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,Daily Direction Setting (DDS),Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,DH DMS,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,EHS Risk Assessment,Line Lead - Phase 1,3.0,3,1
+Olvera Bernardette,Environmental Fundamentals,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,FPQ,Line Lead - Phase 1,3.0,3,1
+Olvera Bernardette,High Risk Management,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,IOS OVERVIEW,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,IPS,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,Job Safety Analysis,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,Kaizen,Line Lead - Phase 1,1.0,3,0
+Olvera Bernardette,LGA,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,Loss Analysis,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,Machine Safety fundamentals,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,Onboarding and Early Development,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,OPL and TI,Line Lead - Phase 1,3.0,3,1
+Olvera Bernardette,PDM,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,Plan-Do-Check-Act (PDCA),Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,PM overview,Line Lead - Phase 1,2.0,2,1
+Olvera Bernardette,PM step 1,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,PM step 2,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,PR&MTBF Data Integrity,Line Lead - Phase 1,1.0,3,0
+Olvera Bernardette,Q BOS,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,QIE,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,QRP,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,Qualification Process and Skills Management System,Line Lead - Phase 1,3.0,3,1
+Olvera Bernardette,Reapplication Management,Line Lead - Phase 1,3.0,3,1
+Olvera Bernardette,RPN,Line Lead - Phase 1,3.0,3,1
+Olvera Bernardette,Run To Target (RTT),Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,Safety Trigger,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,Sustainability Incident Elimination DMS,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,Sustainability Incident Management,Line Lead - Phase 1,2.0,3,0
+Olvera Bernardette,UPS,Line Lead - Phase 1,2.0,4,0
+Olvera Bernardette,EHS Risk Assessment,VSU Leader for IM Project - Phase 1,3.0,3,1
+Olvera Bernardette,Environmental Fundamentals,VSU Leader for IM Project - Phase 1,2.0,2,1
+Olvera Bernardette,I&IM Overview,VSU Leader for IM Project - Phase 1,2.0,2,1
+Olvera Bernardette,IM (FTD) Feedback to Design,VSU Leader for IM Project - Phase 1,2.0,3,0
+Olvera Bernardette,IM CQV,VSU Leader for IM Project - Phase 1,2.0,3,0
+Olvera Bernardette,IM Design package,VSU Leader for IM Project - Phase 1,2.0,3,0
+Olvera Bernardette,IM eFMEA,VSU Leader for IM Project - Phase 1,3.0,3,1
+Olvera Bernardette,IM PLA (Project Loss Analysis),VSU Leader for IM Project - Phase 1,2.0,3,0
+Olvera Bernardette,IM Technology Transfer and Training,VSU Leader for IM Project - Phase 1,2.0,3,0
+Olvera Bernardette,IM VSU Risk Assessment,VSU Leader for IM Project - Phase 1,3.0,3,1
+Olvera Bernardette,IPS,VSU Leader for IM Project - Phase 1,2.0,3,0
+Olvera Bernardette,Machine Safety fundamentals,VSU Leader for IM Project - Phase 1,2.0,2,1
+Olvera Bernardette,PR&MTBF Data Integrity,VSU Leader for IM Project - Phase 1,1.0,3,0
+Olvera Bernardette,Qualification Process and Skills Management System,VSU Leader for IM Project - Phase 1,3.0,3,1
+Olvera Bernardette,Reapplication Management,VSU Leader for IM Project - Phase 1,3.0,3,1
+Olvera Bernardette,UPS,VSU Leader for IM Project - Phase 1,2.0,2,1
+Enriquez Saul,5 Steps improvement,Maintenance Lead,2.0,2,1
+Enriquez Saul,5S,Maintenance Lead,3.0,3,1
+Enriquez Saul,AM Overview,Maintenance Lead,3.0,2,1
+Enriquez Saul,AM step 1,Maintenance Lead,2.0,3,0
+Enriquez Saul,AM step 2,Maintenance Lead,2.0,3,0
+Enriquez Saul,AM step 3,Maintenance Lead,2.0,3,0
+Enriquez Saul,BDE,Maintenance Lead,4.0,4,1
+Enriquez Saul,Behavioral Observation,Maintenance Lead,3.0,3,1
+Enriquez Saul,CIL DMS,Maintenance Lead,3.0,2,1
+Enriquez Saul,CL DMS,Maintenance Lead,3.0,3,1
+Enriquez Saul,CO DMS,Maintenance Lead,3.0,3,1
+Enriquez Saul,Daily Direction Setting (DDS),Maintenance Lead,2.0,2,1
+Enriquez Saul,DH DMS,Maintenance Lead,4.0,4,1
+Enriquez Saul,EHS Risk Assessment,Maintenance Lead,2.0,2,1
+Enriquez Saul,Environmental Fundamentals,Maintenance Lead,2.0,2,1
+Enriquez Saul,FPQ,Maintenance Lead,3.0,3,1
+Enriquez Saul,High Risk Management,Maintenance Lead,2.0,2,1
+Enriquez Saul,IOS OVERVIEW,Maintenance Lead,2.0,2,1
+Enriquez Saul,IPS,Maintenance Lead,3.0,3,1
+Enriquez Saul,Job Safety Analysis,Maintenance Lead,2.0,2,1
+Enriquez Saul,Kaizen,Maintenance Lead,2.0,3,0
+Enriquez Saul,LGA,Maintenance Lead,2.0,2,1
+Enriquez Saul,Loss Analysis,Maintenance Lead,2.0,2,1
+Enriquez Saul,Machine Safety fundamentals,Maintenance Lead,1.0,3,0
+Enriquez Saul,Onboarding and Early Development,Maintenance Lead,2.0,2,1
+Enriquez Saul,OPL and TI,Maintenance Lead,3.0,3,1
+Enriquez Saul,PDM,Maintenance Lead,3.0,3,1
+Enriquez Saul,Plan-Do-Check-Act (PDCA),Maintenance Lead,2.0,2,1
+Enriquez Saul,PM overview,Maintenance Lead,3.0,2,1
+Enriquez Saul,PM step 1,Maintenance Lead,3.0,3,1
+Enriquez Saul,PM step 2,Maintenance Lead,2.0,3,0
+Enriquez Saul,Q BOS,Maintenance Lead,3.0,3,1
+Enriquez Saul,QIE,Maintenance Lead,3.0,3,1
+Enriquez Saul,QRP,Maintenance Lead,3.0,3,1
+Enriquez Saul,Qualification Process and Skills Management System,Maintenance Lead,3.0,3,1
+Enriquez Saul,Reapplication Management,Maintenance Lead,3.0,3,1
+Enriquez Saul,RPN,Maintenance Lead,3.0,3,1
+Enriquez Saul,Run To Target (RTT),Maintenance Lead,2.0,2,1
+Enriquez Saul,Safety Trigger,Maintenance Lead,3.0,3,1
+Enriquez Saul,Sustainability Incident Elimination DMS,Maintenance Lead,1.0,3,0
+Enriquez Saul,Sustainability Incident Management,Maintenance Lead,1.0,3,0
+Enriquez Saul,UPS,Maintenance Lead,2.0,3,0
+Ocegueda Omar,DH DMS,PM Champion - Phase 3,2.0,4,0
+Ocegueda Omar,DH DMS,PM Champion - Phase 3,2.0,4,0
+Ocegueda Omar,DH DMS,PM Champion - Phase 3,2.0,4,0
+Ocegueda Omar,MPS,PM Champion - Phase 4,2.0,3,0
+Ocegueda Omar,MPS,PM Champion - Phase 4,2.0,3,0
+Ocegueda Omar,PM overview,PM Champion - Phase 5,2.0,2,1
+Ocegueda Omar,PM overview,PM Champion - Phase 5,2.0,2,1
+Ocegueda Omar,PM overview,PM Champion - Phase 5,2.0,2,1

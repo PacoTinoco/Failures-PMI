@@ -1,8 +1,11 @@
 """
 Router para procesamiento de archivos DH (Defect Handling).
 Recibe un CSV exportado del sistema de defectos, hace match de emails
-con operadores registrados y cuenta DH Encontrados / DH Reparados
-por operador y semana.
+con operadores registrados y cuenta:
+  - DH Encontrados [#] (REPORTED BY)
+  - DH Reparados [#] (CLOSED BY)
+  - Curva Aut [%] = min(100, (Reparados / Encontrados) × 100)
+  - Contram [%] = (defectos con DEFECT COUNTERMEASURES / total encontrados) × 100
 """
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
@@ -42,12 +45,11 @@ async def upload_dh_csv(
 ):
     """
     Procesa un CSV de defectos DH.
-    - Deduplica por columna NUMBER (ID único del defecto)
-    - Excluye registros con STATUS = DELETED
-    - Hace match de REPORTED BY / CLOSED BY (emails) con operadores
-    - Cuenta DH Encontrados y DH Reparados por operador y semana
-    - Actualiza solo los campos DH sin sobrescribir otros indicadores
-    - Muestra claramente qué registros son nuevos vs actualizados
+    Calcula por operador y semana:
+      - dh_encontrados: # defectos reportados (REPORTED BY)
+      - dh_reparados: # defectos cerrados (CLOSED BY + CLOSED AT)
+      - curva_autonomia: min(100, (reparados / encontrados) × 100)
+      - contramedidas_defectos: (defectos con DEFECT COUNTERMEASURES / encontrados) × 100
     """
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Solo se aceptan archivos CSV")
@@ -75,11 +77,11 @@ async def upload_dh_csv(
             detail=f"Faltan columnas requeridas en el CSV: {', '.join(missing)}"
         )
 
-    # ── Deduplicar por NUMBER (ID único del defecto en el sistema DH) ──────────
-    # Si el CSV contiene el mismo defecto dos veces (ej. exportación duplicada),
-    # lo contamos una sola vez usando su NUMBER como clave única.
-    seen_numbers_enc = set()   # para REPORTED (encontrados)
-    seen_numbers_rep = set()   # para CLOSED (reparados)
+    has_countermeasures_col = 'DEFECT COUNTERMEASURES' in csv_cols
+
+    # Deduplicar por NUMBER
+    seen_numbers_enc = set()
+    seen_numbers_rep = set()
 
     stats = {
         "total_rows": len(rows),
@@ -106,25 +108,23 @@ async def upload_dh_csv(
             email_map[op["email"].lower().strip()] = op["id"]
 
     # ── Procesar filas ──────────────────────────────────────────────────────────
-    # conteos[( operador_id, semana )] = { encontrados: int, reparados: int }
-    conteos = defaultdict(lambda: {"encontrados": 0, "reparados": 0})
+    # conteos[(op_id, semana)] = { encontrados, reparados, con_contramedida }
+    conteos = defaultdict(lambda: {"encontrados": 0, "reparados": 0, "con_contramedida": 0})
     unmatched_emails = set()
 
     for row in rows:
         status = (row.get("STATUS") or "").strip().upper()
         defect_number = (row.get("NUMBER") or "").strip()
 
-        # Excluir DELETED
         if status == "DELETED":
             stats["excluded_deleted"] += 1
             continue
 
-        # DH Encontrados: REPORTED BY + REPORTED AT
+        # ── DH Encontrados: REPORTED BY + REPORTED AT ──
         reported_email = (row.get("REPORTED BY") or "").strip().lower()
         reported_date  = parse_date(row.get("REPORTED AT", ""))
 
         if reported_email and reported_date:
-            # Deduplicar: mismo NUMBER ya procesado como "encontrado"
             enc_key = defect_number or f"{reported_email}_{reported_date}"
             if enc_key in seen_numbers_enc:
                 stats["excluded_duplicate"] += 1
@@ -135,16 +135,21 @@ async def upload_dh_csv(
                     week = get_week_monday(reported_date)
                     conteos[(op_id, week)]["encontrados"] += 1
                     stats["matched_encontrados"] += 1
+
+                    # Contramedida: si DEFECT COUNTERMEASURES tiene contenido
+                    if has_countermeasures_col:
+                        cm = (row.get("DEFECT COUNTERMEASURES") or "").strip()
+                        if cm:
+                            conteos[(op_id, week)]["con_contramedida"] += 1
                 else:
                     unmatched_emails.add(reported_email)
                     stats["unmatched_encontrados"] += 1
 
-        # DH Reparados: CLOSED BY + CLOSED AT
+        # ── DH Reparados: CLOSED BY + CLOSED AT ──
         closed_email = (row.get("CLOSED BY") or "").strip().lower()
         closed_date  = parse_date(row.get("CLOSED AT", ""))
 
         if closed_email and closed_date:
-            # Deduplicar: mismo NUMBER ya procesado como "reparado"
             rep_key = f"rep_{defect_number}" if defect_number else f"{closed_email}_{closed_date}"
             if rep_key in seen_numbers_rep:
                 stats["excluded_duplicate"] += 1
@@ -171,7 +176,7 @@ async def upload_dh_csv(
             "details": []
         }
 
-    # ── Guardar en BD (solo campos DH, sin tocar otros indicadores) ─────────────
+    # ── Guardar en BD ───────────────────────────────────────────────────────────
     op_names = {op["id"]: op["nombre"] for op in operadores}
     details = []
     new_count = 0
@@ -179,43 +184,68 @@ async def upload_dh_csv(
     unchanged_count = 0
 
     for (op_id, week), counts in sorted(conteos.items(), key=lambda x: (x[0][1], x[0][0])):
+        new_enc = counts["encontrados"]
+        new_rep = counts["reparados"]
+        con_cm  = counts["con_contramedida"]
+
+        # Curva Autonomía = min(100, (reparados / encontrados) × 100)
+        if new_enc > 0:
+            curva_aut = min(100.0, round((new_rep / new_enc) * 100, 1))
+        else:
+            curva_aut = 0.0
+
+        # Contramedidas = (defectos con contramedida / encontrados) × 100
+        if new_enc > 0:
+            contram = round((con_cm / new_enc) * 100, 1)
+        else:
+            contram = 0.0
+
+        # Campos a guardar
+        dh_fields = {
+            "dh_encontrados": new_enc,
+            "dh_reparados": new_rep,
+            "curva_autonomia": curva_aut,
+            "contramedidas_defectos": contram,
+        }
+
         existing = sb.table("registros_semanales") \
-            .select("id, dh_encontrados, dh_reparados") \
+            .select("id, dh_encontrados, dh_reparados, curva_autonomia, contramedidas_defectos") \
             .eq("operador_id", op_id) \
             .eq("semana", week) \
             .execute()
 
-        new_enc = counts["encontrados"]
-        new_rep = counts["reparados"]
-
         if existing.data:
-            prev_enc = existing.data[0].get("dh_encontrados") or 0
-            prev_rep = existing.data[0].get("dh_reparados") or 0
+            prev = existing.data[0]
+            prev_enc = prev.get("dh_encontrados") or 0
+            prev_rep = prev.get("dh_reparados") or 0
+            prev_curva = prev.get("curva_autonomia") or 0
+            prev_contram = prev.get("contramedidas_defectos") or 0
 
-            if prev_enc == new_enc and prev_rep == new_rep:
-                # Sin cambios — no tocar la BD
+            # Comparar todos los campos DH
+            same = (
+                prev_enc == new_enc
+                and prev_rep == new_rep
+                and round(float(prev_curva), 1) == curva_aut
+                and round(float(prev_contram), 1) == contram
+            )
+
+            if same:
                 action = "sin_cambio"
                 unchanged_count += 1
             else:
-                # Valores diferentes — actualizar solo campos DH
                 sb.table("registros_semanales") \
-                    .update({
-                        "dh_encontrados": new_enc,
-                        "dh_reparados": new_rep
-                    }) \
-                    .eq("id", existing.data[0]["id"]) \
+                    .update(dh_fields) \
+                    .eq("id", prev["id"]) \
                     .execute()
                 action = "actualizado"
                 updated_count += 1
         else:
-            # Registro nuevo
             sb.table("registros_semanales") \
                 .insert({
                     "operador_id": op_id,
                     "semana": week,
                     "cedula_id": cedula_id,
-                    "dh_encontrados": new_enc,
-                    "dh_reparados": new_rep,
+                    **dh_fields,
                 }) \
                 .execute()
             action = "nuevo"
@@ -226,10 +256,11 @@ async def upload_dh_csv(
             "semana": week,
             "dh_encontrados": new_enc,
             "dh_reparados": new_rep,
-            "accion": action,  # "nuevo" | "actualizado" | "sin_cambio"
+            "curva_autonomia": curva_aut,
+            "contramedidas_defectos": contram,
+            "accion": action,
         })
 
-    total_saved = new_count + updated_count
     message = (
         f"CSV procesado: {stats['total_rows']} filas totales, "
         f"{stats['excluded_deleted']} eliminadas (DELETED), "
