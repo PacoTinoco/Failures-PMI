@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.config import get_settings
-from app.routers import registros, dashboard, equipos
+from app.routers import registros, dashboard, equipos, dh
 
 settings = get_settings()
 
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(registros.router)
 app.include_router(dashboard.router)
 app.include_router(equipos.router)
+app.include_router(dh.router)
 
 
 @app.get("/health", tags=["Health"])

@@ -172,3 +172,28 @@ export async function actualizarRegistro(registroId, update) {
     body: JSON.stringify(update)
   })
 }
+
+// ============================================================
+// DH — Defect Handling
+// ============================================================
+
+export async function uploadDHCSV(cedulaId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${API_URL}/registros/dh/upload?cedula_id=${cedulaId}`, {
+    method: 'POST',
+    body: formData
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function getDHOperatorEmails(cedulaId) {
+  return apiRequest(`/registros/dh/preview-operators?cedula_id=${cedulaId}`)
+}
