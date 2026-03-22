@@ -197,3 +197,59 @@ export async function uploadDHCSV(cedulaId, file) {
 export async function getDHOperatorEmails(cedulaId) {
   return apiRequest(`/registros/dh/preview-operators?cedula_id=${cedulaId}`)
 }
+
+// ============================================================
+// QM — Qualification Management
+// ============================================================
+
+export async function uploadQMCalendario(cedulaId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/qm/calendario/upload?cedula_id=${cedulaId}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function getQMCalendario(cedulaId, employee = null) {
+  let path = `/qm/calendario?cedula_id=${cedulaId}`
+  if (employee) path += `&employee=${encodeURIComponent(employee)}`
+  return apiRequest(path)
+}
+
+export async function updateQMCalendarioEntry(recordId, data) {
+  return apiRequest(`/qm/calendario/${recordId}`, {
+    method: 'PUT', body: JSON.stringify(data)
+  })
+}
+
+export async function uploadQMData(cedulaId, semana, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/qm/data/upload?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function getQMSemanas(cedulaId) {
+  return apiRequest(`/qm/data/semanas?cedula_id=${cedulaId}`)
+}
+
+export async function deleteQMSemana(cedulaId, semana) {
+  return apiRequest(`/qm/data/semana?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'DELETE'
+  })
+}
+
+export async function getQMAnalisis(cedulaId, semana) {
+  return apiRequest(`/qm/analisis?cedula_id=${cedulaId}&semana=${semana}`)
+}

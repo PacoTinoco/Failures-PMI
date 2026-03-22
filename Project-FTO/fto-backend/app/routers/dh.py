@@ -5,7 +5,8 @@ con operadores registrados y cuenta:
   - DH Encontrados [#] (REPORTED BY)
   - DH Reparados [#] (CLOSED BY)
   - Curva Aut [%] = min(100, (Reparados / Encontrados) × 100)
-  - Contram [%] = (defectos con DEFECT COUNTERMEASURES / total encontrados) × 100
+  - Contram [%] = (defectos cerrados por ese operador CON contramedida válida / total reparados) × 100
+                  (NA, N/A y vacío no cuentan como contramedida válida)
 """
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
@@ -108,9 +109,19 @@ async def upload_dh_csv(
             email_map[op["email"].lower().strip()] = op["id"]
 
     # ── Procesar filas ──────────────────────────────────────────────────────────
-    # conteos[(op_id, semana)] = { encontrados, reparados, con_contramedida }
-    conteos = defaultdict(lambda: {"encontrados": 0, "reparados": 0, "con_contramedida": 0})
+    # conteos[(op_id, semana)] = { encontrados, reparados, reparados_con_cm, reparados_total_cm }
+    # Contramedidas se mide sobre los defectos que CERRÓ el operador:
+    #   con_contramedida = cuántos de los que cerró tienen CM válida (no vacía, no NA/N/A)
+    #   reparados_con_cm_base = total reparados por ese operador (denominador de Contram)
+    conteos = defaultdict(lambda: {
+        "encontrados": 0,
+        "reparados": 0,
+        "con_contramedida": 0,   # reparados con CM válida
+    })
     unmatched_emails = set()
+
+    # Valores de DEFECT COUNTERMEASURES que NO cuentan como contramedida
+    NA_VALUES = {"na", "n/a", "n/a.", "n.a", "n.a.", "-", ""}
 
     for row in rows:
         status = (row.get("STATUS") or "").strip().upper()
@@ -135,12 +146,6 @@ async def upload_dh_csv(
                     week = get_week_monday(reported_date)
                     conteos[(op_id, week)]["encontrados"] += 1
                     stats["matched_encontrados"] += 1
-
-                    # Contramedida: si DEFECT COUNTERMEASURES tiene contenido
-                    if has_countermeasures_col:
-                        cm = (row.get("DEFECT COUNTERMEASURES") or "").strip()
-                        if cm:
-                            conteos[(op_id, week)]["con_contramedida"] += 1
                 else:
                     unmatched_emails.add(reported_email)
                     stats["unmatched_encontrados"] += 1
@@ -160,6 +165,13 @@ async def upload_dh_csv(
                     week = get_week_monday(closed_date)
                     conteos[(op_id, week)]["reparados"] += 1
                     stats["matched_reparados"] += 1
+
+                    # Contramedida: se evalúa sobre quien CERRÓ el defecto
+                    # Solo cuenta si tiene contenido real (no NA / N/A / vacío)
+                    if has_countermeasures_col:
+                        cm = (row.get("DEFECT COUNTERMEASURES") or "").strip().lower()
+                        if cm not in NA_VALUES:
+                            conteos[(op_id, week)]["con_contramedida"] += 1
                 else:
                     unmatched_emails.add(closed_email)
                     stats["unmatched_reparados"] += 1
@@ -194,9 +206,10 @@ async def upload_dh_csv(
         else:
             curva_aut = 0.0
 
-        # Contramedidas = (defectos con contramedida / encontrados) × 100
-        if new_enc > 0:
-            contram = round((con_cm / new_enc) * 100, 1)
+        # Contramedidas = (defectos reparados CON contramedida válida / total reparados) × 100
+        # Denominador: reparados (quien cerró el defecto es responsable de la contramedida)
+        if new_rep > 0:
+            contram = round((con_cm / new_rep) * 100, 1)
         else:
             contram = 0.0
 
