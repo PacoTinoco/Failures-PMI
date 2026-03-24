@@ -16,6 +16,7 @@ const sections = [
       { to: '/fto/dashboard', label: 'Dashboard' },
       { to: '/fto/admin', label: 'Administración' },
       { to: '/fto/dh', label: 'DH Defectos' },
+      { to: '/fto/bos-qbos', label: 'BOS / QBOS' },
     ]
   },
   {

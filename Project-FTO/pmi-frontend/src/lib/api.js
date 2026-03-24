@@ -253,3 +253,47 @@ export async function deleteQMSemana(cedulaId, semana) {
 export async function getQMAnalisis(cedulaId, semana) {
   return apiRequest(`/qm/analisis?cedula_id=${cedulaId}&semana=${semana}`)
 }
+
+// ============================================================
+// BOS / QBOS
+// ============================================================
+
+export async function uploadBOS(cedulaId, semana, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/registros/bos/upload?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function saveBOS(cedulaId, semana, results) {
+  return apiRequest(`/registros/bos/save?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST',
+    body: JSON.stringify(results)
+  })
+}
+
+export async function uploadQBOS(cedulaId, semana, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/registros/qbos/upload?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function saveQBOS(cedulaId, semana, results) {
+  return apiRequest(`/registros/qbos/save?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST',
+    body: JSON.stringify(results)
+  })
+}
