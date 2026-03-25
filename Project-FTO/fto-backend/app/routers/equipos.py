@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.models.schemas import (
     OperadorCreate, OperadorUpdate,
     LCCreate, LCUpdate,
+    LSCreate, LSUpdate,
     CedulaCreate, CedulaUpdate,
     UsuarioCreate
 )
@@ -114,6 +115,50 @@ async def eliminar_lc(lc_id: str):
     if not result.data:
         raise HTTPException(status_code=404, detail="LC no encontrado")
     return {"success": True, "message": "LC desactivado"}
+
+
+# ============================================================
+# LÍNEA DE ESTRUCTURA (LS)
+# ============================================================
+
+@router.get("/ls")
+async def listar_ls(cedula_id: str):
+    sb = get_supabase_admin()
+    result = sb.table("linea_estructura").select("*").eq(
+        "cedula_id", cedula_id
+    ).eq("activo", True).order("nombre").execute()
+    return {"data": result.data}
+
+
+@router.post("/ls")
+async def crear_ls(ls: LSCreate):
+    sb = get_supabase_admin()
+    try:
+        result = sb.table("linea_estructura").insert(ls.model_dump(exclude_none=True)).execute()
+        return {"success": True, "data": result.data[0] if result.data else None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/ls/{ls_id}")
+async def actualizar_ls(ls_id: str, ls: LSUpdate):
+    sb = get_supabase_admin()
+    result = sb.table("linea_estructura").update(
+        ls.model_dump(exclude_none=True)
+    ).eq("id", ls_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Miembro LS no encontrado")
+    return {"success": True, "data": result.data[0]}
+
+
+@router.delete("/ls/{ls_id}")
+async def eliminar_ls(ls_id: str):
+    """Soft delete — marca como inactivo."""
+    sb = get_supabase_admin()
+    result = sb.table("linea_estructura").update({"activo": False}).eq("id", ls_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Miembro LS no encontrado")
+    return {"success": True, "message": "Miembro LS desactivado"}
 
 
 # ============================================================

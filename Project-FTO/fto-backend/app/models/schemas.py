@@ -131,6 +131,22 @@ class LCUpdate(BaseModel):
     activo: Optional[bool] = None
 
 
+class LSCreate(BaseModel):
+    nombre: str
+    cedula_id: str
+    rol: Optional[str] = None
+    email: Optional[str] = None
+    turno: Optional[str] = None
+
+
+class LSUpdate(BaseModel):
+    nombre: Optional[str] = None
+    rol: Optional[str] = None
+    email: Optional[str] = None
+    turno: Optional[str] = None
+    activo: Optional[bool] = None
+
+
 # ============================================================
 # USUARIOS
 # ============================================================

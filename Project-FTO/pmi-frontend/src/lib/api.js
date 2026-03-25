@@ -79,6 +79,32 @@ export async function deleteLC(lcId) {
   })
 }
 
+// --- LÍNEA DE ESTRUCTURA (LS) ---
+
+export async function getLS(cedulaId) {
+  return apiRequest(`/equipos/ls?cedula_id=${cedulaId}`)
+}
+
+export async function createLS(ls) {
+  return apiRequest('/equipos/ls', {
+    method: 'POST',
+    body: JSON.stringify(ls)
+  })
+}
+
+export async function updateLS(lsId, ls) {
+  return apiRequest(`/equipos/ls/${lsId}`, {
+    method: 'PUT',
+    body: JSON.stringify(ls)
+  })
+}
+
+export async function deleteLS(lsId) {
+  return apiRequest(`/equipos/ls/${lsId}`, {
+    method: 'DELETE'
+  })
+}
+
 // --- OPERADORES ---
 
 export async function getOperadores(cedulaId, lcId = null) {
@@ -296,4 +322,19 @@ export async function saveQBOS(cedulaId, semana, results) {
     method: 'POST',
     body: JSON.stringify(results)
   })
+}
+
+// --- Aliases (mapeo de empleados) ---
+
+export async function uploadAliases(cedulaId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/registros/aliases/upload?cedula_id=${cedulaId}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
 }

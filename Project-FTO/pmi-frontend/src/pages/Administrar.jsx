@@ -4,6 +4,7 @@ import * as api from '../lib/api'
 const TABS = [
   { key: 'cedulas', label: 'Cédulas' },
   { key: 'lcs', label: 'Line Coordinators' },
+  { key: 'ls', label: 'Línea Estructura' },
   { key: 'operadores', label: 'Operadores' },
 ]
 
@@ -11,6 +12,7 @@ export default function Administrar() {
   const [activeTab, setActiveTab] = useState('cedulas')
   const [cedulas, setCedulas] = useState([])
   const [lcs, setLcs] = useState([])
+  const [lsMembers, setLsMembers] = useState([])
   const [operadores, setOperadores] = useState([])
   const [selectedCedulaId, setSelectedCedulaId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -27,9 +29,11 @@ export default function Administrar() {
   useEffect(() => {
     if (selectedCedulaId) {
       fetchLCs()
+      fetchLS()
       fetchOperadores()
     } else {
       setLcs([])
+      setLsMembers([])
       setOperadores([])
     }
   }, [selectedCedulaId])
@@ -57,6 +61,15 @@ export default function Administrar() {
     }
   }
 
+  async function fetchLS() {
+    try {
+      const res = await api.getLS(selectedCedulaId)
+      setLsMembers(res.data || [])
+    } catch (err) {
+      console.error('Error cargando LS:', err)
+    }
+  }
+
   async function fetchOperadores() {
     try {
       const res = await api.getOperadores(selectedCedulaId)
@@ -75,6 +88,9 @@ export default function Administrar() {
       } else if (entity === 'lc') {
         await api.deleteLC(id)
         fetchLCs()
+      } else if (entity === 'ls') {
+        await api.deleteLS(id)
+        fetchLS()
       } else if (entity === 'operador') {
         await api.deleteOperador(id)
         fetchOperadores()
@@ -102,6 +118,13 @@ export default function Administrar() {
           await api.updateLC(modal.data.id, formData)
         }
         fetchLCs()
+      } else if (modal.entity === 'ls') {
+        if (modal.type === 'create') {
+          await api.createLS({ ...formData, cedula_id: selectedCedulaId })
+        } else {
+          await api.updateLS(modal.data.id, formData)
+        }
+        fetchLS()
       } else if (modal.entity === 'operador') {
         if (modal.type === 'create') {
           await api.createOperador({ ...formData, cedula_id: selectedCedulaId })
@@ -184,6 +207,16 @@ export default function Administrar() {
           onAdd={() => setModal({ type: 'create', entity: 'lc' })}
           onEdit={(lc) => setModal({ type: 'edit', entity: 'lc', data: lc })}
           onDelete={(lc) => handleDelete('lc', lc.id, lc.nombre)}
+        />
+      )}
+      {activeTab === 'ls' && (
+        <LSTab
+          lsMembers={lsMembers}
+          loading={loading}
+          selectedCedulaId={selectedCedulaId}
+          onAdd={() => setModal({ type: 'create', entity: 'ls' })}
+          onEdit={(ls) => setModal({ type: 'edit', entity: 'ls', data: ls })}
+          onDelete={(ls) => handleDelete('ls', ls.id, ls.nombre)}
         />
       )}
       {activeTab === 'operadores' && (
@@ -296,6 +329,50 @@ function LCsTab({ lcs, loading, selectedCedulaId, onAdd, onEdit, onDelete }) {
   )
 }
 
+function LSTab({ lsMembers, loading, selectedCedulaId, onAdd, onEdit, onDelete }) {
+  if (!selectedCedulaId) return <EmptyMessage text="Selecciona una cédula para ver su Línea de Estructura." />
+
+  return (
+    <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+        <div>
+          <h2 className="text-sm font-semibold text-white">Línea de Estructura ({lsMembers.length})</h2>
+          <p className="text-xs text-slate-500">Process Lead, Line Lead, Maintenance Lead, etc.</p>
+        </div>
+        <button onClick={onAdd} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors">
+          + Agregar
+        </button>
+      </div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-white/5">
+            <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Nombre</th>
+            <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Rol</th>
+            <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Email</th>
+            <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Turno</th>
+            <th className="px-4 py-2 text-right text-slate-400 font-medium text-xs">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lsMembers.length === 0 ? (
+            <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">No hay miembros de LS para esta cédula.</td></tr>
+          ) : lsMembers.map(ls => (
+            <tr key={ls.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+              <td className="px-4 py-2.5 text-white font-medium">{ls.nombre}</td>
+              <td className="px-4 py-2.5 text-slate-400">{ls.rol || '—'}</td>
+              <td className="px-4 py-2.5 text-slate-400">{ls.email || '—'}</td>
+              <td className="px-4 py-2.5 text-slate-400">{ls.turno || '—'}</td>
+              <td className="px-4 py-2.5 text-right">
+                <ActionButtons onEdit={() => onEdit(ls)} onDelete={() => onDelete(ls)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function OperadoresTab({ operadores, lcs, loading, selectedCedulaId, onAdd, onEdit, onDelete }) {
   if (!selectedCedulaId) return <EmptyMessage text="Selecciona una cédula para ver sus operadores." />
 
@@ -380,6 +457,8 @@ function FormModal({ modal, lcs, saving, onSave, onClose }) {
       return { nombre: data.nombre || '', turno: data.turno || '', grupo: data.grupo || '', notas: data.notas || '' }
     } else if (entity === 'lc') {
       return { nombre: data.nombre || '', turno: data.turno || '', grupo: data.grupo || '', email: data.email || '' }
+    } else if (entity === 'ls') {
+      return { nombre: data.nombre || '', rol: data.rol || '', email: data.email || '', turno: data.turno || '' }
     } else {
       return { nombre: data.nombre || '', lc_id: data.lc_id || '', turno: data.turno || '', maquina: data.maquina || '' }
     }
@@ -401,9 +480,8 @@ function FormModal({ modal, lcs, saving, onSave, onClose }) {
     onSave(cleaned)
   }
 
-  const title = isEdit
-    ? `Editar ${entity === 'cedula' ? 'Cédula' : entity === 'lc' ? 'Line Coordinator' : 'Operador'}`
-    : `Agregar ${entity === 'cedula' ? 'Cédula' : entity === 'lc' ? 'Line Coordinator' : 'Operador'}`
+  const entityLabels = { cedula: 'Cédula', lc: 'Line Coordinator', ls: 'Miembro LS', operador: 'Operador' }
+  const title = `${isEdit ? 'Editar' : 'Agregar'} ${entityLabels[entity] || entity}`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -446,6 +524,13 @@ function FormModal({ modal, lcs, saving, onSave, onClose }) {
             </>
           )}
 
+          {entity === 'ls' && (
+            <>
+              <FormField label="Rol" value={form.rol} onChange={v => handleChange('rol', v)} placeholder="Ej: Process Lead, Line Lead, Maintenance Lead" />
+              <FormField label="Email" value={form.email} onChange={v => handleChange('email', v)} type="email" />
+            </>
+          )}
+
           {entity === 'operador' && (
             <FormField label="Máquina" value={form.maquina} onChange={v => handleChange('maquina', v)} />
           )}
@@ -469,7 +554,7 @@ function FormModal({ modal, lcs, saving, onSave, onClose }) {
   )
 }
 
-function FormField({ label, value, onChange, required = false, type = 'text', multiline = false }) {
+function FormField({ label, value, onChange, required = false, type = 'text', multiline = false, placeholder = '' }) {
   const cls = "w-full px-3 py-2.5 bg-[#0a1628] border border-white/10 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 
   return (
@@ -478,7 +563,7 @@ function FormField({ label, value, onChange, required = false, type = 'text', mu
       {multiline ? (
         <textarea value={value || ''} onChange={e => onChange(e.target.value)} className={cls} rows={3} />
       ) : (
-        <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} required={required} className={cls} />
+        <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} required={required} placeholder={placeholder} className={cls} />
       )}
     </div>
   )

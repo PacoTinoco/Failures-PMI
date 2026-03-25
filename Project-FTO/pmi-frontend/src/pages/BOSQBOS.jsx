@@ -32,6 +32,11 @@ export default function BOSQBOS() {
   const [qbosSaved, setQbosSaved] = useState(false)
   const qbosInputRef = useRef(null)
 
+  // Aliases (mapeo) state
+  const [aliasUploading, setAliasUploading] = useState(false)
+  const [aliasResult, setAliasResult] = useState(null)
+  const aliasInputRef = useRef(null)
+
   useEffect(() => {
     api.getCedulas()
       .then(res => {
@@ -94,6 +99,19 @@ export default function BOSQBOS() {
     finally { setQbosSaving(false) }
   }
 
+  // ── Aliases handler ──
+  async function handleAliasUpload(e) {
+    const file = e.target.files[0]
+    if (!file || !cedulaId) return
+    e.target.value = ''
+    setAliasUploading(true); setError(null); setAliasResult(null)
+    try {
+      const res = await api.uploadAliases(cedulaId, file)
+      setAliasResult(res)
+    } catch (err) { setError(err.message) }
+    finally { setAliasUploading(false) }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -120,6 +138,7 @@ export default function BOSQBOS() {
         {[
           { key: 'bos', label: 'BOS' },
           { key: 'qbos', label: 'QBOS' },
+          { key: 'mapeo', label: 'Mapeo' },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -164,6 +183,58 @@ export default function BOSQBOS() {
           onSave={handleQbosSave}
           type="qbos"
         />
+      )}
+
+      {/* Mapeo Tab */}
+      {activeTab === 'mapeo' && (
+        <div className="space-y-4">
+          <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-5">
+            <h3 className="text-sm font-semibold text-white mb-1">Mapeo de empleados</h3>
+            <p className="text-xs text-slate-400 mb-2">
+              Sube un Excel con las variaciones de nombre/email por sistema para mejorar el matching automático.
+            </p>
+            <p className="text-xs text-slate-500 mb-3">
+              Columnas: <span className="text-slate-300">nombre_en_bd</span> (obligatorio), <span className="text-slate-300">email_en_bos_csv</span>, <span className="text-slate-300">nombre_en_qbos_excel</span>, <span className="text-slate-300">email_dh</span>
+            </p>
+            <input ref={aliasInputRef} type="file" accept=".xlsx,.xls" onChange={handleAliasUpload} className="hidden" />
+            <button
+              onClick={() => aliasInputRef.current?.click()}
+              disabled={aliasUploading}
+              className="w-full py-2.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50"
+            >
+              {aliasUploading ? 'Procesando...' : 'Subir Excel de mapeo'}
+            </button>
+          </div>
+
+          {aliasResult && (
+            <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500/10 rounded-lg px-4 py-3 text-center flex-1">
+                  <p className="text-2xl font-bold text-green-400">{aliasResult.matched}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Mapeados</p>
+                </div>
+                <div className="bg-yellow-500/10 rounded-lg px-4 py-3 text-center flex-1">
+                  <p className="text-2xl font-bold text-yellow-400">{aliasResult.skipped?.length || 0}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">No encontrados</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-green-400">{aliasResult.message}</p>
+
+              {aliasResult.skipped?.length > 0 && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3">
+                  <p className="text-yellow-400 text-sm font-medium mb-1">Nombres no encontrados en BD:</p>
+                  {aliasResult.skipped.map((name, i) => (
+                    <p key={i} className="text-yellow-300/70 text-xs">{name}</p>
+                  ))}
+                  <p className="text-xs text-slate-500 mt-2">
+                    Estos empleados no están en la tabla operadores. Agrégalos primero en la sección Equipos.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -300,11 +371,13 @@ function ActionBadge({ action }) {
     nuevo:       'bg-blue-500/10 text-blue-400',
     actualizado: 'bg-purple-500/10 text-purple-400',
     sin_cambio:  'bg-slate-500/10 text-slate-400',
+    info:        'bg-cyan-500/10 text-cyan-400',
   }
   const labels = {
     nuevo: 'Nuevo',
     actualizado: 'Actualizado',
     sin_cambio: 'Sin cambio',
+    info: 'LC/LS',
   }
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${styles[action] || 'text-slate-500'}`}>
