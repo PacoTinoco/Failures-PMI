@@ -151,12 +151,16 @@ async def update_calendario_entry(record_id: str, body: dict):
 # ══════════════════════════════════════════════════════════════
 
 @router.post("/data/upload")
-async def upload_data_semanal(
+async def upload_data_preview(
     file: UploadFile = File(...),
     cedula_id: str = Query(...),
     semana: date = Query(..., description="Fecha del lunes de la semana (YYYY-MM-DD)")
 ):
-    """Sube data semanal QM. Reemplaza datos de la misma semana."""
+    """
+    Parsea el Excel y compara con datos existentes. NO guarda en DB.
+    Devuelve vista previa con cambios detectados y los records listos para guardar.
+    El usuario debe llamar a POST /qm/data/save para persistir.
+    """
     import pandas as pd
 
     if not file.filename.endswith(('.xlsx', '.xls')):
@@ -177,25 +181,34 @@ async def upload_data_semanal(
     if not target_col:
         raise HTTPException(status_code=400, detail="Falta columna 'Target'")
 
-    # Cargar competencias del calendario para filtrar
     sb = get_supabase_admin()
+
+    # Cargar competencias del calendario para filtrar
     cal_result = sb.table("qm_calendario").select("employee, competency").eq("cedula_id", cedula_id).execute()
     cal_pairs = set()
     for r in (cal_result.data or []):
         cal_pairs.add((r["employee"], r["competency"]))
 
-    # Borrar data anterior de esta semana/cédula
-    sb.table("qm_data_semanal").delete().eq("cedula_id", cedula_id).eq("semana", semana.isoformat()).execute()
+    # Cargar data anterior de esta semana para detectar cambios
+    prev_result = sb.table("qm_data_semanal").select("employee, competency, current_level") \
+        .eq("cedula_id", cedula_id).eq("semana", semana.isoformat()).execute()
+    prev_map = {}
+    for r in (prev_result.data or []):
+        prev_map[(r["employee"], r["competency"])] = r["current_level"]
 
+    # Parsear registros del Excel
     records = []
     skipped = 0
+    role_col = None
+    for c in df.columns:
+        if c == 'Role' or c == 'Role.1':
+            role_col = c
+
     for _, row in df.iterrows():
         emp = str(row['Employee']).strip() if pd.notna(row['Employee']) else None
         comp = str(row['Competency']).strip() if pd.notna(row['Competency']) else None
         if not emp or not comp:
             continue
-
-        # Solo incluir competencias que estén en el calendario
         if (emp, comp) not in cal_pairs:
             skipped += 1
             continue
@@ -203,11 +216,6 @@ async def upload_data_semanal(
         on_target = 0
         if 'OnTarget' in df.columns and pd.notna(row.get('OnTarget')):
             on_target = int(row['OnTarget'])
-
-        role_col = None
-        for c in df.columns:
-            if c == 'Role' or c == 'Role.1':
-                role_col = c
 
         records.append({
             "cedula_id": cedula_id,
@@ -220,25 +228,131 @@ async def upload_data_semanal(
             "on_target": on_target,
         })
 
-    # Deduplicar por (employee, competency)
+    # Deduplicar
     seen = {}
     for rec in records:
-        key = (rec["employee"], rec["competency"])
-        seen[key] = rec
+        seen[(rec["employee"], rec["competency"])] = rec
     records = list(seen.values())
 
-    inserted = 0
-    for i in range(0, len(records), 100):
-        batch = records[i:i+100]
-        sb.table("qm_data_semanal").upsert(batch, on_conflict="cedula_id,semana,employee,competency").execute()
-        inserted += len(batch)
+    # Detectar cambios
+    new_count = 0
+    changed_count = 0
+    unchanged_count = 0
+    changes_detail = []
+
+    for rec in records:
+        old = prev_map.get((rec["employee"], rec["competency"]))
+        if old is None:
+            new_count += 1
+        elif old != rec["current_level"]:
+            changed_count += 1
+            changes_detail.append({
+                "employee": rec["employee"],
+                "competency": rec["competency"],
+                "old_level": old,
+                "new_level": rec["current_level"],
+            })
+        else:
+            unchanged_count += 1
 
     return {
         "success": True,
-        "message": f"Data semana {semana} cargada: {inserted} registros guardados, {skipped} competencias fuera del calendario ignoradas.",
-        "total_records": inserted,
-        "skipped": skipped,
+        "preview": True,
         "semana": semana.isoformat(),
+        "total_records": len(records),
+        "skipped": skipped,
+        "new_records": new_count,
+        "changed_records": changed_count,
+        "unchanged_records": unchanged_count,
+        "changes_detail": changes_detail,
+        "is_first_upload": len(prev_map) == 0,
+        "already_saved": len(prev_map) > 0,
+        "records": records,   # devolver records para que el frontend los envíe al save
+    }
+
+
+@router.post("/data/save")
+async def save_data_semanal(body: dict):
+    """
+    Guarda los records parseados en DB. Recibe:
+      { cedula_id, semana, records: [...], changed_records, new_records, changes_detail }
+    Usa INSERT puro (después de DELETE) para máxima confiabilidad.
+    Verifica el resultado real en la DB.
+    """
+    cedula_id = body.get("cedula_id")
+    semana_str = body.get("semana")
+    records = body.get("records", [])
+    changed_records = body.get("changed_records", 0)
+    new_records = body.get("new_records", 0)
+    changes_detail = body.get("changes_detail", [])
+
+    if not cedula_id or not semana_str or not records:
+        raise HTTPException(status_code=400, detail="Faltan campos: cedula_id, semana, records")
+
+    sb = get_supabase_admin()
+
+    # 1. Borrar datos existentes de la semana
+    sb.table("qm_data_semanal").delete() \
+        .eq("cedula_id", cedula_id) \
+        .eq("semana", semana_str) \
+        .execute()
+
+    # 2. Insertar en lotes usando INSERT (no upsert, ya no hay conflicto post-delete)
+    total_inserted = 0
+    for i in range(0, len(records), 100):
+        batch = records[i:i+100]
+        result = sb.table("qm_data_semanal").insert(batch).execute()
+        if result.data:
+            total_inserted += len(result.data)
+
+    # 3. Verificar en DB que realmente se guardó
+    verify = sb.table("qm_data_semanal").select("semana", count="exact") \
+        .eq("cedula_id", cedula_id) \
+        .eq("semana", semana_str) \
+        .execute()
+    verified_count = verify.count if verify.count is not None else total_inserted
+
+    if verified_count == 0 and len(records) > 0:
+        raise HTTPException(status_code=500, detail="Error al guardar: los datos no se encontraron en la base de datos después de guardar.")
+
+    # 4. Registrar en historial
+    try:
+        sb.table("qm_upload_log").insert({
+            "cedula_id": cedula_id,
+            "semana": semana_str,
+            "total_records": verified_count,
+            "new_records": new_records,
+            "changed_records": changed_records,
+            "unchanged_records": len(records) - new_records - changed_records,
+            "changes_detail": json.dumps(changes_detail),
+        }).execute()
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "message": f"✓ {verified_count} registros guardados correctamente en la semana {semana_str}.",
+        "total_records": verified_count,
+        "semana": semana_str,
+    }
+
+
+@router.get("/data/verificar")
+async def verificar_data(
+    cedula_id: str = Query(...),
+    semana: date = Query(...)
+):
+    """Verifica cuántos registros hay en DB para una semana."""
+    sb = get_supabase_admin()
+    result = sb.table("qm_data_semanal").select("semana", count="exact") \
+        .eq("cedula_id", cedula_id) \
+        .eq("semana", semana.isoformat()) \
+        .execute()
+    count = result.count or 0
+    return {
+        "semana": semana.isoformat(),
+        "count": count,
+        "saved": count > 0,
     }
 
 
@@ -277,6 +391,160 @@ async def delete_semana(
         "message": f"Semana {semana} eliminada ({deleted} registros borrados).",
         "deleted": deleted,
         "semana": semana.isoformat(),
+    }
+
+
+# ══════════════════════════════════════════════════════════════
+# HISTORIAL DE UPLOADS
+# ══════════════════════════════════════════════════════════════
+
+@router.get("/data/uploads")
+async def get_upload_history(
+    cedula_id: str = Query(...),
+    semana: Optional[date] = Query(None, description="Filtrar por semana específica")
+):
+    """Historial detallado de uploads de data semanal."""
+    sb = get_supabase_admin()
+    try:
+        query = sb.table("qm_upload_log").select("*").eq("cedula_id", cedula_id)
+        if semana:
+            query = query.eq("semana", semana.isoformat())
+        result = query.order("uploaded_at", desc=True).limit(50).execute()
+        uploads = result.data or []
+        # Parsear changes_detail de string JSON a lista
+        for u in uploads:
+            if isinstance(u.get("changes_detail"), str):
+                try:
+                    u["changes_detail"] = json.loads(u["changes_detail"])
+                except Exception:
+                    u["changes_detail"] = []
+        return {"data": uploads}
+    except Exception:
+        return {"data": []}
+
+
+# ══════════════════════════════════════════════════════════════
+# SYNC QM → DASHBOARD (registros_semanales.qm_on_target)
+# ══════════════════════════════════════════════════════════════
+
+@router.post("/sync-dashboard")
+async def sync_qm_to_dashboard(
+    cedula_id: str = Query(...),
+    semana: date = Query(..., description="Semana a sincronizar")
+):
+    """
+    Calcula el % de cumplimiento QM por empleado y lo escribe
+    en registros_semanales.qm_on_target para cada operador.
+    Usa aliases para hacer match entre nombres QM y operadores.
+    """
+    sb = get_supabase_admin()
+
+    # 1. Cargar calendario QM
+    cal_result = sb.table("qm_calendario").select("*").eq("cedula_id", cedula_id).execute()
+    calendario = cal_result.data or []
+    if not calendario:
+        raise HTTPException(status_code=404, detail="No hay calendario QM cargado.")
+
+    # 2. Cargar data semanal
+    data_result = sb.table("qm_data_semanal").select("*") \
+        .eq("cedula_id", cedula_id).eq("semana", semana.isoformat()).execute()
+    data_semanal = data_result.data or []
+    if not data_semanal:
+        raise HTTPException(status_code=404, detail=f"No hay data QM para la semana {semana}.")
+
+    # Indexar calendario
+    cal_map = {}
+    for r in calendario:
+        cal_map[(r["employee"], r["competency"])] = r
+
+    # 3. Calcular compliance_pct por empleado QM
+    emp_stats = defaultdict(lambda: {"total": 0, "on_target": 0})
+    for d in data_semanal:
+        cal = cal_map.get((d["employee"], d["competency"]))
+        if not cal:
+            continue
+        target = cal["target"]
+        current = d["current_level"]
+        emp_stats[d["employee"]]["total"] += 1
+        if current >= target:
+            emp_stats[d["employee"]]["on_target"] += 1
+
+    qm_by_employee = {}
+    for emp, s in emp_stats.items():
+        pct = round(s["on_target"] / s["total"] * 100, 1) if s["total"] > 0 else 0
+        qm_by_employee[emp] = pct
+
+    # 4. Cargar operadores de esta cédula
+    ops_result = sb.table("operadores").select("id, nombre").eq("cedula_id", cedula_id).execute()
+    operadores = ops_result.data or []
+
+    # 5. Cargar aliases para matching
+    alias_result = sb.table("operador_aliases").select("persona_id, nombre_qbos, nombre_bd, persona_tipo").execute()
+    alias_by_name = {}
+    alias_by_persona = {}
+    for a in (alias_result.data or []):
+        if a.get("persona_tipo") != "operador":
+            continue
+        if a.get("nombre_qbos"):
+            alias_by_name[a["nombre_qbos"].strip().lower()] = a["persona_id"]
+        if a.get("nombre_bd"):
+            alias_by_persona[a["persona_id"]] = a["nombre_bd"].strip().lower()
+
+    # Mapa operador nombre → id
+    op_name_to_id = {}
+    for op in operadores:
+        op_name_to_id[op["nombre"].strip().lower()] = op["id"]
+
+    # 6. Match QM employee → operador_id
+    matched = 0
+    not_matched = []
+    updates = []
+
+    for qm_emp, pct in qm_by_employee.items():
+        qm_lower = qm_emp.strip().lower()
+        op_id = None
+
+        # 1° Match exacto por nombre operador
+        if qm_lower in op_name_to_id:
+            op_id = op_name_to_id[qm_lower]
+        else:
+            # 2° Match por alias (nombre_qbos)
+            if qm_lower in alias_by_name:
+                op_id = alias_by_name[qm_lower]
+            else:
+                # 3° Fuzzy: buscar si el nombre QM contiene el nombre del operador o viceversa
+                for op_nombre, oid in op_name_to_id.items():
+                    if op_nombre in qm_lower or qm_lower in op_nombre:
+                        op_id = oid
+                        break
+
+        if op_id:
+            matched += 1
+            updates.append({"operador_id": op_id, "qm_on_target": pct})
+        else:
+            not_matched.append(qm_emp)
+
+    # 7. Escribir en registros_semanales
+    written = 0
+    for upd in updates:
+        try:
+            sb.table("registros_semanales").upsert({
+                "operador_id": upd["operador_id"],
+                "cedula_id": cedula_id,
+                "semana": semana.isoformat(),
+                "qm_on_target": upd["qm_on_target"],
+            }, on_conflict="operador_id,semana").execute()
+            written += 1
+        except Exception:
+            pass
+
+    return {
+        "success": True,
+        "message": f"QM → Dashboard sincronizado: {written}/{len(qm_by_employee)} operadores actualizados.",
+        "matched": matched,
+        "written": written,
+        "not_matched": not_matched,
+        "total_qm_employees": len(qm_by_employee),
     }
 
 

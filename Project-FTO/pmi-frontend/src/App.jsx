@@ -7,6 +7,7 @@ import DH from './pages/DH'
 import Weekly from './pages/Weekly'
 import QM from './pages/QM'
 import BOSQBOS from './pages/BOSQBOS'
+import FRR from './pages/FRR'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/fto/admin" element={<Layout><Administrar /></Layout>} />
       <Route path="/fto/dh" element={<Layout><DH /></Layout>} />
       <Route path="/fto/bos-qbos" element={<Layout><BOSQBOS /></Layout>} />
+      <Route path="/fto/frr" element={<Layout><FRR /></Layout>} />
 
       {/* Weekly Section (placeholder) */}
       <Route path="/weekly" element={<Layout><Weekly /></Layout>} />

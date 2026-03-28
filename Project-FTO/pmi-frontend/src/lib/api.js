@@ -266,6 +266,24 @@ export async function uploadQMData(cedulaId, semana, file) {
   return response.json()
 }
 
+export async function saveQMData(cedulaId, semana, records, changedRecords, newRecords, changesDetail) {
+  return apiRequest('/qm/data/save', {
+    method: 'POST',
+    body: JSON.stringify({
+      cedula_id: cedulaId,
+      semana,
+      records,
+      changed_records: changedRecords,
+      new_records: newRecords,
+      changes_detail: changesDetail,
+    })
+  })
+}
+
+export async function verificarQMData(cedulaId, semana) {
+  return apiRequest(`/qm/data/verificar?cedula_id=${cedulaId}&semana=${semana}`)
+}
+
 export async function getQMSemanas(cedulaId) {
   return apiRequest(`/qm/data/semanas?cedula_id=${cedulaId}`)
 }
@@ -278,6 +296,18 @@ export async function deleteQMSemana(cedulaId, semana) {
 
 export async function getQMAnalisis(cedulaId, semana) {
   return apiRequest(`/qm/analisis?cedula_id=${cedulaId}&semana=${semana}`)
+}
+
+export async function getQMUploadHistory(cedulaId, semana = null) {
+  let path = `/qm/data/uploads?cedula_id=${cedulaId}`
+  if (semana) path += `&semana=${semana}`
+  return apiRequest(path)
+}
+
+export async function syncQMDashboard(cedulaId, semana) {
+  return apiRequest(`/qm/sync-dashboard?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST'
+  })
 }
 
 // ============================================================
@@ -319,6 +349,54 @@ export async function uploadQBOS(cedulaId, semana, file) {
 
 export async function saveQBOS(cedulaId, semana, results) {
   return apiRequest(`/registros/qbos/save?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST',
+    body: JSON.stringify(results)
+  })
+}
+
+// ============================================================
+// FRR — Filter Reject Rate
+// ============================================================
+
+export async function uploadROL(cedulaId, file, baseYear = 2026) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/frr/rol/upload?cedula_id=${cedulaId}&base_year=${baseYear}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function getROLSemana(cedulaId, semana) {
+  return apiRequest(`/frr/rol/semana?cedula_id=${cedulaId}&semana=${semana}`)
+}
+
+export async function overrideTurno(cedulaId, operadorId, fecha, turno, kdf) {
+  let path = `/frr/rol/override?cedula_id=${cedulaId}&operador_id=${operadorId}&fecha=${fecha}`
+  if (turno !== undefined) path += `&turno=${turno || ''}`
+  if (kdf) path += `&kdf=${kdf}`
+  return apiRequest(path, { method: 'PUT' })
+}
+
+export async function uploadFRR(cedulaId, semana, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/frr/upload?cedula_id=${cedulaId}&semana=${semana}`, {
+    method: 'POST', body: formData
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function saveFRR(cedulaId, semana, results) {
+  return apiRequest(`/frr/save?cedula_id=${cedulaId}&semana=${semana}`, {
     method: 'POST',
     body: JSON.stringify(results)
   })

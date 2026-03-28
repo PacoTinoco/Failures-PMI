@@ -11,7 +11,11 @@ function getClosestMonday() {
   const d = new Date()
   const day = d.getDay()
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  return new Date(d.setDate(diff)).toISOString().split('T')[0]
+  const monday = new Date(d.getFullYear(), d.getMonth(), diff)
+  const yyyy = monday.getFullYear()
+  const mm = String(monday.getMonth() + 1).padStart(2, '0')
+  const dd = String(monday.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
 }
 
 export default function QM() {
@@ -24,8 +28,11 @@ export default function QM() {
   const [calUploading, setCalUploading] = useState(false)
   const [calResult, setCalResult]       = useState(null)
 
+  // ── Upload / Preview / Save state ──
   const [dataUploading, setDataUploading] = useState(false)
-  const [dataResult, setDataResult]       = useState(null)
+  const [preview, setPreview]             = useState(null)  // resultado del upload (sin guardar)
+  const [saving, setSaving]               = useState(false)
+  const [saveResult, setSaveResult]       = useState(null)
 
   const [semanas, setSemanas]             = useState([])
   const [analisis, setAnalisis]           = useState(null)
@@ -35,6 +42,10 @@ export default function QM() {
 
   const [deletingSemana, setDeletingSemana] = useState(null)
   const [error, setError] = useState(null)
+  const [uploadHistory, setUploadHistory] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
   const calInputRef  = useRef(null)
   const dataInputRef = useRef(null)
 
@@ -58,10 +69,16 @@ export default function QM() {
     }).catch(() => {})
   }, [cedulaId])
 
+  // Limpiar preview cuando cambia la semana
+  useEffect(() => {
+    setPreview(null); setSaveResult(null); setSyncResult(null)
+  }, [semana])
+
   useEffect(() => {
     if (!cedulaId || !semana || !calLoaded) return
     if (!semanas.find(s => s.semana === semana)) return
     loadAnalisis()
+    loadUploadHistory()
   }, [cedulaId, semana, calLoaded, semanas])
 
   function loadAnalisis() {
@@ -74,6 +91,12 @@ export default function QM() {
         setAnalisis(null)
       })
       .finally(() => setAnalisisLoading(false))
+  }
+
+  function loadUploadHistory() {
+    api.getQMUploadHistory(cedulaId, semana)
+      .then(res => setUploadHistory(res.data || []))
+      .catch(() => setUploadHistory([]))
   }
 
   async function handleCalUpload(e) {
@@ -89,19 +112,63 @@ export default function QM() {
     setCalUploading(false)
   }
 
+  // Paso 1: subir archivo → genera preview (NO guarda en DB)
   async function handleDataUpload(e) {
     const file = e.target.files[0]
     if (!file || !cedulaId || !semana) return
     e.target.value = ''
-    setDataUploading(true); setError(null); setDataResult(null)
+    setDataUploading(true)
+    setError(null)
+    setPreview(null)
+    setSaveResult(null)
+    setSyncResult(null)
     try {
       const res = await api.uploadQMData(cedulaId, semana, file)
-      setDataResult(res)
+      setPreview(res)  // guarda el resultado (con records[]) en estado
+    } catch (err) { setError(err.message) }
+    finally { setDataUploading(false) }
+  }
+
+  // Paso 2: guardar explícitamente en DB
+  async function handleSaveData() {
+    if (!preview || !cedulaId || !semana) return
+    setSaving(true)
+    setError(null)
+    setSaveResult(null)
+    try {
+      const res = await api.saveQMData(
+        cedulaId, semana,
+        preview.records,
+        preview.changed_records,
+        preview.new_records,
+        preview.changes_detail
+      )
+      setSaveResult(res)
+      // Refrescar lista de semanas y análisis
       const semanasRes = await api.getQMSemanas(cedulaId)
       setSemanas(semanasRes.data || [])
       loadAnalisis()
-    } catch (err) { setError(err.message) }
-    finally { setDataUploading(false) }
+      loadUploadHistory()
+      // Auto-sync al dashboard
+      try {
+        const syncRes = await api.syncQMDashboard(cedulaId, semana)
+        setSyncResult(syncRes)
+      } catch (syncErr) {
+        setSyncResult({ success: false, message: syncErr.message })
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally { setSaving(false) }
+  }
+
+  async function handleSyncDashboard() {
+    if (!cedulaId || !semana) return
+    setSyncing(true); setSyncResult(null)
+    try {
+      const res = await api.syncQMDashboard(cedulaId, semana)
+      setSyncResult(res)
+    } catch (err) { setSyncResult({ success: false, message: err.message }) }
+    finally { setSyncing(false) }
   }
 
   async function handleDeleteSemana(s) {
@@ -111,7 +178,7 @@ export default function QM() {
       await api.deleteQMSemana(cedulaId, s)
       const semanasRes = await api.getQMSemanas(cedulaId)
       setSemanas(semanasRes.data || [])
-      if (semana === s) setAnalisis(null)
+      if (semana === s) { setAnalisis(null); setUploadHistory([]); setPreview(null); setSaveResult(null) }
     } catch (err) { setError(err.message) }
     finally { setDeletingSemana(null) }
   }
@@ -163,6 +230,8 @@ export default function QM() {
           <h3 className="text-sm font-semibold text-white mb-1">Data semanal (semana {semana})</h3>
           <p className="text-xs text-slate-500 mb-3">Sube el archivo de data actualizado para esta semana</p>
           <input ref={dataInputRef} type="file" accept=".xlsx,.xls" onChange={handleDataUpload} className="hidden" />
+
+          {/* Paso 1: Botón subir archivo (genera preview) */}
           <button
             onClick={() => dataInputRef.current?.click()}
             disabled={dataUploading || !calLoaded}
@@ -170,9 +239,139 @@ export default function QM() {
               !calLoaded ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 text-white'
             }`}
           >
-            {dataUploading ? 'Procesando...' : !calLoaded ? 'Primero sube el calendario' : 'Subir data semanal'}
+            {dataUploading ? 'Analizando archivo...' : !calLoaded ? 'Primero sube el calendario' : preview ? 'Re-subir archivo' : 'Subir data semanal'}
           </button>
-          {dataResult && <p className="text-xs text-green-400 mt-2">{dataResult.message}</p>}
+
+          {/* Preview: resultado del análisis del archivo (antes de guardar) */}
+          {preview && !saveResult && (
+            <div className="mt-3 space-y-2">
+              {/* Resumen del archivo */}
+              <div className="bg-[#0a1628] rounded-lg px-3 py-2 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">{preview.total_records} registros detectados</span>
+                  <span className="text-slate-500">{preview.skipped} ignorados</span>
+                </div>
+                {preview.is_first_upload ? (
+                  <p className="text-blue-400">Primera vez que se sube esta semana</p>
+                ) : (
+                  <div className="flex gap-3">
+                    <span className={preview.changed_records > 0 ? 'text-blue-400' : 'text-slate-500'}>
+                      {preview.changed_records} cambiaron
+                    </span>
+                    <span className={preview.new_records > 0 ? 'text-green-400' : 'text-slate-500'}>
+                      {preview.new_records} nuevos
+                    </span>
+                    <span className="text-slate-500">{preview.unchanged_records} sin cambio</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Detalle de cambios */}
+              {preview.changed_records > 0 && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+                  <p className="text-xs text-blue-400 font-medium mb-1">
+                    {preview.changed_records} competencia{preview.changed_records !== 1 ? 's' : ''} con cambio de nivel:
+                  </p>
+                  {preview.changes_detail.slice(0, 5).map((ch, i) => (
+                    <p key={i} className="text-[10px] text-blue-300/70">
+                      {ch.employee.split(' ')[0]} · {ch.competency.slice(0, 30)}: {ch.old_level} → {ch.new_level}
+                    </p>
+                  ))}
+                  {preview.changes_detail.length > 5 && (
+                    <p className="text-[10px] text-blue-300/50">y {preview.changes_detail.length - 5} más...</p>
+                  )}
+                </div>
+              )}
+
+              {/* Botón Guardar */}
+              <button
+                onClick={handleSaveData}
+                disabled={saving}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold bg-green-600 hover:bg-green-500 text-white transition-colors"
+              >
+                {saving ? 'Guardando en plataforma...' : `Guardar ${preview.total_records} registros`}
+              </button>
+              <p className="text-[10px] text-slate-500 text-center">
+                El análisis estará disponible después de guardar
+              </p>
+            </div>
+          )}
+
+          {/* Resultado de guardado exitoso */}
+          {saveResult && (
+            <div className="mt-2 space-y-1">
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-green-400 font-medium">{saveResult.message}</p>
+                {syncResult && (
+                  <p className={`text-xs mt-1 ${syncResult.success ? 'text-green-300' : 'text-yellow-400'}`}>
+                    {syncResult.success
+                      ? `Dashboard actualizado: ${syncResult.written} operadores con QM%`
+                      : `Sync dashboard: ${syncResult.message}`}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => { setPreview(null); setSaveResult(null); setSyncResult(null) }}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                Subir otra versión
+              </button>
+            </div>
+          )}
+
+          {/* Sync manual al dashboard (si ya tiene análisis pero no acaba de guardar) */}
+          {analisis && !preview && !saveResult && (
+            <button
+              onClick={handleSyncDashboard}
+              disabled={syncing}
+              className="w-full mt-2 py-2 rounded-lg text-xs font-medium bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/20 transition-colors"
+            >
+              {syncing ? 'Actualizando...' : 'Actualizar QM% en Dashboard'}
+            </button>
+          )}
+          {syncResult && analisis && !saveResult && (
+            <p className={`text-xs mt-1 ${syncResult.success ? 'text-green-400' : 'text-yellow-400'}`}>
+              {syncResult.message}
+              {syncResult.not_matched?.length > 0 && ` · Sin match: ${syncResult.not_matched.join(', ')}`}
+            </p>
+          )}
+
+          {/* Historial de guardados */}
+          {uploadHistory.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+              >
+                <span>{showHistory ? '▾' : '▸'}</span>
+                Historial de guardados ({uploadHistory.length})
+              </button>
+              {showHistory && (
+                <div className="mt-1 space-y-1 max-h-40 overflow-y-auto">
+                  {uploadHistory.map((u, i) => (
+                    <div key={i} className="bg-[#0a1628] rounded-lg px-3 py-1.5 text-[10px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-300">
+                          {new Date(u.uploaded_at).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="text-slate-500">{u.total_records} reg.</span>
+                      </div>
+                      {(u.changed_records > 0 || u.new_records > 0) ? (
+                        <p className="text-blue-400/70">
+                          {u.changed_records > 0 && `${u.changed_records} cambiaron`}
+                          {u.changed_records > 0 && u.new_records > 0 && ' · '}
+                          {u.new_records > 0 && `${u.new_records} nuevos`}
+                        </p>
+                      ) : (
+                        <p className="text-slate-500">Sin cambios respecto al anterior</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {semanas.length > 0 && (
             <div className="mt-3 space-y-1">
               <p className="text-xs text-slate-500 mb-1">Semanas con data cargada:</p>

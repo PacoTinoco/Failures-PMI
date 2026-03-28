@@ -17,6 +17,7 @@ const sections = [
       { to: '/fto/admin', label: 'Administración' },
       { to: '/fto/dh', label: 'DH Defectos' },
       { to: '/fto/bos-qbos', label: 'BOS / QBOS' },
+      { to: '/fto/frr', label: 'FRR' },
     ]
   },
   {
