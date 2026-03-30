@@ -46,6 +46,7 @@ export default function QM() {
   const [showHistory, setShowHistory] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
+  const [deletingLogId, setDeletingLogId] = useState(null)
   const calInputRef  = useRef(null)
   const dataInputRef = useRef(null)
 
@@ -64,19 +65,36 @@ export default function QM() {
     api.getQMCalendario(cedulaId).then(res => {
       setCalLoaded((res.data || []).length > 0)
     }).catch(() => {})
+    refreshSemanas()
+  }, [cedulaId])
+
+  function refreshSemanas() {
+    if (!cedulaId) return
     api.getQMSemanas(cedulaId).then(res => {
       setSemanas(res.data || [])
     }).catch(() => {})
-  }, [cedulaId])
+  }
 
   // Limpiar preview cuando cambia la semana
   useEffect(() => {
     setPreview(null); setSaveResult(null); setSyncResult(null)
   }, [semana])
 
+  // Auto-cargar análisis e historial cuando hay data para la semana seleccionada
   useEffect(() => {
     if (!cedulaId || !semana || !calLoaded) return
-    if (!semanas.find(s => s.semana === semana)) return
+    const semanaData = semanas.find(s => s.semana === semana)
+    if (!semanaData || !semanaData.has_data) {
+      // No hay data real para esta semana, limpiar análisis
+      setAnalisis(null)
+      // Pero sí cargar historial si hay uploads
+      if (semanaData?.upload_count > 0) {
+        loadUploadHistory()
+      } else {
+        setUploadHistory([])
+      }
+      return
+    }
     loadAnalisis()
     loadUploadHistory()
   }, [cedulaId, semana, calLoaded, semanas])
@@ -145,8 +163,7 @@ export default function QM() {
       )
       setSaveResult(res)
       // Refrescar lista de semanas y análisis
-      const semanasRes = await api.getQMSemanas(cedulaId)
-      setSemanas(semanasRes.data || [])
+      refreshSemanas()
       loadAnalisis()
       loadUploadHistory()
       // Auto-sync al dashboard
@@ -171,13 +188,28 @@ export default function QM() {
     finally { setSyncing(false) }
   }
 
+  async function handleDeleteLog(logId) {
+    if (!confirm('¿Eliminar este registro del historial?')) return
+    setDeletingLogId(logId)
+    try {
+      await api.deleteQMUploadLog(cedulaId, logId)
+      // Actualizar historial local
+      setUploadHistory(prev => prev.filter(u => u.id !== logId))
+      // También refrescar semanas por si era el único log de esa semana
+      refreshSemanas()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeletingLogId(null)
+    }
+  }
+
   async function handleDeleteSemana(s) {
     if (!confirm(`¿Eliminar todos los datos de la semana ${s}? Esta acción no se puede deshacer.`)) return
     setDeletingSemana(s)
     try {
       await api.deleteQMSemana(cedulaId, s)
-      const semanasRes = await api.getQMSemanas(cedulaId)
-      setSemanas(semanasRes.data || [])
+      refreshSemanas()
       if (semana === s) { setAnalisis(null); setUploadHistory([]); setPreview(null); setSaveResult(null) }
     } catch (err) { setError(err.message) }
     finally { setDeletingSemana(null) }
@@ -336,7 +368,7 @@ export default function QM() {
             </p>
           )}
 
-          {/* Historial de guardados */}
+          {/* Historial de guardados de la semana actual */}
           {uploadHistory.length > 0 && (
             <div className="mt-3">
               <button
@@ -347,24 +379,37 @@ export default function QM() {
                 Historial de guardados ({uploadHistory.length})
               </button>
               {showHistory && (
-                <div className="mt-1 space-y-1 max-h-40 overflow-y-auto">
+                <div className="mt-1 space-y-1 max-h-48 overflow-y-auto">
                   {uploadHistory.map((u, i) => (
-                    <div key={i} className="bg-[#0a1628] rounded-lg px-3 py-1.5 text-[10px]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-300">
-                          {new Date(u.uploaded_at).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <span className="text-slate-500">{u.total_records} reg.</span>
+                    <div key={u.id ?? i} className="bg-[#0a1628] rounded-lg px-3 py-1.5 text-[10px] group">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-300">
+                              {new Date(u.uploaded_at).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-slate-600">·</span>
+                            <span className="text-slate-500">{u.total_records} reg.</span>
+                          </div>
+                          {(u.changed_records > 0 || u.new_records > 0) ? (
+                            <p className="text-blue-400/70 mt-0.5">
+                              {u.changed_records > 0 && `${u.changed_records} cambiaron`}
+                              {u.changed_records > 0 && u.new_records > 0 && ' · '}
+                              {u.new_records > 0 && `${u.new_records} nuevos`}
+                            </p>
+                          ) : (
+                            <p className="text-slate-600 mt-0.5">Sin cambios respecto al anterior</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteLog(u.id)}
+                          disabled={deletingLogId === u.id}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-400 px-1 flex-shrink-0"
+                          title="Eliminar este registro del historial"
+                        >
+                          {deletingLogId === u.id ? '···' : '✕'}
+                        </button>
                       </div>
-                      {(u.changed_records > 0 || u.new_records > 0) ? (
-                        <p className="text-blue-400/70">
-                          {u.changed_records > 0 && `${u.changed_records} cambiaron`}
-                          {u.changed_records > 0 && u.new_records > 0 && ' · '}
-                          {u.new_records > 0 && `${u.new_records} nuevos`}
-                        </p>
-                      ) : (
-                        <p className="text-slate-500">Sin cambios respecto al anterior</p>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -372,23 +417,50 @@ export default function QM() {
             </div>
           )}
 
+          {/* Semanas con data cargada — clicables para navegar */}
           {semanas.length > 0 && (
             <div className="mt-3 space-y-1">
               <p className="text-xs text-slate-500 mb-1">Semanas con data cargada:</p>
               {semanas.map(s => (
-                <div key={s.semana} className="flex items-center justify-between bg-[#0a1628] rounded-lg px-3 py-1.5">
-                  <span className={`text-xs font-medium ${s.semana === semana ? 'text-purple-400' : 'text-slate-300'}`}>
-                    {s.semana === semana && <span className="text-purple-400 mr-1">▶</span>}
-                    {s.semana}
-                    <span className="text-slate-500 ml-1">({s.registros} reg.)</span>
-                  </span>
+                <div
+                  key={s.semana}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors cursor-pointer ${
+                    s.semana === semana
+                      ? 'bg-purple-500/10 border border-purple-500/30'
+                      : 'bg-[#0a1628] hover:bg-slate-700/30 border border-transparent'
+                  }`}
+                  onClick={() => setSemana(s.semana)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {s.semana === semana && <span className="text-purple-400 text-xs">▶</span>}
+                      <span className={`text-xs font-medium ${s.semana === semana ? 'text-purple-400' : 'text-slate-300'}`}>
+                        {s.semana}
+                      </span>
+                      {s.has_data ? (
+                        <span className="text-[10px] text-green-400/70 bg-green-500/10 px-1.5 py-0.5 rounded">
+                          {s.registros} reg.
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-yellow-400/70 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                          solo historial
+                        </span>
+                      )}
+                    </div>
+                    {s.upload_count > 0 && (
+                      <p className="text-[10px] text-slate-500 mt-0.5 ml-4">
+                        {s.upload_count} upload{s.upload_count > 1 ? 's' : ''}
+                        {s.last_upload && ` · último: ${new Date(s.last_upload).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                      </p>
+                    )}
+                  </div>
                   <button
-                    onClick={() => handleDeleteSemana(s.semana)}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteSemana(s.semana) }}
                     disabled={deletingSemana === s.semana}
-                    className="text-slate-500 hover:text-red-400 transition-colors text-xs px-1 py-0.5 rounded"
+                    className="text-slate-600 hover:text-red-400 transition-colors text-xs px-1 py-0.5 rounded ml-2 flex-shrink-0"
                     title="Eliminar data de esta semana"
                   >
-                    {deletingSemana === s.semana ? '...' : '🗑'}
+                    {deletingSemana === s.semana ? '...' : '✕'}
                   </button>
                 </div>
               ))}
@@ -584,8 +656,16 @@ export default function QM() {
           <svg className="w-12 h-12 text-slate-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
-          <p className="text-slate-400 text-sm">Sube el archivo de data semanal para ver el análisis.</p>
-          <p className="text-slate-500 text-xs mt-1">Selecciona la semana correcta y sube el archivo data_WXX.xlsx</p>
+          <p className="text-slate-400 text-sm">
+            {semanas.some(s => s.semana === semana && !s.has_data && s.upload_count > 0)
+              ? 'Esta semana tiene historial de uploads pero los datos no están disponibles. Vuelve a subir el archivo.'
+              : 'Sube el archivo de data semanal para ver el análisis.'}
+          </p>
+          <p className="text-slate-500 text-xs mt-1">
+            {semanas.length > 0
+              ? `Selecciona una semana de la lista (${semanas.length} disponibles) o sube datos para la semana actual.`
+              : 'Selecciona la semana correcta y sube el archivo data_WXX.xlsx'}
+          </p>
         </div>
       ) : null}
     </div>

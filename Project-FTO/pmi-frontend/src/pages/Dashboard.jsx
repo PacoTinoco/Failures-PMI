@@ -5,6 +5,9 @@ import CedulaSelector from '../components/CedulaSelector'
 import { getSemaforoColor } from '../components/SemaforoIndicador'
 import * as api from '../lib/api'
 
+// tipo: 'auto' = alimentado automáticamente por la plataforma
+//       'manual' = el usuario captura el valor manualmente
+//       null = sin clasificar por ahora
 const CATEGORIAS = [
   {
     key: 'Sustentabilidad',
@@ -14,8 +17,8 @@ const CATEGORIAS = [
     bgLight: 'bg-emerald-500/10',
     textColor: 'text-emerald-400',
     indicadores: [
-      { nombre: 'BOS [#]', campo: 'bos_num', target: 3, direccion: '≥', unidad: '#' },
-      { nombre: 'BOS ENG [%]', campo: 'bos_eng', target: 95, direccion: '≥', unidad: '%' },
+      { nombre: 'BOS [#]',     campo: 'bos_num',  target: 3,  direccion: '≥', unidad: '#', tipo: 'auto' },
+      { nombre: 'BOS ENG [%]', campo: 'bos_eng',  target: 95, direccion: '≥', unidad: '%', tipo: 'auto' },
     ]
   },
   {
@@ -26,10 +29,10 @@ const CATEGORIAS = [
     bgLight: 'bg-blue-500/10',
     textColor: 'text-blue-400',
     indicadores: [
-      { nombre: 'QBOS [#]', campo: 'qbos_num', target: 1, direccion: '≥', unidad: '#' },
-      { nombre: 'QBOS ENG [%]', campo: 'qbos_eng', target: 95, direccion: '≥', unidad: '%' },
-      { nombre: 'QFlags [#]', campo: 'qflags_num', target: 6, direccion: '≥', unidad: '#' },
-      { nombre: 'QI/PNC [#]', campo: 'qi_pnc_num', target: 0, direccion: '=', unidad: '#' },
+      { nombre: 'QBOS [#]',      campo: 'qbos_num',   target: 1,  direccion: '≥', unidad: '#', tipo: 'auto'   },
+      { nombre: 'QBOS ENG [%]',  campo: 'qbos_eng',   target: 95, direccion: '≥', unidad: '%', tipo: 'auto'   },
+      { nombre: 'QFlags [#]',    campo: 'qflags_num', target: 6,  direccion: '≥', unidad: '#', tipo: 'manual' },
+      { nombre: 'QI/PNC [#]',    campo: 'qi_pnc_num', target: 0,  direccion: '=', unidad: '#', tipo: null     },
     ]
   },
   {
@@ -40,11 +43,11 @@ const CATEGORIAS = [
     bgLight: 'bg-purple-500/10',
     textColor: 'text-purple-400',
     indicadores: [
-      { nombre: 'DH Encontrados [#]', campo: 'dh_encontrados', target: 14, direccion: '≥', unidad: '#' },
-      { nombre: 'DH Reparados [#]', campo: 'dh_reparados', target: 14, direccion: '≥', unidad: '#' },
-      { nombre: 'Curva Autonomía [%]', campo: 'curva_autonomia', target: 80, direccion: '≥', unidad: '%' },
-      { nombre: 'Contramedidas [%]', campo: 'contramedidas_defectos', target: 100, direccion: '≥', unidad: '%' },
-      { nombre: 'IPS [#]', campo: 'ips_num', target: 1, direccion: '≥', unidad: '#' },
+      { nombre: 'DH Encontrados [#]', campo: 'dh_encontrados',       target: 14,  direccion: '≥', unidad: '#', tipo: 'auto'   },
+      { nombre: 'DH Reparados [#]',   campo: 'dh_reparados',         target: 14,  direccion: '≥', unidad: '#', tipo: 'auto'   },
+      { nombre: 'Curva Autonomía [%]',campo: 'curva_autonomia',       target: 80,  direccion: '≥', unidad: '%', tipo: 'auto'   },
+      { nombre: 'Contramedidas [%]',  campo: 'contramedidas_defectos',target: 100, direccion: '≥', unidad: '%', tipo: 'auto'   },
+      { nombre: 'IPS [#]',            campo: 'ips_num',               target: 1,   direccion: '≥', unidad: '#', tipo: 'manual' },
     ]
   },
   {
@@ -55,10 +58,10 @@ const CATEGORIAS = [
     bgLight: 'bg-orange-500/10',
     textColor: 'text-orange-400',
     indicadores: [
-      { nombre: 'FRR [%]', campo: 'frr', target: 0.1, direccion: '≤', unidad: '%' },
-      { nombre: 'DIM WASTE [%]', campo: 'dim_waste', target: null, direccion: '≤', unidad: '%' },
-      { nombre: 'Sobrepeso [#]', campo: 'sobrepeso', target: -20, direccion: '≤', unidad: '#' },
-      { nombre: 'Eventos LAIKA [#]', campo: 'eventos_laika', target: 0, direccion: '=', unidad: '#' },
+      { nombre: 'FRR [%]',          campo: 'frr',           target: 0.1,  direccion: '≤', unidad: '%', tipo: 'auto' },
+      { nombre: 'DIM WASTE [%]',    campo: 'dim_waste',     target: null, direccion: '≤', unidad: '%', tipo: null   },
+      { nombre: 'Sobrepeso [#]',    campo: 'sobrepeso',     target: -20,  direccion: '≤', unidad: '#', tipo: null   },
+      { nombre: 'Eventos LAIKA [#]',campo: 'eventos_laika', target: 0,    direccion: '=', unidad: '#', tipo: null   },
     ]
   },
   {
@@ -69,11 +72,25 @@ const CATEGORIAS = [
     bgLight: 'bg-pink-500/10',
     textColor: 'text-pink-400',
     indicadores: [
-      { nombre: 'Casos Estudio [#]', campo: 'casos_estudio', target: 1, direccion: '≥', unidad: '#' },
-      { nombre: 'QM On Target [%]', campo: 'qm_on_target', target: 80, direccion: '≥', unidad: '%' },
+      { nombre: 'Casos Estudio [#]',  campo: 'casos_estudio',  target: 1,  direccion: '≥', unidad: '#', tipo: 'manual' },
+      { nombre: 'QM On Target [%]',   campo: 'qm_on_target',   target: 80, direccion: '≥', unidad: '%', tipo: 'auto'   },
     ]
   }
 ]
+
+function TipoBadge({ tipo, size = 'sm' }) {
+  if (!tipo) return null
+  if (tipo === 'auto') return (
+    <span className={`inline-flex items-center gap-0.5 rounded font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 ${size === 'xs' ? 'text-[8px] px-1 py-0' : 'text-[9px] px-1.5 py-0.5'}`}>
+      ⚡ Auto
+    </span>
+  )
+  return (
+    <span className={`inline-flex items-center gap-0.5 rounded font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20 ${size === 'xs' ? 'text-[8px] px-1 py-0' : 'text-[9px] px-1.5 py-0.5'}`}>
+      ✏ Manual
+    </span>
+  )
+}
 
 const ALL_INDICADORES = CATEGORIAS.flatMap(c => c.indicadores)
 
@@ -238,7 +255,10 @@ export default function Dashboard() {
                       return (
                         <div key={ind.campo} className={`px-4 py-2.5 flex items-center justify-between ${semaforoBg[color]}`}>
                           <div>
-                            <p className="text-xs text-slate-300">{ind.nombre}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs text-slate-300">{ind.nombre}</p>
+                              <TipoBadge tipo={ind.tipo} />
+                            </div>
                             <p className="text-[10px] text-slate-500">
                               Target: {ind.target != null ? `${ind.direccion} ${ind.target}${ind.unidad === '%' ? '%' : ''}` : 'N/A'}
                             </p>
@@ -276,7 +296,10 @@ export default function Dashboard() {
                     <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Line Coordinator</th>
                     {ALL_INDICADORES.map(ind => (
                       <th key={ind.campo} className="px-2 py-2 text-center text-slate-400 font-medium text-[10px] whitespace-nowrap">
-                        {ind.nombre.replace(' [#]', '').replace(' [%]', '')}
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{ind.nombre.replace(' [#]', '').replace(' [%]', '')}</span>
+                          <TipoBadge tipo={ind.tipo} size="xs" />
+                        </div>
                       </th>
                     ))}
                   </tr>
@@ -319,16 +342,29 @@ export default function Dashboard() {
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-green-400" /> En objetivo
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-yellow-400" /> Cerca (&le;10%)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-red-400" /> Fuera de objetivo
-        </span>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-green-400" /> En objetivo
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-yellow-400" /> Cerca (&le;10%)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-red-400" /> Fuera de objetivo
+          </span>
+        </div>
+        <span className="text-slate-700">|</span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/20">⚡ Auto</span>
+            Alimentado automáticamente por la plataforma
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">✏ Manual</span>
+            Captura manual del usuario
+          </span>
+        </div>
       </div>
     </div>
   )

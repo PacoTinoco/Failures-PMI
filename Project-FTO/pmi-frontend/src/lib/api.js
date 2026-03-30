@@ -304,6 +304,12 @@ export async function getQMUploadHistory(cedulaId, semana = null) {
   return apiRequest(path)
 }
 
+export async function deleteQMUploadLog(cedulaId, logId) {
+  return apiRequest(`/qm/data/upload/${logId}?cedula_id=${cedulaId}`, {
+    method: 'DELETE'
+  })
+}
+
 export async function syncQMDashboard(cedulaId, semana) {
   return apiRequest(`/qm/sync-dashboard?cedula_id=${cedulaId}&semana=${semana}`, {
     method: 'POST'

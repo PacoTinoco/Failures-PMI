@@ -5,25 +5,43 @@ import CedulaSelector from '../components/CedulaSelector'
 import { getSemaforoColor } from '../components/SemaforoIndicador'
 import * as api from '../lib/api'
 
+// tipo: 'auto'   → se llena automáticamente por la plataforma (BOS upload, DH, FRR, QM…)
+//       'manual' → el usuario captura el valor a mano
+//       null     → sin clasificar por ahora
 const INDICADORES = [
-  { categoria: 'Sustentabilidad', nombre: 'BOS [#]',        campo: 'bos_num',                 unidad: '#',  target: 3,    direccion: '≥' },
-  { categoria: 'Sustentabilidad', nombre: 'BOS ENG [%]',    campo: 'bos_eng',                 unidad: '%',  target: 95,   direccion: '≥' },
-  { categoria: 'Calidad',         nombre: 'QBOS [#]',       campo: 'qbos_num',                unidad: '#',  target: 1,    direccion: '≥' },
-  { categoria: 'Calidad',         nombre: 'QBOS ENG [%]',   campo: 'qbos_eng',                unidad: '%',  target: 95,   direccion: '≥' },
-  { categoria: 'Calidad',         nombre: 'QFlags [#]',     campo: 'qflags_num',              unidad: '#',  target: 6,    direccion: '≥' },
-  { categoria: 'Calidad',         nombre: 'QI/PNC [#]',     campo: 'qi_pnc_num',              unidad: '#',  target: 0,    direccion: '=' },
-  { categoria: 'Desempeno',       nombre: 'DH Enc [#]',     campo: 'dh_encontrados',          unidad: '#',  target: 14,   direccion: '≥' },
-  { categoria: 'Desempeno',       nombre: 'DH Rep [#]',     campo: 'dh_reparados',            unidad: '#',  target: 14,   direccion: '≥' },
-  { categoria: 'Desempeno',       nombre: 'Curva Aut [%]',  campo: 'curva_autonomia',         unidad: '%',  target: 80,   direccion: '≥' },
-  { categoria: 'Desempeno',       nombre: 'Contram [%]',    campo: 'contramedidas_defectos',  unidad: '%',  target: 100,  direccion: '≥' },
-  { categoria: 'Desempeno',       nombre: 'IPS [#]',        campo: 'ips_num',                 unidad: '#',  target: 1,    direccion: '≥' },
-  { categoria: 'Costo',           nombre: 'FRR [%]',        campo: 'frr',                     unidad: '%',  target: 0.1,  direccion: '≤' },
-  { categoria: 'Costo',           nombre: 'DIM WASTE [%]',  campo: 'dim_waste',               unidad: '%',  target: null, direccion: '≤' },
-  { categoria: 'Costo',           nombre: 'Sobrep [#]',     campo: 'sobrepeso',               unidad: '#',  target: -20,  direccion: '≤' },
-  { categoria: 'Costo',           nombre: 'LAIKA [#]',      campo: 'eventos_laika',           unidad: '#',  target: 0,    direccion: '=' },
-  { categoria: 'Moral',           nombre: 'Casos Est [#]',  campo: 'casos_estudio',           unidad: '#',  target: 1,    direccion: '≥' },
-  { categoria: 'Moral',           nombre: 'QM Target [%]',  campo: 'qm_on_target',            unidad: '%',  target: 80,   direccion: '≥' },
+  { categoria: 'Sustentabilidad', nombre: 'BOS [#]',        campo: 'bos_num',                 unidad: '#',  target: 3,    direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Sustentabilidad', nombre: 'BOS ENG [%]',    campo: 'bos_eng',                 unidad: '%',  target: 95,   direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Calidad',         nombre: 'QBOS [#]',       campo: 'qbos_num',                unidad: '#',  target: 1,    direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Calidad',         nombre: 'QBOS ENG [%]',   campo: 'qbos_eng',                unidad: '%',  target: 95,   direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Calidad',         nombre: 'QFlags [#]',     campo: 'qflags_num',              unidad: '#',  target: 6,    direccion: '≥', tipo: 'manual' },
+  { categoria: 'Calidad',         nombre: 'QI/PNC [#]',     campo: 'qi_pnc_num',              unidad: '#',  target: 0,    direccion: '=', tipo: null     },
+  { categoria: 'Desempeno',       nombre: 'DH Enc [#]',     campo: 'dh_encontrados',          unidad: '#',  target: 14,   direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Desempeno',       nombre: 'DH Rep [#]',     campo: 'dh_reparados',            unidad: '#',  target: 14,   direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Desempeno',       nombre: 'Curva Aut [%]',  campo: 'curva_autonomia',         unidad: '%',  target: 80,   direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Desempeno',       nombre: 'Contram [%]',    campo: 'contramedidas_defectos',  unidad: '%',  target: 100,  direccion: '≥', tipo: 'auto'   },
+  { categoria: 'Desempeno',       nombre: 'IPS [#]',        campo: 'ips_num',                 unidad: '#',  target: 1,    direccion: '≥', tipo: 'manual' },
+  { categoria: 'Costo',           nombre: 'FRR [%]',        campo: 'frr',                     unidad: '%',  target: 0.1,  direccion: '≤', tipo: 'auto'   },
+  { categoria: 'Costo',           nombre: 'DIM WASTE [%]',  campo: 'dim_waste',               unidad: '%',  target: null, direccion: '≤', tipo: null     },
+  { categoria: 'Costo',           nombre: 'Sobrep [#]',     campo: 'sobrepeso',               unidad: '#',  target: -20,  direccion: '≤', tipo: null     },
+  { categoria: 'Costo',           nombre: 'LAIKA [#]',      campo: 'eventos_laika',           unidad: '#',  target: 0,    direccion: '=', tipo: null     },
+  { categoria: 'Moral',           nombre: 'Casos Est [#]',  campo: 'casos_estudio',           unidad: '#',  target: 1,    direccion: '≥', tipo: 'manual' },
+  { categoria: 'Moral',           nombre: 'QM Target [%]',  campo: 'qm_on_target',            unidad: '%',  target: 80,   direccion: '≥', tipo: 'auto'   },
 ]
+
+// Badge visual para tipo de indicador
+function TipoBadge({ tipo }) {
+  if (tipo === 'auto') return (
+    <span className="inline-flex items-center gap-px text-[8px] px-1 py-px rounded font-medium bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 leading-tight">
+      ⚡ Auto
+    </span>
+  )
+  if (tipo === 'manual') return (
+    <span className="inline-flex items-center gap-px text-[8px] px-1 py-px rounded font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20 leading-tight">
+      ✏ Manual
+    </span>
+  )
+  return null
+}
 
 const CATEGORIAS = ['Sustentabilidad', 'Calidad', 'Desempeno', 'Costo', 'Moral']
 const CAT_LABELS = { Sustentabilidad: 'S', Calidad: 'Q', Desempeno: 'D', Costo: 'C', Moral: 'M' }
@@ -96,7 +114,24 @@ export default function Captura() {
       api.getResumenLC(cedulaId, semana, selectedLC),
     ])
       .then(([opsRes, resRes]) => {
-        setRows((opsRes.data || []).map(item => ({
+        // Filtrar solo operadores reales (excluir LS que no tienen LC asignado)
+        const soloOperadores = (opsRes.data || []).filter(item => {
+          const op = item.operador
+          // Incluir solo si tiene LC asignado (operadores tienen LC, LS no)
+          return op && (op.line_coordinator_id || op.line_coordinators?.id || op.lc_id)
+        })
+
+        // Ordenar por nombre del LC (A→Z) y luego por nombre del operador
+        soloOperadores.sort((a, b) => {
+          const lcA = a.operador?.line_coordinators?.nombre || ''
+          const lcB = b.operador?.line_coordinators?.nombre || ''
+          if (lcA !== lcB) return lcA.localeCompare(lcB, 'es')
+          const nameA = a.operador?.nombre || ''
+          const nameB = b.operador?.nombre || ''
+          return nameA.localeCompare(nameB, 'es')
+        })
+
+        setRows(soloOperadores.map(item => ({
           operador: item.operador,
           registro: item.registro,
           dirty: {}
@@ -254,11 +289,17 @@ export default function Captura() {
                   {/* Indicadores */}
                   <tr className="border-b border-white/10">
                     {INDICADORES.map(ind => (
-                      <th key={ind.campo} className="px-1 py-1.5 text-center text-xs text-slate-300 font-medium whitespace-nowrap border-l border-white/5"
-                        title={`Target: ${ind.target ?? 'N/A'} (${ind.direccion})`}>
-                        <div>{ind.nombre}</div>
-                        <div className="text-[10px] text-slate-500 font-normal">
-                          {ind.target != null ? `${ind.direccion}${ind.target}` : '—'}
+                      <th key={ind.campo}
+                        className={`px-1 py-1.5 text-center text-xs font-medium whitespace-nowrap border-l border-white/5 ${
+                          ind.tipo === 'auto' ? 'text-slate-400 bg-cyan-500/5' : 'text-slate-300'
+                        }`}
+                        title={`Target: ${ind.target ?? 'N/A'} (${ind.direccion}) · ${ind.tipo === 'auto' ? 'Automático' : ind.tipo === 'manual' ? 'Manual' : 'Sin clasificar'}`}>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{ind.nombre}</span>
+                          <TipoBadge tipo={ind.tipo} />
+                          <span className="text-[9px] text-slate-600 font-normal">
+                            {ind.target != null ? `${ind.direccion}${ind.target}` : '—'}
+                          </span>
                         </div>
                       </th>
                     ))}
@@ -271,10 +312,33 @@ export default function Captura() {
                         No hay operadores para esta semana / filtro.
                       </td>
                     </tr>
-                  ) : (
-                    rows.map((row, rowIdx) => {
+                  ) : (() => {
+                    // Renderizar filas con separadores de grupo por LC
+                    const elements = []
+                    let lastLC = null
+
+                    rows.forEach((row, rowIdx) => {
                       const lcName = row.operador?.line_coordinators?.nombre || '—'
-                      return (
+
+                      // Separador de grupo cuando cambia el LC
+                      if (lcName !== lastLC) {
+                        lastLC = lcName
+                        elements.push(
+                          <tr key={`lc-group-${lcName}`} className="bg-[#0a1628]">
+                            <td
+                              colSpan={2 + INDICADORES.length}
+                              className="sticky left-0 px-4 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-white/10"
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                                LC: {lcName}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      }
+
+                      elements.push(
                         <tr key={row.operador?.id || rowIdx} className="border-b border-white/5 hover:bg-slate-700/20">
                           <td className="sticky left-0 z-10 bg-[#0f1d32] px-3 py-2 text-white font-medium whitespace-nowrap max-w-[140px] truncate">
                             {row.operador?.nombre || 'Sin nombre'}
@@ -286,18 +350,25 @@ export default function Captura() {
                             const val = row.registro?.[ind.campo]
                             const isDirty = row.dirty?.[ind.campo]
                             const color = getSemaforoColor(val, ind.target, ind.direccion)
+                            const isAuto = ind.tipo === 'auto'
                             return (
                               <td key={ind.campo}
-                                className={`px-0.5 py-1 border-l border-white/5 ${semaforoBg[color]}`}>
+                                className={`px-0.5 py-1 border-l border-white/5 ${semaforoBg[color]} ${isAuto ? 'bg-cyan-950/20' : ''}`}>
                                 <input
                                   type="number"
                                   step={ind.unidad === '%' ? '0.1' : '1'}
                                   value={val ?? ''}
                                   onChange={e => handleCellChange(rowIdx, ind.campo, e.target.value)}
-                                  className={`w-16 px-1.5 py-1 text-center text-xs rounded bg-transparent border ${
-                                    isDirty ? 'border-yellow-500/50' : 'border-transparent'
-                                  } text-white focus:outline-none focus:border-blue-500 focus:bg-slate-900/50 hover:border-slate-500 transition-colors`}
+                                  readOnly={isAuto}
+                                  className={`w-16 px-1.5 py-1 text-center text-xs rounded border ${
+                                    isAuto
+                                      ? 'bg-transparent border-transparent text-slate-400 cursor-default select-none'
+                                      : isDirty
+                                        ? 'bg-transparent border-yellow-500/50 text-white focus:outline-none focus:border-blue-500 focus:bg-slate-900/50 hover:border-slate-500 transition-colors'
+                                        : 'bg-transparent border-transparent text-white focus:outline-none focus:border-blue-500 focus:bg-slate-900/50 hover:border-slate-500 transition-colors'
+                                  }`}
                                   placeholder="—"
+                                  title={isAuto ? 'Este campo se llena automáticamente desde la plataforma' : ''}
                                 />
                               </td>
                             )
@@ -305,7 +376,9 @@ export default function Captura() {
                         </tr>
                       )
                     })
-                  )}
+
+                    return elements
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -338,8 +411,14 @@ export default function Captura() {
                   {/* Indicadores */}
                   <tr className="border-b border-white/10">
                     {INDICADORES.map(ind => (
-                      <th key={ind.campo} className="px-1 py-1.5 text-center text-[10px] text-slate-400 font-medium whitespace-nowrap border-l border-white/5">
-                        {ind.nombre.replace(' [#]','').replace(' [%]','')}
+                      <th key={ind.campo}
+                        className={`px-1 py-1.5 text-center text-[10px] font-medium whitespace-nowrap border-l border-white/5 ${
+                          ind.tipo === 'auto' ? 'text-slate-500 bg-cyan-500/5' : 'text-slate-400'
+                        }`}>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{ind.nombre.replace(' [#]','').replace(' [%]','')}</span>
+                          <TipoBadge tipo={ind.tipo} />
+                        </div>
                       </th>
                     ))}
                   </tr>
@@ -381,11 +460,24 @@ export default function Captura() {
       )}
 
       {/* ── Leyenda ── */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-400" /> En objetivo</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400" /> Cerca del objetivo</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-400" /> Fuera de objetivo</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded border border-yellow-500/50" /> Celda modificada</span>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-400" /> En objetivo</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400" /> Cerca del objetivo</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-400" /> Fuera de objetivo</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded border border-yellow-500/50" /> Celda modificada</span>
+        </div>
+        <span className="text-slate-700">|</span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center text-[8px] px-1 py-px rounded bg-cyan-500/15 text-cyan-400 border border-cyan-500/20">⚡ Auto</span>
+            Se llena desde la plataforma (solo lectura)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center text-[8px] px-1 py-px rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">✏ Manual</span>
+            Captura manual del usuario
+          </span>
+        </div>
       </div>
     </div>
   )

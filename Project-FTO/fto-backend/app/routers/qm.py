@@ -276,8 +276,7 @@ async def save_data_semanal(body: dict):
     """
     Guarda los records parseados en DB. Recibe:
       { cedula_id, semana, records: [...], changed_records, new_records, changes_detail }
-    Usa INSERT puro (después de DELETE) para máxima confiabilidad.
-    Verifica el resultado real en la DB.
+    Usa DELETE + INSERT con verificación robusta.
     """
     cedula_id = body.get("cedula_id")
     semana_str = body.get("semana")
@@ -291,29 +290,70 @@ async def save_data_semanal(body: dict):
 
     sb = get_supabase_admin()
 
+    # Asegurar que cada record tiene cedula_id y semana correctos
+    clean_records = []
+    for rec in records:
+        clean_records.append({
+            "cedula_id": cedula_id,
+            "semana": semana_str,
+            "employee": rec.get("employee", ""),
+            "competency": rec.get("competency", ""),
+            "role": rec.get("role"),
+            "current_level": rec.get("current_level", 0),
+            "target": rec.get("target", 0),
+            "on_target": rec.get("on_target", 0),
+        })
+
     # 1. Borrar datos existentes de la semana
-    sb.table("qm_data_semanal").delete() \
-        .eq("cedula_id", cedula_id) \
-        .eq("semana", semana_str) \
-        .execute()
+    try:
+        del_result = sb.table("qm_data_semanal").delete() \
+            .eq("cedula_id", cedula_id) \
+            .eq("semana", semana_str) \
+            .execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al borrar datos existentes: {str(e)}")
 
-    # 2. Insertar en lotes usando INSERT (no upsert, ya no hay conflicto post-delete)
+    # 2. Insertar en lotes de 50 (lotes más pequeños = más confiable)
     total_inserted = 0
-    for i in range(0, len(records), 100):
-        batch = records[i:i+100]
-        result = sb.table("qm_data_semanal").insert(batch).execute()
-        if result.data:
-            total_inserted += len(result.data)
+    insert_errors = []
+    for i in range(0, len(clean_records), 50):
+        batch = clean_records[i:i+50]
+        try:
+            result = sb.table("qm_data_semanal").insert(batch).execute()
+            if result.data:
+                total_inserted += len(result.data)
+            else:
+                insert_errors.append(f"Lote {i//50+1}: sin datos en respuesta")
+        except Exception as e:
+            insert_errors.append(f"Lote {i//50+1}: {str(e)}")
 
-    # 3. Verificar en DB que realmente se guardó
-    verify = sb.table("qm_data_semanal").select("semana", count="exact") \
-        .eq("cedula_id", cedula_id) \
-        .eq("semana", semana_str) \
-        .execute()
-    verified_count = verify.count if verify.count is not None else total_inserted
+    # 3. Verificar: hacer SELECT real y contar filas
+    try:
+        verify = sb.table("qm_data_semanal") \
+            .select("id") \
+            .eq("cedula_id", cedula_id) \
+            .eq("semana", semana_str) \
+            .limit(1000) \
+            .execute()
+        verified_count = len(verify.data) if verify.data else 0
+    except Exception:
+        verified_count = total_inserted
 
-    if verified_count == 0 and len(records) > 0:
-        raise HTTPException(status_code=500, detail="Error al guardar: los datos no se encontraron en la base de datos después de guardar.")
+    # Si verificación retornó menos de lo esperado pero hay más, hacer otro SELECT
+    if verified_count < len(clean_records) and verified_count > 0:
+        try:
+            verify2 = sb.table("qm_data_semanal") \
+                .select("id") \
+                .eq("cedula_id", cedula_id) \
+                .eq("semana", semana_str) \
+                .execute()
+            verified_count = len(verify2.data) if verify2.data else verified_count
+        except Exception:
+            pass
+
+    if verified_count == 0 and len(clean_records) > 0:
+        error_detail = "; ".join(insert_errors) if insert_errors else "Los datos no se encontraron en la base de datos después de insertar."
+        raise HTTPException(status_code=500, detail=f"Error al guardar: {error_detail}")
 
     # 4. Registrar en historial
     try:
@@ -323,7 +363,7 @@ async def save_data_semanal(body: dict):
             "total_records": verified_count,
             "new_records": new_records,
             "changed_records": changed_records,
-            "unchanged_records": len(records) - new_records - changed_records,
+            "unchanged_records": len(clean_records) - new_records - changed_records,
             "changes_detail": json.dumps(changes_detail),
         }).execute()
     except Exception:
@@ -331,9 +371,10 @@ async def save_data_semanal(body: dict):
 
     return {
         "success": True,
-        "message": f"✓ {verified_count} registros guardados correctamente en la semana {semana_str}.",
+        "message": f"{verified_count} registros guardados correctamente en la semana {semana_str}.",
         "total_records": verified_count,
         "semana": semana_str,
+        "insert_errors": insert_errors if insert_errors else None,
     }
 
 
@@ -358,19 +399,60 @@ async def verificar_data(
 
 @router.get("/data/semanas")
 async def get_semanas_disponibles(cedula_id: str = Query(...)):
-    """Lista las semanas con data cargada, con conteo de registros por semana."""
+    """
+    Lista las semanas con data cargada, con conteo de registros por semana.
+    Combina datos de qm_data_semanal (data real) + qm_upload_log (historial).
+    Esto asegura que incluso si por alguna razón la data principal se perdió,
+    el historial sigue visible.
+    """
     sb = get_supabase_admin()
+
+    # Fuente 1: data real en qm_data_semanal
     result = sb.table("qm_data_semanal") \
         .select("semana") \
         .eq("cedula_id", cedula_id) \
         .execute()
-    # Contar registros por semana
     counts = {}
     for r in (result.data or []):
         s = r["semana"]
         counts[s] = counts.get(s, 0) + 1
-    semanas = sorted(counts.keys(), reverse=True)
-    return {"data": [{"semana": s, "registros": counts[s]} for s in semanas]}
+
+    # Fuente 2: historial de uploads (puede tener semanas donde data ya fue borrada)
+    try:
+        log_result = sb.table("qm_upload_log") \
+            .select("semana, total_records, uploaded_at") \
+            .eq("cedula_id", cedula_id) \
+            .order("uploaded_at", desc=True) \
+            .execute()
+        # Agrupar uploads por semana
+        uploads_by_semana = {}
+        for log in (log_result.data or []):
+            s = log["semana"]
+            if s not in uploads_by_semana:
+                uploads_by_semana[s] = []
+            uploads_by_semana[s].append({
+                "uploaded_at": log["uploaded_at"],
+                "total_records": log["total_records"],
+            })
+    except Exception:
+        uploads_by_semana = {}
+
+    # Combinar: todas las semanas que tengan datos O historial
+    all_semanas = set(counts.keys()) | set(uploads_by_semana.keys())
+    semanas = sorted(all_semanas, reverse=True)
+
+    data = []
+    for s in semanas:
+        entry = {
+            "semana": s,
+            "registros": counts.get(s, 0),
+            "has_data": s in counts,
+            "upload_count": len(uploads_by_semana.get(s, [])),
+            "last_upload": uploads_by_semana[s][0]["uploaded_at"] if s in uploads_by_semana else None,
+        }
+        data.append(entry)
+
+    return {"data": data}
 
 
 @router.delete("/data/semana")
@@ -409,7 +491,7 @@ async def get_upload_history(
         query = sb.table("qm_upload_log").select("*").eq("cedula_id", cedula_id)
         if semana:
             query = query.eq("semana", semana.isoformat())
-        result = query.order("uploaded_at", desc=True).limit(50).execute()
+        result = query.order("uploaded_at", desc=True).limit(100).execute()
         uploads = result.data or []
         # Parsear changes_detail de string JSON a lista
         for u in uploads:
@@ -423,9 +505,111 @@ async def get_upload_history(
         return {"data": []}
 
 
+@router.delete("/data/upload/{log_id}")
+async def delete_upload_log(
+    log_id: int,
+    cedula_id: str = Query(..., description="Cédula del usuario (para verificar ownership)")
+):
+    """Elimina un entry específico del historial de uploads."""
+    sb = get_supabase_admin()
+    # Verificar que el log pertenece a esta cédula antes de borrar
+    check = sb.table("qm_upload_log").select("id, cedula_id") \
+        .eq("id", log_id).eq("cedula_id", cedula_id).execute()
+    if not check.data:
+        raise HTTPException(status_code=404, detail="Historial no encontrado o no tienes permiso para eliminarlo.")
+    sb.table("qm_upload_log").delete().eq("id", log_id).execute()
+    return {"success": True, "message": "Entrada de historial eliminada."}
+
+
 # ══════════════════════════════════════════════════════════════
 # SYNC QM → DASHBOARD (registros_semanales.qm_on_target)
 # ══════════════════════════════════════════════════════════════
+
+def _normalize(text: str) -> str:
+    """Normaliza: lowercase, sin espacios extra."""
+    if not text:
+        return ""
+    return " ".join(text.lower().strip().split())
+
+
+def _match_qm_employee_to_operador(qm_name: str, operadores: list, aliases: list) -> str | None:
+    """
+    Match robusto: nombre QM → operador_id.
+    Estrategias (en orden de prioridad):
+    1. Match exacto por operador.nombre
+    2. Match por alias nombre_qbos (normalizado)
+    3. Match por alias nombre_bd (normalizado)
+    4. Containment (nombre QM contiene nombre operador o viceversa)
+    5. Name parts overlap (≥2 palabras en común)
+    """
+    qm_lower = _normalize(qm_name)
+    qm_parts = set(qm_lower.split())
+
+    # Build lookup maps
+    op_name_to_id = {}
+    for op in operadores:
+        op_name_to_id[_normalize(op["nombre"])] = op["id"]
+
+    alias_qbos_to_id = {}
+    alias_bd_to_id = {}
+    for a in aliases:
+        if a.get("nombre_qbos"):
+            alias_qbos_to_id[_normalize(a["nombre_qbos"])] = a["persona_id"]
+        if a.get("nombre_bd"):
+            alias_bd_to_id[_normalize(a["nombre_bd"])] = a["persona_id"]
+
+    # 1° Match exacto por nombre operador
+    if qm_lower in op_name_to_id:
+        return op_name_to_id[qm_lower]
+
+    # 2° Match exacto por alias nombre_qbos
+    if qm_lower in alias_qbos_to_id:
+        return alias_qbos_to_id[qm_lower]
+
+    # 3° Match exacto por alias nombre_bd
+    if qm_lower in alias_bd_to_id:
+        return alias_bd_to_id[qm_lower]
+
+    # 4° Containment: nombre QM contiene nombre operador o viceversa
+    for op_nombre, oid in op_name_to_id.items():
+        if op_nombre in qm_lower or qm_lower in op_nombre:
+            return oid
+
+    for alias_nombre, pid in alias_qbos_to_id.items():
+        if alias_nombre in qm_lower or qm_lower in alias_nombre:
+            return pid
+
+    for alias_nombre, pid in alias_bd_to_id.items():
+        if alias_nombre in qm_lower or qm_lower in alias_nombre:
+            return pid
+
+    # 5° Name parts overlap: ≥2 palabras en común con operador nombre
+    best_match = None
+    best_score = 0
+    for op_nombre, oid in op_name_to_id.items():
+        op_parts = set(op_nombre.split())
+        common = qm_parts & op_parts
+        if len(common) >= 2 and len(common) > best_score:
+            best_score = len(common)
+            best_match = oid
+
+    if best_match:
+        return best_match
+
+    # 5b° Name parts overlap con aliases
+    for a in aliases:
+        for field in ["nombre_qbos", "nombre_bd"]:
+            alias_name = a.get(field)
+            if not alias_name:
+                continue
+            alias_parts = set(_normalize(alias_name).split())
+            common = qm_parts & alias_parts
+            if len(common) >= 2 and len(common) > best_score:
+                best_score = len(common)
+                best_match = a["persona_id"]
+
+    return best_match
+
 
 @router.post("/sync-dashboard")
 async def sync_qm_to_dashboard(
@@ -435,7 +619,7 @@ async def sync_qm_to_dashboard(
     """
     Calcula el % de cumplimiento QM por empleado y lo escribe
     en registros_semanales.qm_on_target para cada operador.
-    Usa aliases para hacer match entre nombres QM y operadores.
+    Usa sistema completo de aliases + fuzzy matching para el match.
     """
     sb = get_supabase_admin()
 
@@ -474,58 +658,60 @@ async def sync_qm_to_dashboard(
         pct = round(s["on_target"] / s["total"] * 100, 1) if s["total"] > 0 else 0
         qm_by_employee[emp] = pct
 
-    # 4. Cargar operadores de esta cédula
+    # 4. Cargar operadores de esta cédula (activos e inactivos, para cubrir más nombres)
     ops_result = sb.table("operadores").select("id, nombre").eq("cedula_id", cedula_id).execute()
     operadores = ops_result.data or []
 
-    # 5. Cargar aliases para matching
-    alias_result = sb.table("operador_aliases").select("persona_id, nombre_qbos, nombre_bd, persona_tipo").execute()
-    alias_by_name = {}
-    alias_by_persona = {}
-    for a in (alias_result.data or []):
-        if a.get("persona_tipo") != "operador":
-            continue
-        if a.get("nombre_qbos"):
-            alias_by_name[a["nombre_qbos"].strip().lower()] = a["persona_id"]
-        if a.get("nombre_bd"):
-            alias_by_persona[a["persona_id"]] = a["nombre_bd"].strip().lower()
+    # También cargar LCs y LS (pueden estar en el QM)
+    lcs_result = sb.table("line_coordinators").select("id, nombre").eq("cedula_id", cedula_id).execute()
+    lcs = lcs_result.data or []
 
-    # Mapa operador nombre → id
-    op_name_to_id = {}
-    for op in operadores:
-        op_name_to_id[op["nombre"].strip().lower()] = op["id"]
+    try:
+        ls_result = sb.table("linea_estructura").select("id, nombre").eq("cedula_id", cedula_id).execute()
+        ls_list = ls_result.data or []
+    except Exception:
+        ls_list = []
 
-    # 6. Match QM employee → operador_id
+    # Combinar todas las personas para matching
+    all_personas = operadores + lcs + ls_list
+
+    # 5. Cargar TODOS los aliases de esta cédula
+    all_ids = [p["id"] for p in all_personas]
+    aliases = []
+    if all_ids:
+        try:
+            alias_result = sb.table("operador_aliases") \
+                .select("persona_id, persona_tipo, nombre_bd, nombre_qbos, email_bos, email_dh") \
+                .in_("persona_id", all_ids) \
+                .execute()
+            aliases = alias_result.data or []
+        except Exception:
+            aliases = []
+
+    # 6. Match QM employee → persona_id usando matching robusto
     matched = 0
     not_matched = []
     updates = []
+    match_details = []
+
+    # Set de IDs de operadores (solo operadores van al dashboard)
+    op_ids = set(op["id"] for op in operadores)
 
     for qm_emp, pct in qm_by_employee.items():
-        qm_lower = qm_emp.strip().lower()
-        op_id = None
+        persona_id = _match_qm_employee_to_operador(qm_emp, all_personas, aliases)
 
-        # 1° Match exacto por nombre operador
-        if qm_lower in op_name_to_id:
-            op_id = op_name_to_id[qm_lower]
-        else:
-            # 2° Match por alias (nombre_qbos)
-            if qm_lower in alias_by_name:
-                op_id = alias_by_name[qm_lower]
-            else:
-                # 3° Fuzzy: buscar si el nombre QM contiene el nombre del operador o viceversa
-                for op_nombre, oid in op_name_to_id.items():
-                    if op_nombre in qm_lower or qm_lower in op_nombre:
-                        op_id = oid
-                        break
-
-        if op_id:
+        if persona_id:
             matched += 1
-            updates.append({"operador_id": op_id, "qm_on_target": pct})
+            # Solo escribir en dashboard si es operador
+            if persona_id in op_ids:
+                updates.append({"operador_id": persona_id, "qm_on_target": pct, "qm_name": qm_emp})
+            match_details.append({"qm": qm_emp, "matched_id": persona_id, "is_operador": persona_id in op_ids})
         else:
             not_matched.append(qm_emp)
 
     # 7. Escribir en registros_semanales
     written = 0
+    write_errors = []
     for upd in updates:
         try:
             sb.table("registros_semanales").upsert({
@@ -535,8 +721,8 @@ async def sync_qm_to_dashboard(
                 "qm_on_target": upd["qm_on_target"],
             }, on_conflict="operador_id,semana").execute()
             written += 1
-        except Exception:
-            pass
+        except Exception as e:
+            write_errors.append(f"{upd.get('qm_name', '?')}: {str(e)}")
 
     return {
         "success": True,
@@ -545,6 +731,7 @@ async def sync_qm_to_dashboard(
         "written": written,
         "not_matched": not_matched,
         "total_qm_employees": len(qm_by_employee),
+        "write_errors": write_errors if write_errors else None,
     }
 
 
