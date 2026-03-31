@@ -80,21 +80,18 @@ export default function QM() {
     setPreview(null); setSaveResult(null); setSyncResult(null)
   }, [semana])
 
-  // Auto-cargar análisis e historial cuando hay data para la semana seleccionada
+  // Auto-cargar análisis e historial cuando la semana existe en la lista
   useEffect(() => {
     if (!cedulaId || !semana || !calLoaded) return
     const semanaData = semanas.find(s => s.semana === semana)
-    if (!semanaData || !semanaData.has_data) {
-      // No hay data real para esta semana, limpiar análisis
+    if (!semanaData) {
+      // La semana no existe en la lista en absoluto
       setAnalisis(null)
-      // Pero sí cargar historial si hay uploads
-      if (semanaData?.upload_count > 0) {
-        loadUploadHistory()
-      } else {
-        setUploadHistory([])
-      }
+      setUploadHistory([])
       return
     }
+    // Siempre intentar cargar análisis (el backend retorna 404 si no hay data,
+    // y loadAnalisis lo maneja gracefully limpiando el estado)
     loadAnalisis()
     loadUploadHistory()
   }, [cedulaId, semana, calLoaded, semanas])
@@ -613,42 +610,7 @@ export default function QM() {
 
           {/* Tab: Upcoming Changes */}
           {showTab === 'upcoming' && (
-            <div className="space-y-4">
-              {analisis.upcoming_changes.length === 0 ? (
-                <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-10 text-center text-slate-500 text-sm">
-                  No hay cambios programados en los próximos meses.
-                </div>
-              ) : analisis.upcoming_changes.map((uc, idx) => (
-                <div key={idx} className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white">{uc.transition}</h3>
-                    <span className="text-xs text-purple-400 font-medium">{uc.count} cambios esperados</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="px-4 py-2 text-left text-xs text-slate-400">Empleado</th>
-                          <th className="px-4 py-2 text-left text-xs text-slate-400">Competencia</th>
-                          <th className="px-3 py-2 text-center text-xs text-slate-400">De</th>
-                          <th className="px-3 py-2 text-center text-xs text-slate-400">A</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {uc.changes.map((ch, i) => (
-                          <tr key={i} className="border-b border-white/5">
-                            <td className="px-4 py-1.5 text-white text-sm">{ch.employee}</td>
-                            <td className="px-4 py-1.5 text-slate-300 text-sm">{ch.competency}</td>
-                            <td className="px-3 py-1.5 text-center text-yellow-400">{ch.from_level}</td>
-                            <td className="px-3 py-1.5 text-center text-green-400">{ch.to_level}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <UpcomingChangesTab upcomingChanges={analisis.upcoming_changes || []} semana={semana} />
           )}
         </div>
       ) : calLoaded ? (
@@ -810,22 +772,172 @@ const CHART_COLORS = {
   adv:    '#22c55e',
 }
 
+function UpcomingChangesTab({ upcomingChanges, semana }) {
+  // Construir tabla consolidada: todas las transiciones en una sola tabla
+  const allChanges = []
+  for (const uc of upcomingChanges) {
+    for (const ch of uc.changes) {
+      allChanges.push({
+        transition: uc.transition,
+        employee: ch.employee,
+        competency: ch.competency,
+        from_level: ch.from_level,
+        to_level: ch.to_level,
+        change_type: ch.to_level > ch.from_level ? 'Subida' : ch.to_level < ch.from_level ? 'Bajada' : 'Sin cambio',
+      })
+    }
+  }
+
+  function handleExportExcel() {
+    // Generar CSV para descarga (compatible con Excel)
+    const headers = ['Tipo de Cambio', 'Empleado', 'Mes', 'Competencia', 'De', 'A']
+    const csvRows = [headers.join(',')]
+    for (const ch of allChanges) {
+      csvRows.push([
+        ch.change_type,
+        `"${ch.employee}"`,
+        `"${ch.transition}"`,
+        `"${ch.competency}"`,
+        ch.from_level,
+        ch.to_level,
+      ].join(','))
+    }
+    const csvContent = '\uFEFF' + csvRows.join('\n') // BOM for Excel encoding
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cambios_pendientes_${semana}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (upcomingChanges.length === 0) {
+    return (
+      <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-10 text-center text-slate-500 text-sm">
+        No hay cambios programados en los próximos meses.
+      </div>
+    )
+  }
+
+  // Resumen por mes
+  const totalChanges = allChanges.length
+
+  return (
+    <div className="space-y-4">
+      {/* Tabla consolidada: Cambios pendientes por mes */}
+      <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Cambios pendientes por mes</h3>
+            <p className="text-xs text-slate-500">{totalChanges} cambios esperados en total</p>
+          </div>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 rounded-lg text-xs text-green-400 font-medium transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Exportar Excel
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="px-4 py-2 text-left text-xs text-slate-400">Tipo de Cambio</th>
+                <th className="px-4 py-2 text-left text-xs text-slate-400">Empleado</th>
+                <th className="px-4 py-2 text-left text-xs text-slate-400">Mes</th>
+                <th className="px-4 py-2 text-left text-xs text-slate-400">Competencia</th>
+                <th className="px-3 py-2 text-center text-xs text-slate-400">De</th>
+                <th className="px-3 py-2 text-center text-xs text-slate-400">A</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allChanges.map((ch, i) => (
+                <tr key={i} className="border-b border-white/5 hover:bg-slate-700/20">
+                  <td className="px-4 py-1.5">
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                      ch.change_type === 'Subida'
+                        ? 'bg-green-500/10 text-green-400'
+                        : ch.change_type === 'Bajada'
+                          ? 'bg-red-500/10 text-red-400'
+                          : 'bg-slate-500/10 text-slate-400'
+                    }`}>
+                      {ch.change_type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-1.5 text-white text-sm">{ch.employee}</td>
+                  <td className="px-4 py-1.5 text-purple-400 text-sm font-medium">{ch.transition}</td>
+                  <td className="px-4 py-1.5 text-slate-300 text-sm">{ch.competency}</td>
+                  <td className="px-3 py-1.5 text-center text-yellow-400">{ch.from_level}</td>
+                  <td className="px-3 py-1.5 text-center text-green-400">{ch.to_level}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Resumen por transición de mes (cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {upcomingChanges.map((uc, idx) => (
+          <div key={idx} className="bg-[#0f1d32] rounded-xl border border-white/5 p-4 text-center">
+            <p className="text-purple-400 text-2xl font-bold">{uc.count}</p>
+            <p className="text-sm text-white font-medium mt-1">{uc.transition}</p>
+            <p className="text-xs text-slate-500 mt-0.5">cambios esperados</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ChartsTab({ analisis }) {
+  const [hiddenEmps, setHiddenEmps] = useState(new Set())
+  const [empSearch, setEmpSearch]   = useState('')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [chartView, setChartView]   = useState('schedule') // 'schedule' | 'target'
+
+  const allEmps = [...analisis.employees].sort((a, b) => a.employee.localeCompare(b.employee))
+
+  const toggleEmp = (name) => {
+    setHiddenEmps(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+  const showAll  = () => setHiddenEmps(new Set())
+  const hideAll  = () => setHiddenEmps(new Set(allEmps.map(e => e.employee)))
+
+  const filteredSearch = allEmps.filter(e =>
+    e.employee.toLowerCase().includes(empSearch.toLowerCase())
+  )
+  const visibleCount = allEmps.length - hiddenEmps.size
+
   // ── 1. Distribución global (donut) ──
   const pieData = [
     { name: 'En target', value: analisis.global.on_target,                         fill: CHART_COLORS.on },
     { name: 'Debajo target', value: analisis.global.total_entries - analisis.global.on_target, fill: CHART_COLORS.below },
   ]
 
-  // ── 2. Cumpl. Año vs Target por empleado (top 15 por nombre) ──
+  // ── 2. Cumpl. por empleado (filtrado) ──
   const empData = [...analisis.employees]
-    .sort((a, b) => a.schedule_compliance_pct - b.schedule_compliance_pct)
-    .slice(0, 20)
+    .filter(e => !hiddenEmps.has(e.employee))
+    .sort((a, b) => {
+      const aVal = chartView === 'schedule' ? a.schedule_compliance_pct : a.compliance_pct
+      const bVal = chartView === 'schedule' ? b.schedule_compliance_pct : b.compliance_pct
+      return aVal - bVal
+    })
     .map(e => ({
-      name: e.employee.split(' ')[0],          // solo primer nombre para el eje
+      name: e.employee.split(' ').slice(0, 2).join(' '),
       fullName: e.employee,
-      año: e.schedule_compliance_pct,
+      schedule: e.schedule_compliance_pct,
       target: e.compliance_pct,
+      below: e.below_schedule,
     }))
 
   // ── 3. Bottom 10 competencias ──
@@ -839,14 +951,26 @@ function ChartsTab({ analisis }) {
     }))
 
   // ── 4. Distribución de avances (si hay semana anterior) ──
-  const advTotal = analisis.employees.reduce((s, e) => s + (e.advanced_this_week  || 0), 0)
-  const regTotal = analisis.employees.reduce((s, e) => s + (e.regressed_this_week || 0), 0)
+  const advTotal  = analisis.employees.reduce((s, e) => s + (e.advanced_this_week  || 0), 0)
+  const regTotal  = analisis.employees.reduce((s, e) => s + (e.regressed_this_week || 0), 0)
   const unchTotal = analisis.employees.reduce((s, e) => s + (e.unchanged || 0), 0)
   const moveData = [
-    { name: 'Avanzó',    value: advTotal,  fill: CHART_COLORS.adv },
+    { name: 'Avanzó',     value: advTotal,  fill: CHART_COLORS.adv },
     { name: 'Sin cambio', value: unchTotal, fill: '#64748b' },
     { name: 'Retrocedió', value: regTotal,  fill: CHART_COLORS.below },
   ].filter(d => d.value > 0)
+
+  // ── 5. Atrasados por empleado (bar sparkline) ──
+  const atrasadosData = [...analisis.employees]
+    .filter(e => e.below_schedule > 0 && !hiddenEmps.has(e.employee))
+    .sort((a, b) => b.below_schedule - a.below_schedule)
+    .slice(0, 12)
+    .map(e => ({
+      name: e.employee.split(' ').slice(0, 2).join(' '),
+      fullName: e.employee,
+      atrasados: e.below_schedule,
+      total: e.total_competencies,
+    }))
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
@@ -872,10 +996,86 @@ function ChartsTab({ analisis }) {
     )
   }
 
+  const AtrasadosTooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null
+    const d = payload[0]?.payload
+    return (
+      <div className="bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-xs">
+        <p className="text-white font-medium mb-1">{d?.fullName}</p>
+        <p className="text-yellow-400">Atrasados: {d?.atrasados} de {d?.total}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
 
-      {/* Row 1: Donut distribución + Avances semana */}
+      {/* ── Filtro de empleados ── */}
+      <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+            <span className="text-sm font-medium text-white">Filtrar empleados</span>
+            <span className="text-xs text-slate-500">
+              {visibleCount === allEmps.length
+                ? `Todos (${allEmps.length})`
+                : `${visibleCount} de ${allEmps.length} visibles`}
+            </span>
+            {hiddenEmps.size > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/15 text-yellow-400">
+                {hiddenEmps.size} ocultos
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={showAll} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              Mostrar todos
+            </button>
+            <span className="text-slate-700">·</span>
+            <button onClick={hideAll} className="text-xs text-slate-400 hover:text-slate-300 transition-colors">
+              Ocultar todos
+            </button>
+            <button
+              onClick={() => setFilterOpen(o => !o)}
+              className="ml-2 px-3 py-1 rounded-lg text-xs font-medium bg-slate-700/50 hover:bg-slate-700 text-slate-300 transition-colors"
+            >
+              {filterOpen ? 'Ocultar ▲' : 'Seleccionar ▼'}
+            </button>
+          </div>
+        </div>
+
+        {filterOpen && (
+          <div className="mt-3 space-y-3">
+            <input
+              type="text"
+              placeholder="Buscar empleado..."
+              value={empSearch}
+              onChange={e => setEmpSearch(e.target.value)}
+              className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/50"
+            />
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+              {filteredSearch.map(e => (
+                <button
+                  key={e.employee}
+                  onClick={() => toggleEmp(e.employee)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    hiddenEmps.has(e.employee)
+                      ? 'bg-slate-800/50 border-slate-700 text-slate-500 line-through'
+                      : 'bg-blue-600/20 border-blue-500/40 text-blue-300 hover:bg-blue-600/30'
+                  }`}
+                >
+                  {e.employee.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Row 1: Donuts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Donut — En target vs Debajo */}
@@ -919,40 +1119,100 @@ function ChartsTab({ analisis }) {
         </div>
       </div>
 
-      {/* Row 2: Cumplimiento por empleado (barra doble) */}
+      {/* Row 2: Cumplimiento por empleado con toggle */}
       <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-5">
-        <h3 className="text-sm font-semibold text-white mb-1">Cumplimiento por empleado</h3>
-        <p className="text-xs text-slate-500 mb-4">
-          <span style={{ color: CHART_COLORS.on }}>■</span> % al ritmo del plan (año) ·&nbsp;
-          <span style={{ color: CHART_COLORS.adv }}>■</span> % en target final · Ordenado por cumpl. año ↑
-        </p>
-        <ResponsiveContainer width="100%" height={Math.max(220, empData.length * 26)}>
-          <BarChart data={empData} layout="vertical" margin={{ left: 4, right: 24, top: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`}
-              tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="name" width={70}
-              tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-            <Bar dataKey="año" name="Cumpl. Año" fill={CHART_COLORS.on} radius={[0, 3, 3, 0]} barSize={8} />
-            <Bar dataKey="target" name="Cumpl. Target" fill={CHART_COLORS.adv} radius={[0, 3, 3, 0]} barSize={8} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-1">Cumplimiento por empleado</h3>
+            <p className="text-xs text-slate-500">
+              {chartView === 'schedule'
+                ? <><span style={{ color: CHART_COLORS.on }}>■</span> % al ritmo del plan anual · ordenado ↑</>
+                : <><span style={{ color: CHART_COLORS.adv }}>■</span> % en target final · ordenado ↑</>
+              }
+            </p>
+          </div>
+          <div className="flex gap-1 bg-[#0a1628] rounded-lg p-1">
+            <button
+              onClick={() => setChartView('schedule')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                chartView === 'schedule' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Ritmo año
+            </button>
+            <button
+              onClick={() => setChartView('target')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                chartView === 'target' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Target final
+            </button>
+          </div>
+        </div>
+        {empData.length === 0 ? (
+          <p className="text-slate-600 text-sm text-center py-8">Sin empleados visibles — usa el filtro para mostrar algunos</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={Math.max(200, empData.length * 30)}>
+            <BarChart data={empData} layout="vertical" margin={{ left: 4, right: 50, top: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`}
+                tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={90}
+                tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              {chartView === 'schedule' ? (
+                <Bar dataKey="schedule" name="Cumpl. Año" fill={CHART_COLORS.on} radius={[0, 4, 4, 0]} barSize={14}
+                  label={{ position: 'right', fill: '#64748b', fontSize: 10, formatter: v => `${v}%` }}
+                />
+              ) : (
+                <Bar dataKey="target" name="Cumpl. Target" fill={CHART_COLORS.adv} radius={[0, 4, 4, 0]} barSize={14}
+                  label={{ position: 'right', fill: '#64748b', fontSize: 10, formatter: v => `${v}%` }}
+                />
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      {/* Row 3: Bottom 10 competencias */}
+      {/* Row 3: Atrasados por empleado */}
+      {atrasadosData.length > 0 && (
+        <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-5">
+          <h3 className="text-sm font-semibold text-white mb-1">Competencias atrasadas por empleado</h3>
+          <p className="text-xs text-slate-500 mb-4">Top personas con más competencias debajo del ritmo del plan (aplica filtro)</p>
+          <ResponsiveContainer width="100%" height={Math.max(160, atrasadosData.length * 28)}>
+            <BarChart data={atrasadosData} layout="vertical" margin={{ left: 4, right: 50, top: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false}
+                tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={90}
+                tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip content={<AtrasadosTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="atrasados" name="Atrasados" radius={[0, 4, 4, 0]} barSize={14}
+                label={{ position: 'right', fill: '#64748b', fontSize: 10 }}>
+                {atrasadosData.map((entry, i) => (
+                  <Cell key={i} fill={entry.atrasados >= 5 ? CHART_COLORS.below : '#f59e0b'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Row 4: Bottom 10 competencias */}
       <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-5">
         <h3 className="text-sm font-semibold text-white mb-1">Competencias con menor cumplimiento</h3>
         <p className="text-xs text-slate-500 mb-4">Las 10 áreas donde más personas están debajo del target final</p>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={compData} layout="vertical" margin={{ left: 4, right: 40, top: 0, bottom: 0 }}>
+          <BarChart data={compData} layout="vertical" margin={{ left: 4, right: 50, top: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`}
               tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis type="category" dataKey="name" width={140}
               tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
             <Tooltip content={<CompTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-            <Bar dataKey="cumpl" name="% Cumplimiento" radius={[0, 4, 4, 0]} barSize={14}>
+            <Bar dataKey="cumpl" name="% Cumplimiento" radius={[0, 4, 4, 0]} barSize={14}
+              label={{ position: 'right', fill: '#64748b', fontSize: 10, formatter: v => `${v}%` }}>
               {compData.map((entry, i) => (
                 <Cell key={i} fill={entry.cumpl >= 80 ? CHART_COLORS.adv : entry.cumpl >= 50 ? '#f59e0b' : CHART_COLORS.below} />
               ))}

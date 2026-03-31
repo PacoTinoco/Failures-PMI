@@ -460,18 +460,34 @@ async def delete_semana(
     cedula_id: str = Query(...),
     semana: date = Query(..., description="Semana a eliminar (YYYY-MM-DD)")
 ):
-    """Elimina toda la data de una semana específica."""
+    """Elimina toda la data de una semana específica + su historial de uploads."""
     sb = get_supabase_admin()
+
+    # 1. Borrar data real
     result = sb.table("qm_data_semanal") \
         .delete() \
         .eq("cedula_id", cedula_id) \
         .eq("semana", semana.isoformat()) \
         .execute()
-    deleted = len(result.data or [])
+    deleted_data = len(result.data or [])
+
+    # 2. Borrar historial de uploads de esa semana
+    deleted_logs = 0
+    try:
+        log_result = sb.table("qm_upload_log") \
+            .delete() \
+            .eq("cedula_id", cedula_id) \
+            .eq("semana", semana.isoformat()) \
+            .execute()
+        deleted_logs = len(log_result.data or [])
+    except Exception:
+        pass
+
     return {
         "success": True,
-        "message": f"Semana {semana} eliminada ({deleted} registros borrados).",
-        "deleted": deleted,
+        "message": f"Semana {semana} eliminada ({deleted_data} registros + {deleted_logs} logs borrados).",
+        "deleted": deleted_data,
+        "deleted_logs": deleted_logs,
         "semana": semana.isoformat(),
     }
 
@@ -821,12 +837,13 @@ async def get_analisis(
             status = "below_target"
 
         # vs Forecast del mes (calendario)
-        if current >= forecast:
+        # Si ya alcanzó el target final, NO es atrasado (aunque forecast sea mayor)
+        if current >= target:
             stats["on_schedule"] += 1
             schedule_status = "on_schedule"
-        elif current > forecast:
-            stats["above_schedule"] += 1
-            schedule_status = "above_schedule"
+        elif current >= forecast:
+            stats["on_schedule"] += 1
+            schedule_status = "on_schedule"
         else:
             stats["below_schedule"] += 1
             schedule_status = "below_schedule"

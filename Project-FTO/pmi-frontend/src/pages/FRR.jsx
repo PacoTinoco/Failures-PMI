@@ -153,6 +153,23 @@ export default function FRR() {
             <h3 className="text-sm font-semibold text-white mb-1">Subir FRR semanal</h3>
             <p className="text-xs text-slate-400 mb-1">Excel con columnas: CAL_SHIFT, Reject Rate, LINE_NAME</p>
             <p className="text-xs text-slate-500 mb-3">Semana: {semana} — Se cruza automáticamente con el calendario de turnos ROL</p>
+            <div className="bg-blue-950/30 border border-blue-500/20 rounded-lg px-4 py-3 mb-4">
+              <p className="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wider">¿Cómo obtener el archivo?</p>
+              <ol className="space-y-1.5">
+                {[
+                  'Ve a Athena y selecciona las máquinas de tu célula.',
+                  'Filtra por las fechas de la semana que quieres registrar.',
+                  'Exporta los datos y sube el Excel aquí.',
+                ].map((txt, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-400">
+                    <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-600/30 text-blue-400 text-[10px] flex items-center justify-center font-bold mt-0.5">
+                      {i + 1}
+                    </span>
+                    {txt}
+                  </li>
+                ))}
+              </ol>
+            </div>
             <input ref={frrInputRef} type="file" accept=".xlsx,.xls" onChange={handleFrrUpload} className="hidden" />
             <button
               onClick={() => frrInputRef.current?.click()}

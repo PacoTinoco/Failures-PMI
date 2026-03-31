@@ -93,6 +93,25 @@ export default function DH() {
         </div>
       )}
 
+      {/* ── Instrucciones ── */}
+      <div className="bg-blue-950/30 border border-blue-500/20 rounded-lg px-4 py-3">
+        <p className="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wider">¿Cómo obtener el archivo?</p>
+        <ol className="space-y-1.5">
+          {[
+            'Ve a Digiperf y selecciona el DMS de DH (Defect Handling).',
+            'Filtra por semana y por máquina. Descarga el Excel de cada una de tus máquinas.',
+            'Sube los archivos uno por uno aquí. Puedes repetir la operación para cada máquina.',
+          ].map((txt, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-slate-400">
+              <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-600/30 text-blue-400 text-[10px] flex items-center justify-center font-bold mt-0.5">
+                {i + 1}
+              </span>
+              {txt}
+            </li>
+          ))}
+        </ol>
+      </div>
+
       {/* ── Zona de upload (siempre visible) ── */}
       <div
         onDrop={onDrop}

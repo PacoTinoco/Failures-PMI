@@ -422,3 +422,72 @@ export async function uploadAliases(cedulaId, file) {
   }
   return response.json()
 }
+
+
+// ============================================================
+// WEEKLY
+// ============================================================
+
+export async function getWeeklyCategories(cedulaId) {
+  return apiRequest(`/weekly/categories?cedula_id=${cedulaId}`)
+}
+
+export async function createWeeklyCategory(data) {
+  return apiRequest('/weekly/categories', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function updateWeeklyCategory(catId, data) {
+  return apiRequest(`/weekly/categories/${catId}`, { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export async function deleteWeeklyCategory(catId) {
+  return apiRequest(`/weekly/categories/${catId}`, { method: 'DELETE' })
+}
+
+export async function reorderWeeklyCategories(items) {
+  return apiRequest('/weekly/categories/reorder', { method: 'POST', body: JSON.stringify({ items }) })
+}
+
+export async function getWeeklyIndicators(cedulaId, categoryId) {
+  let url = `/weekly/indicators?cedula_id=${cedulaId}`
+  if (categoryId) url += `&category_id=${categoryId}`
+  return apiRequest(url)
+}
+
+export async function createWeeklyIndicator(data) {
+  return apiRequest('/weekly/indicators', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function updateWeeklyIndicator(indId, data) {
+  return apiRequest(`/weekly/indicators/${indId}`, { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export async function deleteWeeklyIndicator(indId) {
+  return apiRequest(`/weekly/indicators/${indId}`, { method: 'DELETE' })
+}
+
+export async function reorderWeeklyIndicators(items) {
+  return apiRequest('/weekly/indicators/reorder', { method: 'POST', body: JSON.stringify({ items }) })
+}
+
+export async function getWeeklyChartData(cedulaId, year, quarter, categoryId) {
+  let url = `/weekly/chart-data?cedula_id=${cedulaId}&year=${year}&quarter=${quarter}`
+  if (categoryId) url += `&category_id=${categoryId}`
+  return apiRequest(url)
+}
+
+export async function upsertWeeklyTargets(targets) {
+  return apiRequest('/weekly/targets', { method: 'POST', body: JSON.stringify({ targets }) })
+}
+
+export async function fillWeeklyTarget(indicatorId, cedulaId, year, quarter, targetValue, weeks = 15) {
+  return apiRequest(`/weekly/targets/fill?indicator_id=${indicatorId}&cedula_id=${cedulaId}&year=${year}&quarter=${quarter}&target_value=${targetValue}&weeks=${weeks}`, { method: 'POST' })
+}
+
+export async function upsertWeeklyValues(values) {
+  return apiRequest('/weekly/values', { method: 'POST', body: JSON.stringify({ values }) })
+}
+
+export async function seedWeekly(cedulaId) {
+  return apiRequest(`/weekly/seed?cedula_id=${cedulaId}`, { method: 'POST' })
+}

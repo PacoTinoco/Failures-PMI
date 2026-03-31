@@ -245,9 +245,40 @@ export default function BOSQBOS() {
 }
 
 
+const BOS_INSTRUCTIONS = [
+  { step: 1, text: 'Ve a Digiperf y selecciona el DMS de BOS.' },
+  { step: 2, text: 'Filtra por la semana correspondiente y exporta los datos como CSV.' },
+  { step: 3, text: 'Sube el archivo CSV aquí. El sistema cruza automáticamente por email (columna USER).' },
+]
+
+const QBOS_INSTRUCTIONS = [
+  { step: 1, text: 'Ve al PowerBI de QBOS de tu célula.' },
+  { step: 2, text: 'Filtra por la semana que quieres registrar y exporta el reporte como Excel.' },
+  { step: 3, text: 'Sube el archivo Excel aquí. El sistema usa la columna "Personnel Name" y "Frecuency".' },
+]
+
+function InstructionBox({ steps }) {
+  return (
+    <div className="bg-blue-950/30 border border-blue-500/20 rounded-lg px-4 py-3 mb-4">
+      <p className="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wider">¿Cómo obtener el archivo?</p>
+      <ol className="space-y-1.5">
+        {steps.map(s => (
+          <li key={s.step} className="flex items-start gap-2 text-xs text-slate-400">
+            <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-600/30 text-blue-400 text-[10px] flex items-center justify-center font-bold mt-0.5">
+              {s.step}
+            </span>
+            {s.text}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
 function UploadPanel({ title, subtitle, description, accept, inputRef, uploading, onUpload, result, saving, saved, onSave, type }) {
   const valueKey = type === 'bos' ? 'bos' : 'qbos'
   const nameKey = type === 'bos' ? 'email' : 'file_name'
+  const instructions = type === 'bos' ? BOS_INSTRUCTIONS : QBOS_INSTRUCTIONS
 
   return (
     <div className="space-y-4">
@@ -256,6 +287,7 @@ function UploadPanel({ title, subtitle, description, accept, inputRef, uploading
         <h3 className="text-sm font-semibold text-white mb-1">{title}</h3>
         <p className="text-xs text-slate-500 mb-1">{subtitle}</p>
         <p className="text-xs text-slate-600 mb-3">{description}</p>
+        <InstructionBox steps={instructions} />
         <input ref={inputRef} type="file" accept={accept} onChange={onUpload} className="hidden" />
         <button
           onClick={() => inputRef.current?.click()}
