@@ -201,6 +201,46 @@ export default function QM() {
     }
   }
 
+  function handleExportEmployeeAnalysis(data, sem) {
+    if (!data?.employees?.length) return
+    // Build CSV with BOM for Excel UTF-8 compatibility
+    const rows = []
+    // Header
+    rows.push(['Empleado', 'Rol', 'En Target', 'Debajo', 'Total', '% Cumpl', 'Atrasados', 'Avanzó',
+      'Competencia', 'Current', 'Target', 'Pronóstico', 'Sem. Ant.', 'Estado'].join(','))
+
+    for (const emp of data.employees) {
+      // Summary row
+      rows.push([
+        `"${emp.employee}"`, `"${emp.role || ''}"`, emp.on_target, emp.below_target,
+        emp.total_competencies, emp.compliance_pct, emp.below_schedule, emp.advanced_this_week || 0,
+        '', '', '', '', '', ''
+      ].join(','))
+
+      // Detail rows
+      if (emp.details) {
+        for (const d of emp.details) {
+          const estado = d.status === 'on_target' ? 'En target'
+            : d.status === 'above_target' ? 'Arriba'
+            : d.schedule_status === 'below_schedule' ? 'Atrasado' : 'Pendiente'
+          rows.push([
+            '', '', '', '', '', '', '', '',
+            `"${d.competency}"`, d.current, d.target, d.forecast ?? '', d.previous ?? '', estado
+          ].join(','))
+        }
+      }
+    }
+
+    const csv = '\uFEFF' + rows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `QM_Analisis_${sem}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function handleDeleteSemana(s) {
     if (!confirm(`¿Eliminar todos los datos de la semana ${s}? Esta acción no se puede deshacer.`)) return
     setDeletingSemana(s)
@@ -534,9 +574,17 @@ export default function QM() {
           {/* Tab: Employees */}
           {showTab === 'employees' && (
             <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/5">
-                <h3 className="text-sm font-semibold text-white">Cumplimiento por empleado</h3>
-                <p className="text-xs text-slate-500">Ref: mes {analisis.month_reference} · Clic para ver detalle</p>
+              <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Cumplimiento por empleado</h3>
+                  <p className="text-xs text-slate-500">Ref: mes {analisis.month_reference} · Clic para ver detalle</p>
+                </div>
+                <button
+                  onClick={() => handleExportEmployeeAnalysis(analisis, semana)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-500/30 transition-colors"
+                >
+                  Exportar Excel
+                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">

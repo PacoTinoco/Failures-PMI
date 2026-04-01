@@ -17,6 +17,12 @@ function getCurrentQuarter() {
 function getCurrentYear() {
   return new Date().getFullYear()
 }
+function getQuarterWeeks(q) {
+  // Q1=S1-S13, Q2=S14-S26, Q3=S27-S39, Q4=S40-S52
+  const start = (q - 1) * 13 + 1
+  const end = q * 13
+  return { start, end }
+}
 
 // ══════════════════════════════════════════════════════
 // Main component
@@ -30,7 +36,8 @@ export default function Weekly() {
 
   const [year, setYear]       = useState(getCurrentYear())
   const [quarter, setQuarter] = useState(getCurrentQuarter())
-  const [weeks, setWeeks]     = useState(15)
+  const [weekStart, setWeekStart] = useState(getQuarterWeeks(getCurrentQuarter()).start)
+  const [weekEnd, setWeekEnd]     = useState(getQuarterWeeks(getCurrentQuarter()).end)
 
   const [categories, setCategories]   = useState([])
   const [activeCatId, setActiveCatId] = useState(null)
@@ -171,7 +178,7 @@ export default function Weekly() {
         {/* Quarter */}
         <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-1">
           {[1,2,3,4].map(q => (
-            <button key={q} onClick={() => setQuarter(q)}
+            <button key={q} onClick={() => { setQuarter(q); const w = getQuarterWeeks(q); setWeekStart(w.start); setWeekEnd(w.end) }}
               className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 quarter === q ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
               }`}>
@@ -190,11 +197,15 @@ export default function Weekly() {
             </button>
           ))}
         </div>
-        {/* Weeks */}
+        {/* Week range */}
         <div className="flex items-center gap-1 text-xs text-slate-500">
-          Semanas:
-          <input type="number" min={1} max={52} value={weeks}
-            onChange={e => setWeeks(Math.max(1, Math.min(52, parseInt(e.target.value) || 15)))}
+          Sem:
+          <input type="number" min={1} max={52} value={weekStart}
+            onChange={e => setWeekStart(Math.max(1, Math.min(52, parseInt(e.target.value) || 1)))}
+            className="w-12 bg-[#0a1628] border border-white/10 rounded px-2 py-1 text-white text-center" />
+          <span>a</span>
+          <input type="number" min={1} max={52} value={weekEnd}
+            onChange={e => setWeekEnd(Math.max(1, Math.min(52, parseInt(e.target.value) || 13)))}
             className="w-12 bg-[#0a1628] border border-white/10 rounded px-2 py-1 text-white text-center" />
         </div>
 
@@ -260,7 +271,7 @@ export default function Weekly() {
               indicator={ind}
               targets={chartData.targets[ind.id] || {}}
               values={chartData.values[ind.id] || {}}
-              weeks={weeks}
+              weekStart={weekStart} weekEnd={weekEnd}
               editMode={editMode}
               pendingChanges={pendingChanges[ind.id] || {}}
               onCellChange={(wk, val) => handleCellChange(ind.id, wk, val)}
@@ -281,10 +292,10 @@ export default function Weekly() {
 // WeeklyChart — Single indicator card
 // ══════════════════════════════════════════════════════
 
-function WeeklyChart({ indicator, targets, values, weeks, editMode, pendingChanges, onCellChange }) {
+function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode, pendingChanges, onCellChange }) {
   const [showTable, setShowTable] = useState(false)
   const isHigherBetter = indicator.direction === 'higher_better'
-  const weekNumbers = Array.from({ length: weeks }, (_, i) => i + 1)
+  const weekNumbers = Array.from({ length: weekEnd - weekStart + 1 }, (_, i) => weekStart + i)
 
   // Y-axis range
   let allVals = []
@@ -366,15 +377,15 @@ function WeeklyChart({ indicator, targets, values, weeks, editMode, pendingChang
             <ComposedChart data={chartArr} margin={{ left: -15, right: 5, top: 5, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
               <XAxis dataKey="week" tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false}
-                interval={Math.max(0, Math.floor(weeks / 8) - 1)} />
+                interval={Math.max(0, Math.floor(weekNumbers.length / 8) - 1)} />
               <YAxis domain={[0, yMax]} tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false}
                 tickFormatter={v => indicator.unit === '%' ? `${Math.round(v)}%` : Math.round(v)} />
               <Tooltip content={<ChartTooltip />} />
               <Area type="stepAfter" dataKey={isHigherBetter ? 'redZone' : 'greenZone'}
-                stackId="bg" fill={isHigherBetter ? 'rgba(239,68,68,0.18)' : 'rgba(34,197,94,0.18)'}
+                stackId="bg" fill={isHigherBetter ? 'rgba(220,38,38,0.55)' : 'rgba(22,163,74,0.50)'}
                 stroke="none" isAnimationActive={false} />
               <Area type="stepAfter" dataKey={isHigherBetter ? 'greenZone' : 'redZone'}
-                stackId="bg" fill={isHigherBetter ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'}
+                stackId="bg" fill={isHigherBetter ? 'rgba(22,163,74,0.50)' : 'rgba(220,38,38,0.55)'}
                 stroke="none" isAnimationActive={false} />
               <Line type="monotone" dataKey="actual" stroke="#60a5fa" strokeWidth={2}
                 dot={{ r: 2.5, fill: '#60a5fa', strokeWidth: 0 }}
