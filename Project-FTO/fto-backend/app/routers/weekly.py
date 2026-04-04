@@ -41,6 +41,9 @@ class IndicatorUpdate(BaseModel):
     unit: Optional[str] = None
     display_order: Optional[int] = None
     category_id: Optional[str] = None
+    y_min: Optional[float] = None
+    y_max: Optional[float] = None
+    band_size: Optional[float] = None  # For middle_better: half-width of green band
 
 class TargetUpsert(BaseModel):
     indicator_id: str
@@ -172,7 +175,8 @@ async def create_indicators_bulk(indicators: List[IndicatorCreate]):
 @router.put("/indicators/{ind_id}")
 async def update_indicator(ind_id: str, body: IndicatorUpdate):
     sb = get_supabase_admin()
-    updates = {k: v for k, v in body.dict().items() if v is not None}
+    # Use __fields_set__ so fields explicitly sent as null/None are included
+    updates = {k: getattr(body, k) for k in body.__fields_set__}
     if not updates:
         raise HTTPException(400, "Nada que actualizar")
     result = sb.table("weekly_indicators").update(updates).eq("id", ind_id).execute()
@@ -500,4 +504,147 @@ async def seed_weekly(cedula_id: str = Query(...)):
         "message": f"Seed completado: 10 categorías, {total_indicators} indicadores",
         "categories": len(SEED_DATA),
         "indicators": total_indicators,
+    }
+
+
+@router.post("/seed-extras")
+async def seed_extras(cedula_id: str = Query(...)):
+    """Agrega las categorías e indicadores nuevos que faltan, sin tocar los existentes."""
+    sb = get_supabase_admin()
+
+    MACHINES_6 = ["KDF 10", "KDF 17", "KDF 7", "KDF 9", "KDF 8", "KDF 11"]
+    MACHINES_4_GROUPS = [
+        {"subtitle": "KDF 7, 9, 10", "direction_prefix": ""},
+        {"subtitle": "KDF 17",       "direction_prefix": ""},
+        {"subtitle": "KDF 8",        "direction_prefix": ""},
+        {"subtitle": "KDF 11",       "direction_prefix": ""},
+    ]
+
+    EXTRA_CATEGORIES = [
+        {
+            "name": "Defect Handling DMS",
+            "indicators": [
+                {"name": "DH - # Defects Found", "subtitle": "KDF 7, 9, 10", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Fixed", "subtitle": "KDF 7, 9, 10", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Found", "subtitle": "KDF 17", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Fixed", "subtitle": "KDF 17", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Found", "subtitle": "KDF 8", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Fixed", "subtitle": "KDF 8", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Found", "subtitle": "KDF 11", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - # Defects Fixed", "subtitle": "KDF 11", "direction": "higher_better", "unit": "#"},
+                {"name": "DH - Health Check", "direction": "higher_better", "unit": "%"},
+                {"name": "# Breakdowns", "direction": "lower_better", "unit": "#"},
+            ]
+        },
+        {
+            "name": "Breakdown Elimination",
+            "indicators": [
+                *[{"name": "# Repeated Breakdowns", "subtitle": m, "direction": "lower_better", "unit": "#"} for m in MACHINES_6],
+                *[{"name": "BDE - % BD w/countermeasures", "subtitle": m, "direction": "higher_better", "unit": "%"} for m in MACHINES_6],
+                *[{"name": "BDE - % BD qualified for IDA", "subtitle": m, "direction": "higher_better", "unit": "%"} for m in MACHINES_6],
+                {"name": "BD Elimination - Health Check", "direction": "higher_better", "unit": "%"},
+            ]
+        },
+        {
+            "name": "IPS",
+            "indicators": [
+                {"name": "# Process Failures", "subtitle": "KDF 7, 9, 10", "direction": "lower_better", "unit": "#"},
+                {"name": "# Process Failures", "subtitle": "KDF 17", "direction": "lower_better", "unit": "#"},
+                {"name": "# Process Failures", "subtitle": "KDF 8", "direction": "lower_better", "unit": "#"},
+                {"name": "# Process Failures", "subtitle": "KDF 11", "direction": "lower_better", "unit": "#"},
+                {"name": "# IPS Still Open", "subtitle": "KDF 7, 9, 10", "direction": "lower_better", "unit": "#"},
+                {"name": "# IPS Still Open", "subtitle": "KDF 17", "direction": "lower_better", "unit": "#"},
+                {"name": "# IPS Still Open", "subtitle": "KDF 8", "direction": "lower_better", "unit": "#"},
+                {"name": "# IPS Still Open", "subtitle": "KDF 11", "direction": "lower_better", "unit": "#"},
+                {"name": "IPS - SWP Health Check", "direction": "higher_better", "unit": "%"},
+            ]
+        },
+        {
+            "name": "Maint. Planning & Scheduling DMS",
+            "indicators": [
+                *[{"name": "% PM's Executed vs Planned", "subtitle": m, "direction": "higher_better", "unit": "%"} for m in MACHINES_6],
+                *[{"name": "Backlog", "subtitle": m, "direction": "lower_better", "unit": "#"} for m in MACHINES_6],
+                {"name": "Maintenance Effectiveness", "direction": "higher_better", "unit": "%"},
+                {"name": "# PM's Created / Modified", "direction": "higher_better", "unit": "#"},
+                {"name": "MP&S - DMS Health Check", "direction": "higher_better", "unit": "%"},
+            ]
+        },
+        {
+            "name": "Changeover DMS",
+            "indicators": [
+                {"name": "ChangeOver Time Variance", "subtitle": "KDF 7, 9, 10", "direction": "lower_better", "unit": "min"},
+                {"name": "CO - Waste 2 Hour", "subtitle": "KDF 7, 9, 10", "direction": "lower_better", "unit": "#"},
+                {"name": "ChangeOver Time Variance", "subtitle": "KDF 17", "direction": "lower_better", "unit": "min"},
+                {"name": "CO - Waste 2 Hour", "subtitle": "KDF 17", "direction": "lower_better", "unit": "#"},
+                {"name": "ChangeOver Time Variance", "subtitle": "KDF 8", "direction": "lower_better", "unit": "min"},
+                {"name": "CO - Waste 2 Hour", "subtitle": "KDF 8", "direction": "lower_better", "unit": "#"},
+                {"name": "ChangeOver Time Variance", "subtitle": "KDF 11", "direction": "lower_better", "unit": "min"},
+                {"name": "CO - Waste 2 Hour", "subtitle": "KDF 11", "direction": "lower_better", "unit": "#"},
+                {"name": "CO DMS - Health Check", "direction": "higher_better", "unit": "%"},
+            ]
+        },
+        {
+            "name": "Reaplications",
+            "indicators": [
+                {"name": "# Sub-Themes Generated", "subtitle": "KDF 7, 9, 10", "direction": "higher_better", "unit": "#"},
+                {"name": "% Sub-Themes Reapplied / Finalized", "subtitle": "KDF 7, 9, 10", "direction": "higher_better", "unit": "%"},
+                {"name": "# Sub-Themes Generated", "subtitle": "KDF 17", "direction": "higher_better", "unit": "#"},
+                {"name": "% Sub-Themes Reapplied / Finalized", "subtitle": "KDF 17", "direction": "higher_better", "unit": "%"},
+                {"name": "# Sub-Themes Generated", "subtitle": "KDF 8", "direction": "higher_better", "unit": "#"},
+                {"name": "% Sub-Themes Reapplied / Finalized", "subtitle": "KDF 8", "direction": "higher_better", "unit": "%"},
+                {"name": "# Sub-Themes Generated", "subtitle": "KDF 11", "direction": "higher_better", "unit": "#"},
+                {"name": "% Sub-Themes Reapplied / Finalized", "subtitle": "KDF 11", "direction": "higher_better", "unit": "%"},
+                {"name": "RM - DMS Health Check", "direction": "higher_better", "unit": "%"},
+            ]
+        },
+        {
+            "name": "UPTIME",
+            "indicators": [
+                *[{"name": "UPTIME", "subtitle": m, "direction": "higher_better", "unit": "%"} for m in MACHINES_6],
+            ]
+        },
+    ]
+
+    # Get existing categories to find the max display_order
+    existing_cats = sb.table("weekly_categories").select("name, display_order") \
+        .eq("cedula_id", cedula_id).order("display_order", desc=True).execute()
+    existing_names = {c["name"] for c in (existing_cats.data or [])}
+    start_order = (existing_cats.data[0]["display_order"] + 1) if existing_cats.data else 0
+
+    created_cats = 0
+    created_inds = 0
+
+    for i, cat_data in enumerate(EXTRA_CATEGORIES):
+        if cat_data["name"] in existing_names:
+            continue  # Skip already existing categories
+
+        cat_result = sb.table("weekly_categories").insert({
+            "cedula_id": cedula_id,
+            "name": cat_data["name"],
+            "display_order": start_order + i,
+        }).execute()
+        cat_id = cat_result.data[0]["id"]
+        created_cats += 1
+
+        ind_records = []
+        for ind_order, ind in enumerate(cat_data["indicators"]):
+            ind_records.append({
+                "category_id": cat_id,
+                "cedula_id": cedula_id,
+                "name": ind["name"],
+                "subtitle": ind.get("subtitle"),
+                "direction": ind["direction"],
+                "unit": ind["unit"],
+                "display_order": ind_order,
+            })
+
+        if ind_records:
+            sb.table("weekly_indicators").insert(ind_records).execute()
+            created_inds += len(ind_records)
+
+    return {
+        "message": f"Extras: {created_cats} categorías nuevas, {created_inds} indicadores nuevos agregados",
+        "new_categories": created_cats,
+        "new_indicators": created_inds,
+        "skipped": len(EXTRA_CATEGORIES) - created_cats,
     }

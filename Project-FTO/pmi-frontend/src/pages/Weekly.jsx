@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
+  Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import CedulaSelector from '../components/CedulaSelector'
 import * as api from '../lib/api'
@@ -48,6 +48,11 @@ export default function Weekly() {
   const [editMode, setEditMode]             = useState(null) // null | 'values' | 'targets'
   const [pendingChanges, setPendingChanges] = useState({})
   const [saving, setSaving]                 = useState(false)
+  const [customYRanges, setCustomYRanges]   = useState({}) // { [indId]: { min, max } }
+
+  const [viewMode, setViewMode]             = useState('category') // 'category' | 'machine'
+  const [machineFilter, setMachineFilter]   = useState('all') // 'all' | specific machine
+  const [allIndicators, setAllIndicators]   = useState(null) // full chart data for machine view
 
   // ── Load cédulas ──
   useEffect(() => {
@@ -71,17 +76,44 @@ export default function Weekly() {
       .catch(err => setError(err.message))
   }, [cedulaId])
 
-  // ── Load chart data ──
+  // ── Helper: seed customYRanges from indicator.y_min / y_max ──
+  function initYRangesFromIndicators(indicators) {
+    setCustomYRanges(prev => {
+      const next = { ...prev }
+      for (const ind of indicators) {
+        if (ind.y_min != null || ind.y_max != null) {
+          next[ind.id] = {
+            min: ind.y_min != null ? ind.y_min : null,
+            max: ind.y_max != null ? ind.y_max : null,
+          }
+        }
+      }
+      return next
+    })
+  }
+
+  // ── Load chart data (category view) ──
   useEffect(() => {
-    if (!cedulaId || !activeCatId) return
+    if (!cedulaId || !activeCatId || viewMode !== 'category') return
     setLoading(true)
     setChartData(null)
-    setPendingChanges({})
+    // NO limpiar pendingChanges aquí — se mantienen al cambiar de pestaña
     api.getWeeklyChartData(cedulaId, year, quarter, activeCatId)
-      .then(res => setChartData(res))
+      .then(res => { setChartData(res); initYRangesFromIndicators(res.indicators || []) })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [cedulaId, activeCatId, year, quarter])
+  }, [cedulaId, activeCatId, year, quarter, viewMode])
+
+  // ── Load ALL indicators (machine view) ──
+  useEffect(() => {
+    if (!cedulaId || viewMode !== 'machine') return
+    setLoading(true)
+    setAllIndicators(null)
+    api.getWeeklyChartData(cedulaId, year, quarter, null)
+      .then(res => { setAllIndicators(res); initYRangesFromIndicators(res.indicators || []) })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [cedulaId, year, quarter, viewMode])
 
   // ── Seed ──
   async function handleSeed() {
@@ -92,6 +124,19 @@ export default function Weekly() {
       const cats = await api.getWeeklyCategories(cedulaId)
       setCategories(cats.data || [])
       if (cats.data?.length > 0) setActiveCatId(cats.data[0].id)
+    } catch (err) { setError(err.message) }
+    finally { setSeeding(false) }
+  }
+
+  // ── Seed extras (add missing categories) ──
+  async function handleSeedExtras() {
+    if (!cedulaId) return
+    setSeeding(true); setError(null)
+    try {
+      const res = await api.seedWeeklyExtras(cedulaId)
+      const cats = await api.getWeeklyCategories(cedulaId)
+      setCategories(cats.data || [])
+      alert(res.message)
     } catch (err) { setError(err.message) }
     finally { setSeeding(false) }
   }
@@ -128,6 +173,67 @@ export default function Weekly() {
     finally { setSaving(false) }
   }
 
+  // ── Auto-save Y range to DB (debounced 800ms) ──
+  const yRangeSaveTimers = {}
+  function handleYRangeChange(indId, range) {
+    setCustomYRanges(prev => ({ ...prev, [indId]: range }))
+    // Clear any pending timer for this indicator
+    if (yRangeSaveTimers[indId]) clearTimeout(yRangeSaveTimers[indId])
+    // Debounce: save 800ms after the user stops typing
+    yRangeSaveTimers[indId] = setTimeout(async () => {
+      try {
+        await api.updateWeeklyIndicator(indId, {
+          y_min: range?.min != null ? range.min : null,
+          y_max: range?.max != null ? range.max : null,
+        })
+      } catch (err) { /* silently ignore save errors for range */ }
+    }, 800)
+  }
+
+  // ── Auto-save band_size to DB (debounced 800ms) ──
+  const bandSaveTimers = {}
+  function handleBandSizeChange(indId, bandSize) {
+    // Update indicator in local state immediately
+    const updateIndicators = (data) => {
+      if (!data) return data
+      return {
+        ...data,
+        indicators: data.indicators.map(i => i.id === indId ? { ...i, band_size: bandSize } : i)
+      }
+    }
+    if (viewMode === 'machine') setAllIndicators(updateIndicators)
+    else setChartData(updateIndicators)
+    // Debounce save
+    if (bandSaveTimers[indId]) clearTimeout(bandSaveTimers[indId])
+    bandSaveTimers[indId] = setTimeout(async () => {
+      try { await api.updateWeeklyIndicator(indId, { band_size: bandSize }) }
+      catch (err) { /* silent */ }
+    }, 800)
+  }
+
+  // Toggle direction (higher_better → lower_better → middle_better → ...) and persist to DB
+  async function handleToggleDirection(indId) {
+    // Find the indicator in current data source
+    const src = viewMode === 'machine' ? allIndicators : chartData
+    const ind = src?.indicators?.find(i => i.id === indId)
+    if (!ind) return
+    const cycle = { higher_better: 'lower_better', lower_better: 'middle_better', middle_better: 'higher_better' }
+    const newDir = cycle[ind.direction] || 'higher_better'
+    try {
+      await api.updateWeeklyIndicator(indId, { direction: newDir })
+      // Update local state
+      const updateIndicators = (data) => {
+        if (!data) return data
+        return {
+          ...data,
+          indicators: data.indicators.map(i => i.id === indId ? { ...i, direction: newDir } : i)
+        }
+      }
+      if (viewMode === 'machine') setAllIndicators(updateIndicators)
+      else setChartData(updateIndicators)
+    } catch (err) { setError(err.message) }
+  }
+
   function handleCellChange(indId, weekNum, value) {
     setPendingChanges(prev => ({
       ...prev,
@@ -136,6 +242,57 @@ export default function Weekly() {
   }
 
   const hasChanges = Object.keys(pendingChanges).length > 0
+
+  // ── Extract unique machines from indicators (for machine view) ──
+  const machineList = (() => {
+    const src = viewMode === 'machine' ? allIndicators : chartData
+    if (!src?.indicators) return []
+    const set = new Set()
+    for (const ind of src.indicators) {
+      if (ind.subtitle) {
+        // Handle combined subtitles like "KDF 7, 9, 10"
+        if (ind.subtitle.includes(',')) {
+          ind.subtitle.split(',').forEach(part => {
+            const trimmed = part.trim()
+            // Reconstruct full machine name if needed (e.g. "9" → "KDF 9")
+            if (/^\d+$/.test(trimmed)) set.add(`KDF ${trimmed}`)
+            else set.add(trimmed)
+          })
+        } else {
+          set.add(ind.subtitle.trim())
+        }
+      }
+    }
+    return [...set].sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, '')) || 0
+      const numB = parseInt(b.replace(/\D/g, '')) || 0
+      return numA - numB
+    })
+  })()
+
+  // ── Filter indicators for machine view ──
+  const filteredMachineIndicators = (() => {
+    if (viewMode !== 'machine' || !allIndicators?.indicators) return []
+    if (machineFilter === 'all') return allIndicators.indicators
+    return allIndicators.indicators.filter(ind => {
+      if (!ind.subtitle) return false
+      const sub = ind.subtitle.toLowerCase()
+      const filter = machineFilter.toLowerCase()
+      // Direct match
+      if (sub === filter) return true
+      // Partial match for combined subtitles like "KDF 7, 9, 10"
+      if (sub.includes(',')) {
+        const parts = sub.split(',').map(p => p.trim())
+        const filterNum = filter.replace(/\D/g, '')
+        return parts.some(p => {
+          if (p === filter) return true
+          if (/^\d+$/.test(p) && p === filterNum) return true
+          return false
+        })
+      }
+      return false
+    })
+  })()
 
   // ══════════════════════════════════════════════════════
   // Empty state — no categories yet
@@ -175,6 +332,24 @@ export default function Weekly() {
 
       {/* Controls bar */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-1">
+          <button onClick={() => setViewMode('category')}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'category' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            Por categoría
+          </button>
+          <button onClick={() => setViewMode('machine')}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'machine' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}>
+            Por máquina
+          </button>
+        </div>
+
+        <div className="w-px h-6 bg-white/10" />
+
         {/* Quarter */}
         <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-1">
           {[1,2,3,4].map(q => (
@@ -240,48 +415,132 @@ export default function Weekly() {
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 border border-amber-500/30 transition-colors">
               Editar targets
             </button>
+            <button onClick={handleSeedExtras} disabled={seeding}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors disabled:opacity-50">
+              {seeding ? 'Agregando...' : '+ Agregar faltantes'}
+            </button>
           </div>
         )}
       </div>
 
-      {/* Category tabs */}
-      <div className="overflow-x-auto pb-1">
-        <div className="flex gap-1 bg-[#0a1628] rounded-lg p-1 w-fit min-w-full">
-          {categories.map(cat => (
-            <button key={cat.id} onClick={() => setActiveCatId(cat.id)}
-              className={`px-4 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-                activeCatId === cat.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}>
-              {cat.name}
-            </button>
-          ))}
+      {/* Category tabs (only in category view) */}
+      {viewMode === 'category' && (
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-1 bg-[#0a1628] rounded-lg p-1 w-fit min-w-full">
+            {categories.map(cat => (
+              <button key={cat.id} onClick={() => setActiveCatId(cat.id)}
+                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                  activeCatId === cat.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}>
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Machine filter (only in machine view) */}
+      {viewMode === 'machine' && (
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-1 bg-[#0a1628] rounded-lg p-1 w-fit min-w-full">
+            <button onClick={() => setMachineFilter('all')}
+              className={`px-4 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                machineFilter === 'all' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}>
+              Todas
+            </button>
+            {machineList.map(m => (
+              <button key={m} onClick={() => setMachineFilter(m)}
+                className={`px-4 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                  machineFilter === m ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}>
+                {m}
+              </button>
+            ))}
+          </div>
+          {machineFilter !== 'all' && (
+            <p className="text-xs text-cyan-400/70 mt-1 ml-1">
+              {filteredMachineIndicators.length} indicador{filteredMachineIndicators.length !== 1 ? 'es' : ''} para {machineFilter}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Charts grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : chartData?.indicators?.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {chartData.indicators.map(ind => (
-            <WeeklyChart
-              key={ind.id}
-              indicator={ind}
-              targets={chartData.targets[ind.id] || {}}
-              values={chartData.values[ind.id] || {}}
-              weekStart={weekStart} weekEnd={weekEnd}
-              editMode={editMode}
-              pendingChanges={pendingChanges[ind.id] || {}}
-              onCellChange={(wk, val) => handleCellChange(ind.id, wk, val)}
-            />
-          ))}
-        </div>
+      ) : viewMode === 'category' ? (
+        // ── Category view ──
+        chartData?.indicators?.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {chartData.indicators.map(ind => (
+              <WeeklyChart
+                key={ind.id}
+                indicator={ind}
+                targets={chartData.targets[ind.id] || {}}
+                values={chartData.values[ind.id] || {}}
+                weekStart={weekStart} weekEnd={weekEnd}
+                editMode={editMode}
+                pendingChanges={pendingChanges[ind.id] || {}}
+                onCellChange={(wk, val) => handleCellChange(ind.id, wk, val)}
+                customYRange={customYRanges[ind.id]}
+                onYRangeChange={(range) => handleYRangeChange(ind.id, range)}
+                onToggleDirection={() => handleToggleDirection(ind.id)}
+                onBandSizeChange={(bs) => handleBandSizeChange(ind.id, bs)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-12 text-center">
+            <p className="text-slate-500 text-sm">No hay indicadores en esta categoría</p>
+          </div>
+        )
       ) : (
-        <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-12 text-center">
-          <p className="text-slate-500 text-sm">No hay indicadores en esta categoría</p>
-        </div>
+        // ── Machine view ──
+        filteredMachineIndicators.length > 0 ? (
+          <div className="space-y-6">
+            {/* Group by category for cleaner display */}
+            {(() => {
+              const groups = {}
+              for (const ind of filteredMachineIndicators) {
+                const catName = categories.find(c => c.id === ind.category_id)?.name || 'Sin categoría'
+                if (!groups[catName]) groups[catName] = []
+                groups[catName].push(ind)
+              }
+              return Object.entries(groups).map(([catName, inds]) => (
+                <div key={catName}>
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-1">{catName}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {inds.map(ind => (
+                      <WeeklyChart
+                        key={ind.id}
+                        indicator={ind}
+                        targets={allIndicators?.targets[ind.id] || {}}
+                        values={allIndicators?.values[ind.id] || {}}
+                        weekStart={weekStart} weekEnd={weekEnd}
+                        editMode={editMode}
+                        pendingChanges={pendingChanges[ind.id] || {}}
+                        onCellChange={(wk, val) => handleCellChange(ind.id, wk, val)}
+                        customYRange={customYRanges[ind.id]}
+                        onYRangeChange={(range) => handleYRangeChange(ind.id, range)}
+                        onToggleDirection={() => handleToggleDirection(ind.id)}
+                        onBandSizeChange={(bs) => handleBandSizeChange(ind.id, bs)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+        ) : (
+          <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-12 text-center">
+            <p className="text-slate-500 text-sm">
+              {allIndicators ? 'No hay indicadores para esta máquina' : 'Cargando indicadores...'}
+            </p>
+          </div>
+        )
       )}
     </div>
   )
@@ -292,21 +551,27 @@ export default function Weekly() {
 // WeeklyChart — Single indicator card
 // ══════════════════════════════════════════════════════
 
-function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode, pendingChanges, onCellChange }) {
+function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode, pendingChanges, onCellChange, customYRange, onYRangeChange, onToggleDirection, onBandSizeChange }) {
   const [showTable, setShowTable] = useState(false)
+  const [showYConfig, setShowYConfig] = useState(false)
   const isHigherBetter = indicator.direction === 'higher_better'
+  const isMiddleBetter = indicator.direction === 'middle_better'
   const weekNumbers = Array.from({ length: weekEnd - weekStart + 1 }, (_, i) => weekStart + i)
 
-  // Y-axis range
+  // Y-axis range — auto or custom
   let allVals = []
   weekNumbers.forEach(w => {
     if (targets[w] != null) allVals.push(parseFloat(targets[w]))
     if (values[w]?.value != null) allVals.push(parseFloat(values[w].value))
     if (pendingChanges[w] != null && pendingChanges[w] !== '') allVals.push(parseFloat(pendingChanges[w]))
   })
-  let yMax = allVals.length > 0 ? Math.max(...allVals) * 1.3 : 100
-  if (indicator.unit === '%') yMax = Math.max(yMax, 100)
-  if (yMax <= 0) yMax = 10
+  let autoMax = allVals.length > 0 ? Math.max(...allVals) * 1.3 : 100
+  if (indicator.unit === '%') autoMax = Math.max(autoMax, 100)
+  if (autoMax <= 0) autoMax = 10
+  const autoMin = 0
+
+  const yMin = customYRange?.min != null ? customYRange.min : autoMin
+  const yMax = customYRange?.max != null ? customYRange.max : autoMax
 
   const chartArr = weekNumbers.map(w => {
     const tgt = targets[w] != null ? parseFloat(targets[w]) : null
@@ -316,29 +581,49 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
     const displayValue = editMode === 'values' && pendingChanges[w] != null && pendingChanges[w] !== ''
       ? parseFloat(pendingChanges[w]) : val
 
-    let greenZone = 0, redZone = yMax
-    if (displayTarget != null) {
-      if (isHigherBetter) {
-        redZone = displayTarget
-        greenZone = yMax - displayTarget
-      } else {
-        greenZone = displayTarget
-        redZone = yMax - displayTarget
+    const clampedTarget = displayTarget != null
+      ? Math.min(Math.max(displayTarget, yMin), yMax) : null
+
+    const halfBand = (indicator.band_size ?? 10) / 2
+
+    if (isMiddleBetter) {
+      // 3-layer: red bg → green band overlay → red re-cover below band
+      // Center on target if available, otherwise default to 0
+      const center = clampedTarget ?? 0
+      const bandTop = Math.min(center + halfBand, yMax)
+      const bandBot = Math.max(center - halfBand, yMin)
+      return {
+        week: `${w}`, weekNum: w,
+        bg: yMax,            // Layer 1: red fills everything
+        greenTop: bandTop,   // Layer 2: green covers yMin → bandTop
+        redBottom: bandBot,  // Layer 3: red re-covers yMin → bandBot
+        actual: displayValue, target: displayTarget,
       }
     }
 
+    // Standard 2-layer: bg color + overlay
     return {
-      week: `${w}`,
-      weekNum: w,
-      greenZone: Math.max(0, greenZone),
-      redZone: Math.max(0, redZone),
-      actual: displayValue,
-      target: displayTarget,
+      week: `${w}`, weekNum: w,
+      bg: yMax,
+      overlay: clampedTarget ?? yMax,
+      actual: displayValue, target: displayTarget,
     }
   })
 
-  const dirLabel = isHigherBetter ? '↑ Mayor=Mejor' : '↓ Menor=Mejor'
-  const dirColor = isHigherBetter ? 'text-green-400' : 'text-yellow-400'
+  // Smart Y-axis tick formatter — uses decimals when range is small
+  const yRange = yMax - yMin
+  const formatYTick = (v) => {
+    if (indicator.unit === '%') {
+      return yRange < 2 ? `${v.toFixed(2)}%` : `${Math.round(v)}%`
+    }
+    if (yRange < 0.1)  return v.toFixed(4)
+    if (yRange < 1)    return v.toFixed(3)
+    if (yRange < 10)   return v.toFixed(1)
+    return Math.round(v)
+  }
+
+  const dirLabel = isMiddleBetter ? '↔ Medio=Mejor' : isHigherBetter ? '↑ Mayor=Mejor' : '↓ Menor=Mejor'
+  const dirColor = isMiddleBetter ? 'text-cyan-400' : isHigherBetter ? 'text-green-400' : 'text-yellow-400'
 
   const ChartTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null
@@ -359,14 +644,53 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
           <h4 className="text-sm font-semibold text-white truncate">{indicator.name}</h4>
           <div className="flex items-center gap-2 mt-0.5">
             {indicator.subtitle && <span className="text-xs text-blue-400 font-medium">{indicator.subtitle}</span>}
-            <span className={`text-[10px] ${dirColor}`}>{dirLabel}</span>
+            <button onClick={onToggleDirection} title="Clic para invertir zonas rojo/verde"
+              className={`text-[10px] ${dirColor} hover:opacity-70 transition-opacity cursor-pointer`}>
+              {dirLabel}
+            </button>
           </div>
         </div>
-        <button onClick={() => setShowTable(t => !t)}
-          className="text-xs text-slate-500 hover:text-slate-300 transition-colors ml-2 shrink-0">
-          {showTable ? '📊 Gráfica' : '📋 Tabla'}
-        </button>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <button onClick={() => setShowYConfig(c => !c)}
+            title="Configurar eje Y"
+            className={`text-xs transition-colors px-1 ${showYConfig || customYRange ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'}`}>
+            ⚙
+          </button>
+          <button onClick={() => setShowTable(t => !t)}
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            {showTable ? '📊 Gráfica' : '📋 Tabla'}
+          </button>
+        </div>
       </div>
+
+      {showYConfig && (
+        <div className="flex flex-wrap items-center gap-2 mb-2 px-1">
+          <span className="text-[10px] text-slate-500">Eje Y:</span>
+          <input type="number" step="any" placeholder="Mín"
+            value={customYRange?.min ?? ''}
+            onChange={e => onYRangeChange({ ...customYRange, min: e.target.value === '' ? null : parseFloat(e.target.value) })}
+            className="w-14 bg-[#0a1628] border border-white/10 rounded px-1.5 py-0.5 text-[10px] text-white text-center focus:outline-none focus:border-amber-500/50" />
+          <span className="text-[10px] text-slate-600">—</span>
+          <input type="number" step="any" placeholder="Máx"
+            value={customYRange?.max ?? ''}
+            onChange={e => onYRangeChange({ ...customYRange, max: e.target.value === '' ? null : parseFloat(e.target.value) })}
+            className="w-14 bg-[#0a1628] border border-white/10 rounded px-1.5 py-0.5 text-[10px] text-white text-center focus:outline-none focus:border-amber-500/50" />
+          {customYRange && (
+            <button onClick={() => onYRangeChange(undefined)}
+              className="text-[10px] text-slate-600 hover:text-red-400 transition-colors">Auto</button>
+          )}
+          {isMiddleBetter && (
+            <>
+              <span className="text-[10px] text-slate-600 ml-1">|</span>
+              <span className="text-[10px] text-cyan-500">Banda:</span>
+              <input type="number" step="any" placeholder="Ancho"
+                value={indicator.band_size ?? ''}
+                onChange={e => onBandSizeChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                className="w-14 bg-[#0a1628] border border-cyan-500/30 rounded px-1.5 py-0.5 text-[10px] text-cyan-300 text-center focus:outline-none focus:border-cyan-400" />
+            </>
+          )}
+        </div>
+      )}
 
       {showTable ? (
         <DataTable indicator={indicator} weekNumbers={weekNumbers} targets={targets} values={values}
@@ -378,15 +702,34 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
               <XAxis dataKey="week" tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false}
                 interval={Math.max(0, Math.floor(weekNumbers.length / 8) - 1)} />
-              <YAxis domain={[0, yMax]} tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false}
-                tickFormatter={v => indicator.unit === '%' ? `${Math.round(v)}%` : Math.round(v)} />
+              <YAxis domain={[yMin, yMax]} allowDataOverflow={true} tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false}
+                tickFormatter={formatYTick} />
               <Tooltip content={<ChartTooltip />} />
-              <Area type="stepAfter" dataKey={isHigherBetter ? 'redZone' : 'greenZone'}
-                stackId="bg" fill={isHigherBetter ? 'rgba(220,38,38,0.55)' : 'rgba(22,163,74,0.50)'}
-                stroke="none" isAnimationActive={false} />
-              <Area type="stepAfter" dataKey={isHigherBetter ? 'greenZone' : 'redZone'}
-                stackId="bg" fill={isHigherBetter ? 'rgba(22,163,74,0.50)' : 'rgba(220,38,38,0.55)'}
-                stroke="none" isAnimationActive={false} />
+              {isMiddleBetter ? (
+                <>
+                  {/* Middle-better: 3 layers — red bg → green band → red re-cover bottom */}
+                  <Area type="stepAfter" dataKey="bg" baseValue={yMin}
+                    fill="#c82828" fillOpacity={1} stroke="none" isAnimationActive={false} />
+                  <Area type="stepAfter" dataKey="greenTop" baseValue={yMin}
+                    fill="#22a34d" fillOpacity={1} stroke="none" isAnimationActive={false} />
+                  <Area type="stepAfter" dataKey="redBottom" baseValue={yMin}
+                    fill="#c82828" fillOpacity={1} stroke="none" isAnimationActive={false} />
+                </>
+              ) : (
+                <>
+                  {/* Standard 2-layer: bg color + overlay */}
+                  <Area type="stepAfter" dataKey="bg" baseValue={yMin}
+                    fill={isHigherBetter ? '#22a34d' : '#c82828'}
+                    fillOpacity={1} stroke="none" isAnimationActive={false} />
+                  <Area type="stepAfter" dataKey="overlay" baseValue={yMin}
+                    fill={isHigherBetter ? '#c82828' : '#22a34d'}
+                    fillOpacity={1} stroke="none" isAnimationActive={false} />
+                </>
+              )}
+              {/* Zero reference line — visible when range includes negatives */}
+              {yMin < 0 && yMax > 0 && (
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.4)" strokeDasharray="4 3" strokeWidth={1} />
+              )}
               <Line type="monotone" dataKey="actual" stroke="#60a5fa" strokeWidth={2}
                 dot={{ r: 2.5, fill: '#60a5fa', strokeWidth: 0 }}
                 connectNulls={false} isAnimationActive={false} />
@@ -434,7 +777,14 @@ function DataTable({ indicator, weekNumbers, targets, values, editMode, pendingC
 
             let dot = null
             if (dispV != null && dispT != null) {
-              const ok = isHigher ? dispV >= dispT : dispV <= dispT
+              const isMiddle = indicator.direction === 'middle_better'
+              let ok
+              if (isMiddle) {
+                const hb = (indicator.band_size ?? 10) / 2
+                ok = dispV >= (dispT - hb) && dispV <= (dispT + hb)
+              } else {
+                ok = isHigher ? dispV >= dispT : dispV <= dispT
+              }
               dot = ok ? 'text-green-400' : 'text-red-400'
             }
 

@@ -954,28 +954,54 @@ async def get_analisis(
         })
     not_projected_summary = sorted(not_proj_by_emp.values(), key=lambda x: -x["count"])
 
-    # Próximos cambios esperados en el calendario
+    # ── Cambios pendientes por mes (incluye atrasados de meses pasados) ──
+    # Para cada mes en el calendario, si el nivel esperado > nivel del mes anterior
+    # y el current_level del empleado aún no alcanza ese nivel → pendiente.
+    # Si el mes ya pasó → atrasado.
     upcoming_changes = []
     month_idx = MONTH_COLS.index(month_col) if month_col in MONTH_COLS else 0
-    for i in range(month_idx, min(month_idx + 3, len(MONTH_COLS) - 1)):
-        curr_m = MONTH_COLS[i]
-        next_m = MONTH_COLS[i + 1]
+
+    # Indexar current_level por (employee, competency) desde data semanal
+    current_map = {}
+    for d in data_semanal:
+        current_map[(d["employee"], d["competency"])] = d.get("current_level", 0)
+
+    # Recorrer desde el primer mes hasta el final
+    for i in range(1, len(MONTH_COLS)):
+        prev_m = MONTH_COLS[i - 1]
+        dest_m = MONTH_COLS[i]
+        dest_m_idx = i  # posición del mes destino
+
         changes_this_month = []
         for r in calendario:
-            curr_val = r.get(curr_m)
-            next_val = r.get(next_m)
-            if curr_val is not None and next_val is not None and next_val > curr_val:
-                changes_this_month.append({
-                    "employee": r["employee"],
-                    "competency": r["competency"],
-                    "from_level": curr_val,
-                    "to_level": next_val,
-                })
+            prev_val = r.get(prev_m)
+            dest_val = r.get(dest_m)
+            if prev_val is not None and dest_val is not None and dest_val > prev_val:
+                # Hay un cambio programado para este mes
+                key = (r["employee"], r["competency"])
+                current = current_map.get(key, 0)
+                # Solo incluir si aún no se cumplió (current < nivel esperado)
+                if current < dest_val:
+                    is_overdue = dest_m_idx <= month_idx  # el mes ya pasó o es el actual
+                    changes_this_month.append({
+                        "employee": r["employee"],
+                        "competency": r["competency"],
+                        "from_level": prev_val,
+                        "to_level": dest_val,
+                        "current_level": current,
+                        "overdue": is_overdue,
+                    })
         if changes_this_month:
+            is_past = MONTH_COLS.index(dest_m) < month_idx
+            label = dest_m.capitalize()
+            if is_past:
+                label = f"{dest_m.capitalize()} (atrasado)"
             upcoming_changes.append({
-                "transition": f"{curr_m.capitalize()} → {next_m.capitalize()}",
+                "month": dest_m.capitalize(),
+                "transition": label,
                 "count": len(changes_this_month),
                 "changes": changes_this_month,
+                "is_overdue": is_past,
             })
 
     # Totales globales

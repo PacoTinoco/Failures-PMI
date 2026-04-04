@@ -491,3 +491,7 @@ export async function upsertWeeklyValues(values) {
 export async function seedWeekly(cedulaId) {
   return apiRequest(`/weekly/seed?cedula_id=${cedulaId}`, { method: 'POST' })
 }
+
+export async function seedWeeklyExtras(cedulaId) {
+  return apiRequest(`/weekly/seed-extras?cedula_id=${cedulaId}`, { method: 'POST' })
+}

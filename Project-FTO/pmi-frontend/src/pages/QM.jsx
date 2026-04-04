@@ -821,36 +821,38 @@ const CHART_COLORS = {
 }
 
 function UpcomingChangesTab({ upcomingChanges, semana }) {
-  // Construir tabla consolidada: todas las transiciones en una sola tabla
+  // Construir tabla consolidada con mes destino y estado (pendiente/atrasado)
   const allChanges = []
   for (const uc of upcomingChanges) {
     for (const ch of uc.changes) {
       allChanges.push({
-        transition: uc.transition,
+        month: uc.month || uc.transition,
         employee: ch.employee,
         competency: ch.competency,
         from_level: ch.from_level,
         to_level: ch.to_level,
-        change_type: ch.to_level > ch.from_level ? 'Subida' : ch.to_level < ch.from_level ? 'Bajada' : 'Sin cambio',
+        current_level: ch.current_level ?? ch.from_level,
+        overdue: ch.overdue || uc.is_overdue || false,
       })
     }
   }
 
   function handleExportExcel() {
-    // Generar CSV para descarga (compatible con Excel)
-    const headers = ['Tipo de Cambio', 'Empleado', 'Mes', 'Competencia', 'De', 'A']
+    const headers = ['Estado', 'Empleado', 'Mes', 'Competencia', 'Nivel actual', 'Nivel esperado', 'De', 'A']
     const csvRows = [headers.join(',')]
     for (const ch of allChanges) {
       csvRows.push([
-        ch.change_type,
+        ch.overdue ? 'Atrasado' : 'Pendiente',
         `"${ch.employee}"`,
-        `"${ch.transition}"`,
+        `"${ch.month}"`,
         `"${ch.competency}"`,
+        ch.current_level,
+        ch.to_level,
         ch.from_level,
         ch.to_level,
       ].join(','))
     }
-    const csvContent = '\uFEFF' + csvRows.join('\n') // BOM for Excel encoding
+    const csvContent = '\uFEFF' + csvRows.join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -863,27 +865,28 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
   if (upcomingChanges.length === 0) {
     return (
       <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-10 text-center text-slate-500 text-sm">
-        No hay cambios programados en los próximos meses.
+        No hay cambios pendientes — todos los niveles están al día.
       </div>
     )
   }
 
-  // Resumen por mes
   const totalChanges = allChanges.length
+  const overdueCount = allChanges.filter(c => c.overdue).length
 
   return (
     <div className="space-y-4">
-      {/* Tabla consolidada: Cambios pendientes por mes */}
+      {/* Tabla consolidada */}
       <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-white">Cambios pendientes por mes</h3>
-            <p className="text-xs text-slate-500">{totalChanges} cambios esperados en total</p>
+            <p className="text-xs text-slate-500">
+              {totalChanges} pendientes en total
+              {overdueCount > 0 && <span className="text-red-400 ml-1">({overdueCount} atrasados)</span>}
+            </p>
           </div>
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 rounded-lg text-xs text-green-400 font-medium transition-colors"
-          >
+          <button onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 rounded-lg text-xs text-green-400 font-medium transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -894,33 +897,31 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="px-4 py-2 text-left text-xs text-slate-400">Tipo de Cambio</th>
+                <th className="px-4 py-2 text-left text-xs text-slate-400">Estado</th>
                 <th className="px-4 py-2 text-left text-xs text-slate-400">Empleado</th>
                 <th className="px-4 py-2 text-left text-xs text-slate-400">Mes</th>
                 <th className="px-4 py-2 text-left text-xs text-slate-400">Competencia</th>
-                <th className="px-3 py-2 text-center text-xs text-slate-400">De</th>
-                <th className="px-3 py-2 text-center text-xs text-slate-400">A</th>
+                <th className="px-3 py-2 text-center text-xs text-slate-400">Actual</th>
+                <th className="px-3 py-2 text-center text-xs text-slate-400">Esperado</th>
               </tr>
             </thead>
             <tbody>
               {allChanges.map((ch, i) => (
-                <tr key={i} className="border-b border-white/5 hover:bg-slate-700/20">
+                <tr key={i} className={`border-b border-white/5 hover:bg-slate-700/20 ${ch.overdue ? 'bg-red-950/10' : ''}`}>
                   <td className="px-4 py-1.5">
                     <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                      ch.change_type === 'Subida'
-                        ? 'bg-green-500/10 text-green-400'
-                        : ch.change_type === 'Bajada'
-                          ? 'bg-red-500/10 text-red-400'
-                          : 'bg-slate-500/10 text-slate-400'
+                      ch.overdue
+                        ? 'bg-red-500/15 text-red-400'
+                        : 'bg-yellow-500/10 text-yellow-400'
                     }`}>
-                      {ch.change_type}
+                      {ch.overdue ? 'Atrasado' : 'Pendiente'}
                     </span>
                   </td>
                   <td className="px-4 py-1.5 text-white text-sm">{ch.employee}</td>
-                  <td className="px-4 py-1.5 text-purple-400 text-sm font-medium">{ch.transition}</td>
+                  <td className="px-4 py-1.5 text-purple-400 text-sm font-medium">{ch.month}</td>
                   <td className="px-4 py-1.5 text-slate-300 text-sm">{ch.competency}</td>
-                  <td className="px-3 py-1.5 text-center text-yellow-400">{ch.from_level}</td>
-                  <td className="px-3 py-1.5 text-center text-green-400">{ch.to_level}</td>
+                  <td className="px-3 py-1.5 text-center text-yellow-400 font-medium">{ch.current_level}</td>
+                  <td className="px-3 py-1.5 text-center text-green-400 font-medium">{ch.to_level}</td>
                 </tr>
               ))}
             </tbody>
@@ -928,13 +929,17 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
         </div>
       </div>
 
-      {/* Resumen por transición de mes (cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Resumen por mes (cards) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {upcomingChanges.map((uc, idx) => (
-          <div key={idx} className="bg-[#0f1d32] rounded-xl border border-white/5 p-4 text-center">
-            <p className="text-purple-400 text-2xl font-bold">{uc.count}</p>
+          <div key={idx} className={`bg-[#0f1d32] rounded-xl border p-4 text-center ${
+            uc.is_overdue ? 'border-red-500/30' : 'border-white/5'
+          }`}>
+            <p className={`text-2xl font-bold ${uc.is_overdue ? 'text-red-400' : 'text-purple-400'}`}>{uc.count}</p>
             <p className="text-sm text-white font-medium mt-1">{uc.transition}</p>
-            <p className="text-xs text-slate-500 mt-0.5">cambios esperados</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {uc.is_overdue ? 'cambios atrasados' : 'cambios pendientes'}
+            </p>
           </div>
         ))}
       </div>
