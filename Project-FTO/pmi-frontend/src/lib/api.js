@@ -488,6 +488,14 @@ export async function upsertWeeklyValues(values) {
   return apiRequest('/weekly/values', { method: 'POST', body: JSON.stringify({ values }) })
 }
 
+export async function deleteWeeklyValues(entries) {
+  return apiRequest('/weekly/values/delete', { method: 'POST', body: JSON.stringify({ entries }) })
+}
+
+export async function deleteWeeklyTargets(entries) {
+  return apiRequest('/weekly/targets/delete', { method: 'POST', body: JSON.stringify({ entries }) })
+}
+
 export async function seedWeekly(cedulaId) {
   return apiRequest(`/weekly/seed?cedula_id=${cedulaId}`, { method: 'POST' })
 }

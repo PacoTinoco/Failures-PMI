@@ -148,27 +148,45 @@ export default function Weekly() {
     try {
       if (editMode === 'values') {
         const vals = []
+        const deletes = []
         for (const [indId, weekMap] of Object.entries(pendingChanges)) {
           for (const [wk, val] of Object.entries(weekMap)) {
-            if (val === '' || val == null) continue
-            vals.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), actual_value: parseFloat(val) })
+            if (val === '' || val == null) {
+              // Empty = user wants to DELETE this value
+              deletes.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk) })
+            } else {
+              vals.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), actual_value: parseFloat(val) })
+            }
           }
         }
         if (vals.length > 0) await api.upsertWeeklyValues(vals)
+        if (deletes.length > 0) await api.deleteWeeklyValues(deletes)
       } else if (editMode === 'targets') {
         const tgts = []
+        const deletes = []
         for (const [indId, weekMap] of Object.entries(pendingChanges)) {
           for (const [wk, val] of Object.entries(weekMap)) {
-            if (val === '' || val == null) continue
-            tgts.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), target_value: parseFloat(val) })
+            if (val === '' || val == null) {
+              deletes.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk) })
+            } else {
+              tgts.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), target_value: parseFloat(val) })
+            }
           }
         }
         if (tgts.length > 0) await api.upsertWeeklyTargets(tgts)
+        if (deletes.length > 0) await api.deleteWeeklyTargets(deletes)
       }
       setPendingChanges({})
-      // Reload
-      const res = await api.getWeeklyChartData(cedulaId, year, quarter, activeCatId)
-      setChartData(res)
+      // Reload the correct data source based on current view
+      if (viewMode === 'machine') {
+        const res = await api.getWeeklyChartData(cedulaId, year, quarter, null)
+        setAllIndicators(res)
+        initYRangesFromIndicators(res.indicators || [])
+      } else {
+        const res = await api.getWeeklyChartData(cedulaId, year, quarter, activeCatId)
+        setChartData(res)
+        initYRangesFromIndicators(res.indicators || [])
+      }
     } catch (err) { setError(err.message) }
     finally { setSaving(false) }
   }
@@ -414,10 +432,6 @@ export default function Weekly() {
             <button onClick={() => setEditMode('targets')}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 border border-amber-500/30 transition-colors">
               Editar targets
-            </button>
-            <button onClick={handleSeedExtras} disabled={seeding}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors disabled:opacity-50">
-              {seeding ? 'Agregando...' : '+ Agregar faltantes'}
             </button>
           </div>
         )}

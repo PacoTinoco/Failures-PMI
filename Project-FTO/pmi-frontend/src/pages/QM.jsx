@@ -40,6 +40,11 @@ export default function QM() {
   const [expandedEmp, setExpandedEmp]     = useState(null)
   const [showTab, setShowTab]             = useState('employees')
 
+  // ── Por empleado: búsqueda + ordenamiento ──
+  const [empSearch, setEmpSearch]         = useState('')
+  const [empSortKey, setEmpSortKey]       = useState('name')   // 'name' | 'compliance_pct' | 'below_schedule' | 'on_target'
+  const [empSortDir, setEmpSortDir]       = useState('asc')    // 'asc' | 'desc'
+
   const [deletingSemana, setDeletingSemana] = useState(null)
   const [error, setError] = useState(null)
   const [uploadHistory, setUploadHistory] = useState([])
@@ -572,45 +577,112 @@ export default function QM() {
           </div>
 
           {/* Tab: Employees */}
-          {showTab === 'employees' && (
-            <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Cumplimiento por empleado</h3>
-                  <p className="text-xs text-slate-500">Ref: mes {analisis.month_reference} · Clic para ver detalle</p>
-                </div>
-                <button
-                  onClick={() => handleExportEmployeeAnalysis(analisis, semana)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-500/30 transition-colors"
-                >
-                  Exportar Excel
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="px-4 py-2 text-left text-xs text-slate-400">Empleado</th>
-                      <th className="px-3 py-2 text-center text-xs text-slate-400">Rol</th>
-                      <th className="px-3 py-2 text-center text-xs text-green-400">En target</th>
-                      <th className="px-3 py-2 text-center text-xs text-red-400">Debajo</th>
-                      <th className="px-3 py-2 text-center text-xs text-slate-400">Total</th>
-                      <th className="px-3 py-2 text-center text-xs text-purple-400">% Cumpl</th>
-                      <th className="px-3 py-2 text-center text-xs text-yellow-400">Atrasados</th>
-                      <th className="px-3 py-2 text-center text-xs text-blue-400">Avanzó</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analisis.employees.map((emp, idx) => (
-                      <EmployeeRow key={idx} emp={emp}
-                        isExpanded={expandedEmp === emp.employee}
-                        onToggle={() => setExpandedEmp(expandedEmp === emp.employee ? null : emp.employee)} />
+          {showTab === 'employees' && (() => {
+            // Sort helper
+            const toggleSort = (key) => {
+              if (empSortKey === key) setEmpSortDir(d => d === 'asc' ? 'desc' : 'asc')
+              else { setEmpSortKey(key); setEmpSortDir(key === 'name' ? 'asc' : 'desc') }
+            }
+            const SortIcon = ({ col }) => {
+              if (empSortKey !== col) return <span className="text-slate-700 ml-0.5">↕</span>
+              return <span className="text-purple-400 ml-0.5">{empSortDir === 'asc' ? '↑' : '↓'}</span>
+            }
+            // Filter + sort employees
+            const filteredEmps = [...(analisis.employees || [])]
+              .filter(e => e.employee.toLowerCase().includes(empSearch.toLowerCase()))
+              .sort((a, b) => {
+                let av, bv
+                if (empSortKey === 'name')             { av = a.employee; bv = b.employee; return empSortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av) }
+                if (empSortKey === 'compliance_pct')   { av = a.compliance_pct;   bv = b.compliance_pct }
+                if (empSortKey === 'below_schedule')   { av = a.below_schedule;   bv = b.below_schedule }
+                if (empSortKey === 'on_target')        { av = a.on_target;        bv = b.on_target }
+                if (empSortKey === 'below_target')     { av = a.below_target;     bv = b.below_target }
+                return empSortDir === 'asc' ? av - bv : bv - av
+              })
+
+            return (
+              <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+                {/* Header + controls */}
+                <div className="px-4 py-3 border-b border-white/5 flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-white">Cumplimiento por empleado</h3>
+                    <p className="text-xs text-slate-500">Ref: mes {analisis.month_reference} · Clic para ver detalle · {filteredEmps.length} empleado{filteredEmps.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  {/* Search box */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Buscar empleado..."
+                      value={empSearch}
+                      onChange={e => setEmpSearch(e.target.value)}
+                      className="bg-[#0a1628] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50 w-44"
+                    />
+                    {empSearch && (
+                      <button onClick={() => setEmpSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs">✕</button>
+                    )}
+                  </div>
+                  {/* Sort quick buttons */}
+                  <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-1">
+                    {[
+                      { key: 'name',           label: 'A-Z' },
+                      { key: 'compliance_pct', label: '% Cumpl' },
+                      { key: 'below_schedule', label: 'Atrasados' },
+                      { key: 'below_target',   label: 'Debajo' },
+                    ].map(opt => (
+                      <button key={opt.key} onClick={() => toggleSort(opt.key)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-0.5 ${
+                          empSortKey === opt.key ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}>
+                        {opt.label}
+                        {empSortKey === opt.key && <span className="text-[10px]">{empSortDir === 'asc' ? '↑' : '↓'}</span>}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                  <button
+                    onClick={() => handleExportEmployeeAnalysis(analisis, semana)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-500/30 transition-colors whitespace-nowrap"
+                  >
+                    Exportar Excel
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="px-4 py-2 text-left text-xs text-slate-400 cursor-pointer hover:text-white select-none" onClick={() => toggleSort('name')}>
+                          Empleado <SortIcon col="name" />
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs text-slate-400">Rol</th>
+                        <th className="px-3 py-2 text-center text-xs text-green-400 cursor-pointer hover:text-green-300 select-none" onClick={() => toggleSort('on_target')}>
+                          En target <SortIcon col="on_target" />
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs text-red-400 cursor-pointer hover:text-red-300 select-none" onClick={() => toggleSort('below_target')}>
+                          Debajo <SortIcon col="below_target" />
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs text-slate-400">Total</th>
+                        <th className="px-3 py-2 text-center text-xs text-purple-400 cursor-pointer hover:text-purple-300 select-none" onClick={() => toggleSort('compliance_pct')}>
+                          % Cumpl <SortIcon col="compliance_pct" />
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs text-yellow-400 cursor-pointer hover:text-yellow-300 select-none" onClick={() => toggleSort('below_schedule')}>
+                          Atrasados <SortIcon col="below_schedule" />
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs text-blue-400">Avanzó</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEmps.length === 0 ? (
+                        <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500 text-sm">Sin resultados para "{empSearch}"</td></tr>
+                      ) : filteredEmps.map((emp, idx) => (
+                        <EmployeeRow key={idx} emp={emp}
+                          isExpanded={expandedEmp === emp.employee}
+                          onToggle={() => setExpandedEmp(expandedEmp === emp.employee ? null : emp.employee)} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Tab: Competencies */}
           {showTab === 'competencies' && (
@@ -821,6 +893,10 @@ const CHART_COLORS = {
 }
 
 function UpcomingChangesTab({ upcomingChanges, semana }) {
+  const [filterMonth, setFilterMonth]   = useState('all')
+  const [filterEmp, setFilterEmp]       = useState('')
+  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'overdue' | 'pending'
+
   // Construir tabla consolidada con mes destino y estado (pendiente/atrasado)
   const allChanges = []
   for (const uc of upcomingChanges) {
@@ -837,10 +913,22 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
     }
   }
 
+  // Unique months for filter tabs
+  const uniqueMonths = [...new Set(allChanges.map(c => c.month))]
+
+  // Apply filters
+  const visibleChanges = allChanges.filter(c => {
+    if (filterMonth !== 'all' && c.month !== filterMonth) return false
+    if (filterEmp && !c.employee.toLowerCase().includes(filterEmp.toLowerCase())) return false
+    if (filterStatus === 'overdue' && !c.overdue) return false
+    if (filterStatus === 'pending' && c.overdue) return false
+    return true
+  })
+
   function handleExportExcel() {
     const headers = ['Estado', 'Empleado', 'Mes', 'Competencia', 'Nivel actual', 'Nivel esperado', 'De', 'A']
     const csvRows = [headers.join(',')]
-    for (const ch of allChanges) {
+    for (const ch of visibleChanges) {
       csvRows.push([
         ch.overdue ? 'Atrasado' : 'Pendiente',
         `"${ch.employee}"`,
@@ -875,13 +963,32 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
 
   return (
     <div className="space-y-4">
-      {/* Tabla consolidada */}
+
+      {/* ── KPI cards ARRIBA ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {upcomingChanges.map((uc, idx) => (
+          <button key={idx}
+            onClick={() => setFilterMonth(filterMonth === (uc.month || uc.transition) ? 'all' : (uc.month || uc.transition))}
+            className={`bg-[#0f1d32] rounded-xl border p-4 text-center transition-all ${
+              uc.is_overdue ? 'border-red-500/30' : 'border-white/5'
+            } ${filterMonth === (uc.month || uc.transition) ? 'ring-2 ring-purple-500/60' : 'hover:border-purple-500/30'}`}>
+            <p className={`text-2xl font-bold ${uc.is_overdue ? 'text-red-400' : 'text-purple-400'}`}>{uc.count}</p>
+            <p className="text-sm text-white font-medium mt-1">{uc.transition}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {uc.is_overdue ? 'cambios atrasados' : 'cambios pendientes'}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Tabla consolidada ── */}
       <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-          <div>
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-white/5 flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-white">Cambios pendientes por mes</h3>
             <p className="text-xs text-slate-500">
-              {totalChanges} pendientes en total
+              {visibleChanges.length} de {totalChanges} pendientes
               {overdueCount > 0 && <span className="text-red-400 ml-1">({overdueCount} atrasados)</span>}
             </p>
           </div>
@@ -893,6 +1000,60 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
             Exportar Excel
           </button>
         </div>
+
+        {/* Filter bar */}
+        <div className="px-4 py-2.5 border-b border-white/5 flex flex-wrap items-center gap-2 bg-[#0a1628]/50">
+          {/* Estado */}
+          <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
+            {[
+              { key: 'all',     label: 'Todos' },
+              { key: 'overdue', label: 'Atrasados' },
+              { key: 'pending', label: 'Pendientes' },
+            ].map(opt => (
+              <button key={opt.key} onClick={() => setFilterStatus(opt.key)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  filterStatus === opt.key
+                    ? opt.key === 'overdue' ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Month tabs */}
+          <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5 overflow-x-auto">
+            <button onClick={() => setFilterMonth('all')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+                filterMonth === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}>
+              Todos los meses
+            </button>
+            {uniqueMonths.map(m => (
+              <button key={m} onClick={() => setFilterMonth(filterMonth === m ? 'all' : m)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+                  filterMonth === m ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}>
+                {m}
+              </button>
+            ))}
+          </div>
+
+          {/* Employee search */}
+          <div className="relative ml-auto">
+            <input
+              type="text"
+              placeholder="Buscar empleado..."
+              value={filterEmp}
+              onChange={e => setFilterEmp(e.target.value)}
+              className="bg-[#0a1628] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50 w-40"
+            />
+            {filterEmp && (
+              <button onClick={() => setFilterEmp('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs">✕</button>
+            )}
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -906,13 +1067,13 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
               </tr>
             </thead>
             <tbody>
-              {allChanges.map((ch, i) => (
+              {visibleChanges.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500 text-sm">Sin resultados con los filtros aplicados</td></tr>
+              ) : visibleChanges.map((ch, i) => (
                 <tr key={i} className={`border-b border-white/5 hover:bg-slate-700/20 ${ch.overdue ? 'bg-red-950/10' : ''}`}>
                   <td className="px-4 py-1.5">
                     <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                      ch.overdue
-                        ? 'bg-red-500/15 text-red-400'
-                        : 'bg-yellow-500/10 text-yellow-400'
+                      ch.overdue ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/10 text-yellow-400'
                     }`}>
                       {ch.overdue ? 'Atrasado' : 'Pendiente'}
                     </span>
@@ -927,21 +1088,6 @@ function UpcomingChangesTab({ upcomingChanges, semana }) {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Resumen por mes (cards) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {upcomingChanges.map((uc, idx) => (
-          <div key={idx} className={`bg-[#0f1d32] rounded-xl border p-4 text-center ${
-            uc.is_overdue ? 'border-red-500/30' : 'border-white/5'
-          }`}>
-            <p className={`text-2xl font-bold ${uc.is_overdue ? 'text-red-400' : 'text-purple-400'}`}>{uc.count}</p>
-            <p className="text-sm text-white font-medium mt-1">{uc.transition}</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {uc.is_overdue ? 'cambios atrasados' : 'cambios pendientes'}
-            </p>
-          </div>
-        ))}
       </div>
     </div>
   )

@@ -68,6 +68,16 @@ class ValueUpsert(BaseModel):
 class ValueBulk(BaseModel):
     values: List[ValueUpsert]
 
+class DeleteEntry(BaseModel):
+    indicator_id: str
+    cedula_id: str
+    year: int
+    quarter: int
+    week_number: int
+
+class DeleteBulk(BaseModel):
+    entries: List[DeleteEntry]
+
 class ReorderItem(BaseModel):
     id: str
     display_order: int
@@ -307,6 +317,42 @@ async def upsert_values(body: ValueBulk):
     return {"data": result.data, "count": len(result.data)}
 
 
+@router.post("/values/delete")
+async def delete_values(body: DeleteBulk):
+    """Delete specific weekly values (when user clears a cell)."""
+    sb = get_supabase_admin()
+    deleted = 0
+    for e in body.entries:
+        sb.table("weekly_values") \
+            .delete() \
+            .eq("indicator_id", e.indicator_id) \
+            .eq("cedula_id", e.cedula_id) \
+            .eq("year", e.year) \
+            .eq("quarter", e.quarter) \
+            .eq("week_number", e.week_number) \
+            .execute()
+        deleted += 1
+    return {"deleted": deleted}
+
+
+@router.post("/targets/delete")
+async def delete_targets(body: DeleteBulk):
+    """Delete specific weekly targets (when user clears a cell)."""
+    sb = get_supabase_admin()
+    deleted = 0
+    for e in body.entries:
+        sb.table("weekly_targets") \
+            .delete() \
+            .eq("indicator_id", e.indicator_id) \
+            .eq("cedula_id", e.cedula_id) \
+            .eq("year", e.year) \
+            .eq("quarter", e.quarter) \
+            .eq("week_number", e.week_number) \
+            .execute()
+        deleted += 1
+    return {"deleted": deleted}
+
+
 # ══════════════════════════════════════════════════════
 # CHART DATA — Todo junto para una categoría
 # ══════════════════════════════════════════════════════
@@ -332,15 +378,31 @@ async def get_chart_data(
 
     ind_ids = [i["id"] for i in indicators]
 
+    # Helper: fetch in batches of 50 IDs to avoid Supabase 1000-row limit
+    # When loading ALL indicators (~150) × 13 weeks = ~1950 rows > 1000 limit
+    BATCH_SIZE = 50
+
+    def fetch_in_batches(table, select_cols, id_list, extra_filters=None):
+        all_rows = []
+        for i in range(0, len(id_list), BATCH_SIZE):
+            batch = id_list[i:i + BATCH_SIZE]
+            query = sb.table(table).select(select_cols) \
+                .eq("cedula_id", cedula_id) \
+                .eq("year", year) \
+                .eq("quarter", quarter) \
+                .in_("indicator_id", batch) \
+                .order("week_number") \
+                .limit(5000)
+            rows = query.execute().data
+            all_rows.extend(rows)
+        return all_rows
+
     # 2. Targets para esos indicadores en ese trimestre
-    targets_raw = sb.table("weekly_targets") \
-        .select("indicator_id, week_number, target_value") \
-        .eq("cedula_id", cedula_id) \
-        .eq("year", year) \
-        .eq("quarter", quarter) \
-        .in_("indicator_id", ind_ids) \
-        .order("week_number") \
-        .execute().data
+    targets_raw = fetch_in_batches(
+        "weekly_targets",
+        "indicator_id, week_number, target_value",
+        ind_ids
+    )
 
     # Agrupar por indicator_id
     targets = {}
@@ -351,14 +413,11 @@ async def get_chart_data(
         targets[iid][t["week_number"]] = t["target_value"]
 
     # 3. Valores
-    values_raw = sb.table("weekly_values") \
-        .select("indicator_id, week_number, actual_value, auto_source") \
-        .eq("cedula_id", cedula_id) \
-        .eq("year", year) \
-        .eq("quarter", quarter) \
-        .in_("indicator_id", ind_ids) \
-        .order("week_number") \
-        .execute().data
+    values_raw = fetch_in_batches(
+        "weekly_values",
+        "indicator_id, week_number, actual_value, auto_source",
+        ind_ids
+    )
 
     values = {}
     for v in values_raw:
