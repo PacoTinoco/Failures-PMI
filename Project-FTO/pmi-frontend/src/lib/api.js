@@ -503,3 +503,65 @@ export async function seedWeekly(cedulaId) {
 export async function seedWeeklyExtras(cedulaId) {
   return apiRequest(`/weekly/seed-extras?cedula_id=${cedulaId}`, { method: 'POST' })
 }
+
+// ══════════════════════════════════════════════════════
+// IPS
+// ══════════════════════════════════════════════════════
+
+export async function getIPSRecords(cedulaId) {
+  return apiRequest(`/ips/records?cedula_id=${cedulaId}`)
+}
+
+export async function getIPSRecord(ipsId) {
+  return apiRequest(`/ips/records/${ipsId}`)
+}
+
+export async function createIPSRecord(data) {
+  return apiRequest('/ips/records', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function updateIPSRecord(ipsId, data) {
+  return apiRequest(`/ips/records/${ipsId}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export async function deleteIPSRecord(ipsId) {
+  return apiRequest(`/ips/records/${ipsId}`, { method: 'DELETE' })
+}
+
+export async function getIPSCountermeasures(ipsId) {
+  return apiRequest(`/ips/countermeasures?ips_id=${ipsId}`)
+}
+
+export async function getAllCountermeasures(cedulaId) {
+  return apiRequest(`/ips/countermeasures/all?cedula_id=${cedulaId}`)
+}
+
+export async function createCountermeasure(data) {
+  return apiRequest('/ips/countermeasures', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function updateCountermeasure(cmId, data) {
+  return apiRequest(`/ips/countermeasures/${cmId}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export async function deleteCountermeasure(cmId) {
+  return apiRequest(`/ips/countermeasures/${cmId}`, { method: 'DELETE' })
+}
+
+export async function getIPSStats(cedulaId) {
+  return apiRequest(`/ips/stats?cedula_id=${cedulaId}`)
+}
+
+export async function uploadIPSExcel(cedulaId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/ips/upload?cedula_id=${cedulaId}`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}

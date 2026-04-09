@@ -8,6 +8,7 @@ import Weekly from './pages/Weekly'
 import QM from './pages/QM'
 import BOSQBOS from './pages/BOSQBOS'
 import FRR from './pages/FRR'
+import IPS from './pages/IPS'
 
 export default function App() {
   return (
@@ -26,7 +27,10 @@ export default function App() {
       {/* Weekly Section (placeholder) */}
       <Route path="/weekly" element={<Layout><Weekly /></Layout>} />
 
-      {/* QM Section (placeholder) */}
+      {/* IPS Section */}
+      <Route path="/ips" element={<Layout><IPS /></Layout>} />
+
+      {/* QM Section */}
       <Route path="/qm" element={<Layout><QM /></Layout>} />
 
       {/* Fallback */}

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.config import get_settings
-from app.routers import registros, dashboard, equipos, dh, qm, bos_qbos, frr, weekly
+from app.routers import registros, dashboard, equipos, dh, qm, bos_qbos, frr, weekly, ips
 
 settings = get_settings()
 
@@ -39,6 +39,7 @@ app.include_router(qm.router)
 app.include_router(bos_qbos.router)
 app.include_router(frr.router)
 app.include_router(weekly.router)
+app.include_router(ips.router)
 
 
 @app.get("/health", tags=["Health"])
