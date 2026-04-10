@@ -27,8 +27,8 @@ export default function App() {
       {/* Weekly Section (placeholder) */}
       <Route path="/weekly" element={<Layout><Weekly /></Layout>} />
 
-      {/* IPS Section */}
-      <Route path="/ips" element={<Layout><IPS /></Layout>} />
+      {/* IPS under FTO */}
+      <Route path="/fto/ips" element={<Layout><IPS /></Layout>} />
 
       {/* QM Section */}
       <Route path="/qm" element={<Layout><QM /></Layout>} />

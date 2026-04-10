@@ -4,6 +4,7 @@ Dashboard interactivo para registro, seguimiento y contramedidas de IPS.
 """
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from app.services.supabase_client import get_supabase_admin
@@ -236,6 +237,135 @@ async def get_stats(cedula_id: str = Query(...)):
 
 
 # ══════════════════════════════════════════════════════
+# Dedup — Remove duplicate countermeasures
+# ══════════════════════════════════════════════════════
+
+@router.post("/dedup")
+async def dedup_countermeasures(cedula_id: str = Query(...)):
+    """Remove duplicate countermeasures (same ips_id + descripcion)."""
+    sb = get_supabase_admin()
+    ips_records = sb.table("ips_records") \
+        .select("id") \
+        .eq("cedula_id", cedula_id) \
+        .execute().data
+    if not ips_records:
+        return {"removed": 0}
+
+    ips_ids = [r["id"] for r in ips_records]
+    BATCH = 50
+    all_cms = []
+    for i in range(0, len(ips_ids), BATCH):
+        batch = ips_ids[i:i + BATCH]
+        cms = sb.table("ips_countermeasures") \
+            .select("id, ips_id, descripcion, created_at") \
+            .in_("ips_id", batch) \
+            .order("created_at") \
+            .limit(5000) \
+            .execute().data
+        all_cms.extend(cms)
+
+    # Find duplicates: keep first occurrence, delete rest
+    seen = {}  # (ips_id, descripcion_lower) → first id
+    to_delete = []
+    for cm in all_cms:
+        key = (cm["ips_id"], cm["descripcion"].strip().lower())
+        if key in seen:
+            to_delete.append(cm["id"])
+        else:
+            seen[key] = cm["id"]
+
+    for cm_id in to_delete:
+        sb.table("ips_countermeasures").delete().eq("id", cm_id).execute()
+
+    return {"removed": len(to_delete), "message": f"Se eliminaron {len(to_delete)} contramedidas duplicadas"}
+
+
+# ══════════════════════════════════════════════════════
+# Export Excel — IPS records + countermeasures
+# ══════════════════════════════════════════════════════
+
+@router.get("/export")
+async def export_ips_excel(
+    cedula_id: str = Query(...),
+    kdf: Optional[int] = Query(None),
+):
+    """Export IPS records and countermeasures to Excel."""
+    sb = get_supabase_admin()
+
+    query = sb.table("ips_records") \
+        .select("*") \
+        .eq("cedula_id", cedula_id) \
+        .order("kdf") \
+        .order("fecha", desc=True)
+    if kdf is not None:
+        query = query.eq("kdf", kdf)
+
+    records = query.execute().data
+    if not records:
+        raise HTTPException(404, "No hay registros IPS para exportar")
+
+    ips_ids = [r["id"] for r in records]
+    BATCH = 50
+    all_cms = []
+    for i in range(0, len(ips_ids), BATCH):
+        batch = ips_ids[i:i + BATCH]
+        cms = sb.table("ips_countermeasures") \
+            .select("*") \
+            .in_("ips_id", batch) \
+            .order("created_at") \
+            .limit(5000) \
+            .execute().data
+        all_cms.extend(cms)
+
+    # Build IPS dataframe
+    ips_rows = []
+    for r in records:
+        ips_rows.append({
+            "KDF": r["kdf"],
+            "Titulo": r["titulo"],
+            "Fecha": r.get("fecha", ""),
+            "Ubicacion": r.get("ubicacion", ""),
+            "Participantes": ", ".join(r.get("participants", []) or []),
+            "6W2H": "X" if r.get("section_6w2h") else "",
+            "BBC": "X" if r.get("section_bbc") else "",
+            "5W": "X" if r.get("section_5w") else "",
+            "Res": "X" if r.get("section_res") else "",
+            "Status": r.get("status", ""),
+            "# CMs": len([c for c in all_cms if c["ips_id"] == r["id"]]),
+        })
+    df_ips = pd.DataFrame(ips_rows)
+
+    # Build CM dataframe
+    ips_lookup = {r["id"]: r for r in records}
+    cm_rows = []
+    for cm in all_cms:
+        ips = ips_lookup.get(cm["ips_id"], {})
+        cm_rows.append({
+            "KDF": ips.get("kdf", ""),
+            "Titulo IPS": ips.get("titulo", ""),
+            "Contramedida": cm["descripcion"],
+            "Owner": cm.get("owner", ""),
+            "Status": cm.get("status", ""),
+            "Prioridad": cm.get("priority", ""),
+            "Fecha límite": cm.get("due_date", ""),
+        })
+    df_cm = pd.DataFrame(cm_rows) if cm_rows else pd.DataFrame(columns=["KDF","Titulo IPS","Contramedida","Owner","Status","Prioridad","Fecha límite"])
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df_ips.to_excel(writer, sheet_name="IPS", index=False)
+        df_cm.to_excel(writer, sheet_name="Contramedidas", index=False)
+    output.seek(0)
+
+    filename = f"IPS_Export_KDF{kdf}.xlsx" if kdf else "IPS_Export.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# ══════════════════════════════════════════════════════
 # Upload Excel — Parse and import IPS + Countermeasures
 # ══════════════════════════════════════════════════════
 
@@ -252,6 +382,16 @@ async def upload_ips_excel(
     imported_ips = 0
     imported_cm = 0
     skipped = 0
+    duplicates_skipped = 0
+
+    # ── Load existing IPS for this cedula (to avoid duplicates) ──
+    existing_ips = sb.table("ips_records") \
+        .select("id, kdf, titulo") \
+        .eq("cedula_id", cedula_id) \
+        .execute().data
+    existing_ips_map = {}  # (kdf, titulo) → id
+    for r in existing_ips:
+        existing_ips_map[(r["kdf"], r["titulo"])] = r["id"]
 
     # ── Parse IPS sheet ──
     ips_sheet = None
@@ -263,15 +403,12 @@ async def upload_ips_excel(
         raise HTTPException(400, "No se encontró una hoja con 'IPS' en el nombre")
 
     df_ips = pd.read_excel(xls, sheet_name=ips_sheet, header=None)
-    # Row 0 = headers, Row 1 = summary, Row 2+ = data
     headers = df_ips.iloc[0].tolist()
     df_data = df_ips.iloc[2:].copy()
     df_data.columns = headers
 
-    # Filter valid rows
     df_data = df_data[df_data['KDF'].notna() & (df_data['KDF'] != 'KDF')].copy()
 
-    # Build IPS records
     ips_map = {}  # (kdf, titulo) → ips_id for linking countermeasures
     for _, row in df_data.iterrows():
         try:
@@ -285,14 +422,18 @@ async def upload_ips_excel(
             skipped += 1
             continue
 
-        # Collect participants
+        # Skip if IPS already exists (dedup by kdf+titulo)
+        if (kdf, titulo) in existing_ips_map:
+            ips_map[(kdf, titulo)] = existing_ips_map[(kdf, titulo)]
+            duplicates_skipped += 1
+            continue
+
         participants = []
         for col in ['P1','P2','P3','P4','P5','P6','P7','P8']:
             val = row.get(col)
             if pd.notna(val) and str(val).strip() and str(val).strip() not in ['P1','P2','P3','P4','P5','P6','P7','P8']:
                 participants.append(str(val).strip())
 
-        # Date
         fecha = None
         if pd.notna(row.get('Fecha')):
             try:
@@ -341,13 +482,25 @@ async def upload_ips_excel(
         df_cm_data = df_cm.iloc[2:].copy()
         df_cm_data.columns = cm_headers
 
-        # Filter rows with actual countermeasures
         df_cm_data = df_cm_data[df_cm_data['Contramedidas'].notna()].copy()
         df_cm_data = df_cm_data[df_cm_data['Contramedidas'].astype(str).str.strip() != '']
 
-        # Carry forward KDF and Titulo for rows that are grouped
         df_cm_data['KDF'] = df_cm_data['KDF'].ffill()
         df_cm_data['Titulo'] = df_cm_data['Titulo'].ffill()
+
+        # ── Load existing CMs to deduplicate ──
+        all_ips_ids = list(set(ips_map.values()) | set(existing_ips_map.values()))
+        existing_cms = set()  # (ips_id, descripcion) tuples
+        BATCH = 50
+        for i in range(0, len(all_ips_ids), BATCH):
+            batch = all_ips_ids[i:i + BATCH]
+            cms = sb.table("ips_countermeasures") \
+                .select("ips_id, descripcion") \
+                .in_("ips_id", batch) \
+                .limit(5000) \
+                .execute().data
+            for cm in cms:
+                existing_cms.add((cm["ips_id"], cm["descripcion"].strip().lower()))
 
         for _, row in df_cm_data.iterrows():
             try:
@@ -378,14 +531,22 @@ async def upload_ips_excel(
             # Find matching IPS record
             ips_id = ips_map.get((kdf, titulo))
             if not ips_id:
+                # Try existing map
+                ips_id = existing_ips_map.get((kdf, titulo))
+            if not ips_id:
                 # Try partial match
-                for (k, t), iid in ips_map.items():
+                for (k, t), iid in {**ips_map, **existing_ips_map}.items():
                     if k == kdf and (t.startswith(titulo[:20]) or titulo.startswith(t[:20])):
                         ips_id = iid
                         break
 
             if not ips_id:
                 skipped += 1
+                continue
+
+            # Skip if this CM already exists (dedup by ips_id + descripcion)
+            if (ips_id, descripcion.strip().lower()) in existing_cms:
+                duplicates_skipped += 1
                 continue
 
             cm_record = {
@@ -396,11 +557,13 @@ async def upload_ips_excel(
                 "priority": priority,
             }
             sb.table("ips_countermeasures").insert(cm_record).execute()
+            existing_cms.add((ips_id, descripcion.strip().lower()))
             imported_cm += 1
 
     return {
-        "message": f"Importados {imported_ips} IPS y {imported_cm} contramedidas",
+        "message": f"Importados {imported_ips} IPS y {imported_cm} contramedidas ({duplicates_skipped} duplicados omitidos)",
         "imported_ips": imported_ips,
         "imported_cm": imported_cm,
         "skipped": skipped,
+        "duplicates_skipped": duplicates_skipped,
     }

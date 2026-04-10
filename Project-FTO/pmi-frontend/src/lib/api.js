@@ -552,6 +552,28 @@ export async function getIPSStats(cedulaId) {
   return apiRequest(`/ips/stats?cedula_id=${cedulaId}`)
 }
 
+export async function dedupIPSCountermeasures(cedulaId) {
+  return apiRequest(`/ips/dedup?cedula_id=${cedulaId}`, { method: 'POST' })
+}
+
+export async function exportIPSExcel(cedulaId, kdf = null) {
+  let url = `${API_URL}/ips/export?cedula_id=${cedulaId}`
+  if (kdf != null) url += `&kdf=${kdf}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  const blob = await response.blob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = kdf != null ? `IPS_Export_KDF${kdf}.xlsx` : 'IPS_Export.xlsx'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(a.href)
+}
+
 export async function uploadIPSExcel(cedulaId, file) {
   const formData = new FormData()
   formData.append('file', file)
