@@ -19,6 +19,7 @@ const sections = [
       { to: '/fto/bos-qbos', label: 'BOS / QBOS' },
       { to: '/fto/frr', label: 'FRR' },
       { to: '/fto/ips', label: 'IPS' },
+      { to: '/fto/qflags', label: 'Q Flags' },
     ]
   },
   {

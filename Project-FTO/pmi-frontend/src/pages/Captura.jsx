@@ -359,16 +359,15 @@ export default function Captura() {
                                   step={ind.unidad === '%' ? '0.1' : '1'}
                                   value={val ?? ''}
                                   onChange={e => handleCellChange(rowIdx, ind.campo, e.target.value)}
-                                  readOnly={isAuto}
                                   className={`w-16 px-1.5 py-1 text-center text-xs rounded border ${
-                                    isAuto
-                                      ? 'bg-transparent border-transparent text-slate-400 cursor-default select-none'
-                                      : isDirty
-                                        ? 'bg-transparent border-yellow-500/50 text-white focus:outline-none focus:border-blue-500 focus:bg-slate-900/50 hover:border-slate-500 transition-colors'
+                                    isDirty
+                                      ? 'bg-transparent border-yellow-500/50 text-white focus:outline-none focus:border-blue-500 focus:bg-slate-900/50 hover:border-slate-500 transition-colors'
+                                      : isAuto
+                                        ? 'bg-transparent border-transparent text-slate-300 focus:outline-none focus:border-cyan-500 focus:bg-slate-900/50 hover:border-cyan-700/50 transition-colors'
                                         : 'bg-transparent border-transparent text-white focus:outline-none focus:border-blue-500 focus:bg-slate-900/50 hover:border-slate-500 transition-colors'
                                   }`}
-                                  placeholder="—"
-                                  title={isAuto ? 'Este campo se llena automáticamente desde la plataforma' : ''}
+                                  placeholder={val == null ? 'NA' : '—'}
+                                  title={isAuto ? 'Auto: se llena desde la plataforma. Puedes editar manualmente, pero la próxima carga lo sobrescribirá.' : 'Manual'}
                                 />
                               </td>
                             )

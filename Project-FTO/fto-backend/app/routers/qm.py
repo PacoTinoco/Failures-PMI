@@ -43,6 +43,15 @@ async def upload_calendario(
     content = await file.read()
     df = pd.read_excel(BytesIO(content))
 
+    # Normalize column aliases: "Personal Number" → "Employee"
+    rename_map = {}
+    for c in df.columns:
+        cl = str(c).strip().lower()
+        if cl in ('personal number', 'personal_number', 'personalnumber', 'personnel number'):
+            rename_map[c] = 'Employee'
+    if rename_map:
+        df = df.rename(columns=rename_map)
+
     required = {'Employee', 'Competency', 'Current', 'Role'}
     if not required.issubset(set(df.columns)):
         raise HTTPException(status_code=400, detail=f"Faltan columnas: {required - set(df.columns)}")
@@ -168,6 +177,15 @@ async def upload_data_preview(
 
     content = await file.read()
     df = pd.read_excel(BytesIO(content))
+
+    # Normalize column aliases: "Personal Number" → "Employee"
+    rename_map = {}
+    for c in df.columns:
+        cl = str(c).strip().lower()
+        if cl in ('personal number', 'personal_number', 'personalnumber', 'personnel number'):
+            rename_map[c] = 'Employee'
+    if rename_map:
+        df = df.rename(columns=rename_map)
 
     required = {'Employee', 'Competency', 'Current'}
     if not required.issubset(set(df.columns)):
@@ -809,7 +827,8 @@ async def get_analisis(
     })
 
     competency_stats = defaultdict(lambda: {
-        "total": 0, "on_target": 0, "below_target": 0, "above_target": 0
+        "total": 0, "on_target": 0, "below_target": 0, "above_target": 0,
+        "below_employees": []
     })
 
     for d in data_semanal:
@@ -868,6 +887,13 @@ async def get_analisis(
             cs["on_target"] += 1
         else:
             cs["below_target"] += 1
+            cs["below_employees"].append({
+                "employee": emp,
+                "current": current,
+                "target": target,
+                "forecast": forecast,
+                "gap": target - current,
+            })
 
         stats["details"].append({
             "competency": comp,
@@ -915,6 +941,7 @@ async def get_analisis(
             "on_target": cs["on_target"],
             "below_target": cs["below_target"],
             "compliance_pct": round(cs["on_target"] / cs["total"] * 100, 1) if cs["total"] > 0 else 0,
+            "below_employees": sorted(cs["below_employees"], key=lambda x: -x["gap"]),
         })
     comp_summary.sort(key=lambda x: x["compliance_pct"])
 

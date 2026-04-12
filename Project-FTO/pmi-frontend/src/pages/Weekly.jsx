@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine
+  Tooltip, ResponsiveContainer, ReferenceLine, LabelList
 } from 'recharts'
+
+// Helper: is the (string|number) value an "NA" marker?
+function isNAVal(v) {
+  if (v == null) return false
+  if (typeof v === 'string') return v.trim().toLowerCase() === 'na'
+  return false
+}
 import CedulaSelector from '../components/CedulaSelector'
 import * as api from '../lib/api'
 
@@ -154,8 +161,14 @@ export default function Weekly() {
             if (val === '' || val == null) {
               // Empty = user wants to DELETE this value
               deletes.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk) })
+            } else if (isNAVal(val)) {
+              // "NA" — store placeholder 0 with is_na flag
+              vals.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), actual_value: 0, is_na: true })
             } else {
-              vals.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), actual_value: parseFloat(val) })
+              const num = parseFloat(val)
+              if (!isNaN(num)) {
+                vals.push({ indicator_id: indId, cedula_id: cedulaId, year, quarter, week_number: parseInt(wk), actual_value: num, is_na: false })
+              }
             }
           }
         }
@@ -288,27 +301,50 @@ export default function Weekly() {
     })
   })()
 
+  // Priority order for machine view (lowercase keywords)
+  const MACHINE_INDICATOR_ORDER = [
+    'pr', 'uptime', 'updt', 'mtbf', 'unplaned stops', 'unplanned stops', '#unplaned', '#unplanned',
+    'frr', 'process failure', 'ips', 'pdt', 'co time', 'co waste',
+    'subthemes gen', 'subthemes general', 'repeated'
+  ]
+  function machineSortKey(ind) {
+    const name = (ind.title || ind.name || '').toLowerCase()
+    for (let i = 0; i < MACHINE_INDICATOR_ORDER.length; i++) {
+      if (name.includes(MACHINE_INDICATOR_ORDER[i])) return i
+    }
+    return 999
+  }
+
   // ── Filter indicators for machine view ──
   const filteredMachineIndicators = (() => {
     if (viewMode !== 'machine' || !allIndicators?.indicators) return []
-    if (machineFilter === 'all') return allIndicators.indicators
-    return allIndicators.indicators.filter(ind => {
-      if (!ind.subtitle) return false
-      const sub = ind.subtitle.toLowerCase()
-      const filter = machineFilter.toLowerCase()
-      // Direct match
-      if (sub === filter) return true
-      // Partial match for combined subtitles like "KDF 7, 9, 10"
-      if (sub.includes(',')) {
-        const parts = sub.split(',').map(p => p.trim())
-        const filterNum = filter.replace(/\D/g, '')
-        return parts.some(p => {
-          if (p === filter) return true
-          if (/^\d+$/.test(p) && p === filterNum) return true
-          return false
-        })
-      }
-      return false
+    let list
+    if (machineFilter === 'all') {
+      list = allIndicators.indicators
+    } else {
+      list = allIndicators.indicators.filter(ind => {
+        if (!ind.subtitle) return false
+        const sub = ind.subtitle.toLowerCase()
+        const filter = machineFilter.toLowerCase()
+        if (sub === filter) return true
+        if (sub.includes(',')) {
+          const parts = sub.split(',').map(p => p.trim())
+          const filterNum = filter.replace(/\D/g, '')
+          return parts.some(p => {
+            if (p === filter) return true
+            if (/^\d+$/.test(p) && p === filterNum) return true
+            return false
+          })
+        }
+        return false
+      })
+    }
+    // Sort by priority order
+    return [...list].sort((a, b) => {
+      const ka = machineSortKey(a)
+      const kb = machineSortKey(b)
+      if (ka !== kb) return ka - kb
+      return (a.title || '').localeCompare(b.title || '')
     })
   })()
 
@@ -576,8 +612,11 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
   let allVals = []
   weekNumbers.forEach(w => {
     if (targets[w] != null) allVals.push(parseFloat(targets[w]))
-    if (values[w]?.value != null) allVals.push(parseFloat(values[w].value))
-    if (pendingChanges[w] != null && pendingChanges[w] !== '') allVals.push(parseFloat(pendingChanges[w]))
+    if (values[w]?.value != null && !values[w]?.is_na) allVals.push(parseFloat(values[w].value))
+    if (pendingChanges[w] != null && pendingChanges[w] !== '' && !isNAVal(pendingChanges[w])) {
+      const n = parseFloat(pendingChanges[w])
+      if (!isNaN(n)) allVals.push(n)
+    }
   })
   let autoMax = allVals.length > 0 ? Math.max(...allVals) * 1.3 : 100
   if (indicator.unit === '%') autoMax = Math.max(autoMax, 100)
@@ -589,16 +628,33 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
 
   const chartArr = weekNumbers.map(w => {
     const tgt = targets[w] != null ? parseFloat(targets[w]) : null
-    const val = values[w]?.value != null ? parseFloat(values[w].value) : null
-    const displayTarget = editMode === 'targets' && pendingChanges[w] != null && pendingChanges[w] !== ''
-      ? parseFloat(pendingChanges[w]) : tgt
-    const displayValue = editMode === 'values' && pendingChanges[w] != null && pendingChanges[w] !== ''
-      ? parseFloat(pendingChanges[w]) : val
+    const savedIsNA = !!values[w]?.is_na
+    const val = (values[w]?.value != null && !savedIsNA) ? parseFloat(values[w].value) : null
+    const pending = pendingChanges[w]
+    const pendingIsNA = isNAVal(pending)
+    const displayTarget = editMode === 'targets' && pending != null && pending !== '' && !isNAVal(pending)
+      ? parseFloat(pending) : tgt
+    // NA state: pending "NA" (while editing values) OR saved is_na with no overriding pending
+    const isNAHere = editMode === 'values'
+      ? (pendingIsNA || (savedIsNA && (pending == null || pending === '')))
+      : savedIsNA
+    let displayValue
+    if (isNAHere) {
+      displayValue = null
+    } else if (editMode === 'values' && pending != null && pending !== '') {
+      const n = parseFloat(pending)
+      displayValue = isNaN(n) ? null : n
+    } else {
+      displayValue = val
+    }
 
     const clampedTarget = displayTarget != null
       ? Math.min(Math.max(displayTarget, yMin), yMax) : null
 
     const halfBand = (indicator.band_size ?? 10) / 2
+
+    const naMarker = isNAHere ? yMin : null
+    const naLabel = isNAHere ? 'NA' : null
 
     if (isMiddleBetter) {
       // 3-layer: red bg → green band overlay → red re-cover below band
@@ -612,6 +668,7 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
         greenTop: bandTop,   // Layer 2: green covers yMin → bandTop
         redBottom: bandBot,  // Layer 3: red re-covers yMin → bandBot
         actual: displayValue, target: displayTarget,
+        naMarker, naLabel,
       }
     }
 
@@ -621,6 +678,7 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
       bg: yMax,
       overlay: clampedTarget ?? yMax,
       actual: displayValue, target: displayTarget,
+      naMarker, naLabel,
     }
   })
 
@@ -645,6 +703,7 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
     return (
       <div className="bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-xs">
         <p className="text-white font-medium mb-1">Semana {d?.weekNum}</p>
+        {d?.naLabel === 'NA' && <p className="text-slate-300">Valor: <span className="text-slate-400 font-medium">NA</span></p>}
         {d?.actual != null && <p className="text-blue-300">Valor: {d.actual}{indicator.unit === '%' ? '%' : ` ${indicator.unit}`}</p>}
         {d?.target != null && <p className="text-slate-400">Target: {d.target}{indicator.unit === '%' ? '%' : ` ${indicator.unit}`}</p>}
       </div>
@@ -747,6 +806,12 @@ function WeeklyChart({ indicator, targets, values, weekStart, weekEnd, editMode,
               <Line type="monotone" dataKey="actual" stroke="#60a5fa" strokeWidth={2}
                 dot={{ r: 2.5, fill: '#60a5fa', strokeWidth: 0 }}
                 connectNulls={false} isAnimationActive={false} />
+              {/* NA markers — small dot at bottom (yMin) with "NA" label */}
+              <Line type="monotone" dataKey="naMarker" stroke="none"
+                dot={{ r: 2, fill: '#94a3b8', strokeWidth: 0 }}
+                activeDot={false} isAnimationActive={false} legendType="none">
+                <LabelList dataKey="naLabel" position="top" fill="#94a3b8" fontSize={8} />
+              </Line>
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -783,14 +848,22 @@ function DataTable({ indicator, weekNumbers, targets, values, editMode, pendingC
         <tbody>
           {weekNumbers.map(w => {
             const t = targets[w] != null ? parseFloat(targets[w]) : null
-            const v = values[w]?.value != null ? parseFloat(values[w].value) : null
+            const savedIsNA = !!values[w]?.is_na
+            const v = (values[w]?.value != null && !savedIsNA) ? parseFloat(values[w].value) : null
             const pendT = editMode === 'targets' && pendingChanges[w] != null ? pendingChanges[w] : null
             const pendV = editMode === 'values' && pendingChanges[w] != null ? pendingChanges[w] : null
-            const dispT = pendT != null ? (pendT === '' ? null : parseFloat(pendT)) : t
-            const dispV = pendV != null ? (pendV === '' ? null : parseFloat(pendV)) : v
+            const dispT = pendT != null ? (pendT === '' || isNAVal(pendT) ? null : parseFloat(pendT)) : t
+            // Display NA in the cell if pending is "NA" OR saved is_na with no override
+            const pendIsNA = isNAVal(pendV)
+            const isNACell = editMode === 'values'
+              ? (pendIsNA || (savedIsNA && (pendV == null || pendV === '')))
+              : savedIsNA
+            const dispV = pendV != null
+              ? (pendV === '' || pendIsNA ? null : parseFloat(pendV))
+              : v
 
             let dot = null
-            if (dispV != null && dispT != null) {
+            if (!isNACell && dispV != null && dispT != null) {
               const isMiddle = indicator.direction === 'middle_better'
               let ok
               if (isMiddle) {
@@ -801,6 +874,11 @@ function DataTable({ indicator, weekNumbers, targets, values, editMode, pendingC
               }
               dot = ok ? 'text-green-400' : 'text-red-400'
             }
+
+            // Build the current input value shown in the cell
+            const valCellCurrent = pendingChanges[w] != null
+              ? pendingChanges[w]
+              : (savedIsNA ? 'NA' : (v ?? ''))
 
             return (
               <tr key={w} className="border-b border-white/5 hover:bg-white/[0.02]">
@@ -816,15 +894,20 @@ function DataTable({ indicator, weekNumbers, targets, values, editMode, pendingC
                 </td>
                 <td className="px-1.5 py-1 text-center">
                   {editMode === 'values' ? (
-                    <input type="number" step="any" value={pendingChanges[w] ?? (v ?? '')}
+                    <input type="text" value={valCellCurrent}
                       onChange={e => onCellChange(w, e.target.value)}
+                      title='Escribe un número o "NA"'
                       className="w-16 bg-blue-950/30 border border-blue-500/30 rounded px-1 py-0.5 text-blue-300 text-center text-[10px] focus:outline-none focus:border-blue-400" />
+                  ) : isNACell ? (
+                    <span className="text-slate-400 font-medium">NA</span>
                   ) : (
                     <span className="text-white font-medium">{v != null ? v : '—'}</span>
                   )}
                 </td>
                 <td className="px-1.5 py-1 text-center">
-                  {dot ? <span className={dot}>●</span> : <span className="text-slate-700">—</span>}
+                  {isNACell ? <span className="text-slate-500">—</span>
+                    : dot ? <span className={dot}>●</span>
+                    : <span className="text-slate-700">—</span>}
                 </td>
               </tr>
             )

@@ -64,6 +64,7 @@ class ValueUpsert(BaseModel):
     week_number: int
     actual_value: float
     auto_source: Optional[str] = None
+    is_na: Optional[bool] = False
 
 class ValueBulk(BaseModel):
     values: List[ValueUpsert]
@@ -309,6 +310,7 @@ async def upsert_values(body: ValueBulk):
         "week_number": v.week_number,
         "actual_value": v.actual_value,
         "auto_source": v.auto_source,
+        "is_na": bool(v.is_na),
     } for v in body.values]
     result = sb.table("weekly_values").upsert(
         records,
@@ -415,7 +417,7 @@ async def get_chart_data(
     # 3. Valores
     values_raw = fetch_in_batches(
         "weekly_values",
-        "indicator_id, week_number, actual_value, auto_source",
+        "indicator_id, week_number, actual_value, auto_source, is_na",
         ind_ids
     )
 
@@ -427,6 +429,7 @@ async def get_chart_data(
         values[iid][v["week_number"]] = {
             "value": v["actual_value"],
             "auto": v["auto_source"],
+            "is_na": v.get("is_na", False),
         }
 
     return {

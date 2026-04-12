@@ -587,3 +587,28 @@ export async function uploadIPSExcel(cedulaId, file) {
   }
   return response.json()
 }
+
+// ============================================================
+// Q FLAGS (ComitDB)
+// ============================================================
+
+export async function uploadQFlags(cedulaId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/qflags/upload?cedula_id=${cedulaId}`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function saveQFlags(cedulaId, results) {
+  return apiRequest(`/qflags/save?cedula_id=${cedulaId}`, {
+    method: 'POST',
+    body: JSON.stringify(results),
+  })
+}

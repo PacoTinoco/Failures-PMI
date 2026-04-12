@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -563,6 +563,7 @@ export default function QM() {
             {[
               { key: 'employees', label: 'Por empleado' },
               { key: 'competencies', label: 'Por competencia' },
+              { key: 'monthly', label: 'Cumplimiento mes' },
               { key: 'charts', label: '📊 Gráficas' },
               { key: 'noproj', label: `Sin proyección (${analisis.not_projected_count ?? 0})` },
               { key: 'upcoming', label: 'Próximos cambios' },
@@ -686,36 +687,12 @@ export default function QM() {
 
           {/* Tab: Competencies */}
           {showTab === 'competencies' && (
-            <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/5">
-                <h3 className="text-sm font-semibold text-white">Cumplimiento por competencia</h3>
-                <p className="text-xs text-slate-500">Ordenado por menor cumplimiento</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="px-4 py-2 text-left text-xs text-slate-400">Competencia</th>
-                      <th className="px-3 py-2 text-center text-xs text-slate-400">Personas</th>
-                      <th className="px-3 py-2 text-center text-xs text-green-400">En target</th>
-                      <th className="px-3 py-2 text-center text-xs text-red-400">Debajo</th>
-                      <th className="px-3 py-2 text-center text-xs text-purple-400">% Cumpl</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analisis.competencies.map((c, idx) => (
-                      <tr key={idx} className="border-b border-white/5 hover:bg-slate-700/20">
-                        <td className="px-4 py-2 text-white text-sm">{c.competency}</td>
-                        <td className="px-3 py-2 text-center text-slate-400">{c.total}</td>
-                        <td className="px-3 py-2 text-center text-green-400">{c.on_target}</td>
-                        <td className="px-3 py-2 text-center text-red-400">{c.below_target}</td>
-                        <td className="px-3 py-2 text-center"><ComplianceBadge pct={c.compliance_pct} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <CompetenciesTab competencies={analisis.competencies} />
+          )}
+
+          {/* Tab: Monthly compliance */}
+          {showTab === 'monthly' && (
+            <MonthlyComplianceTab employees={analisis.employees} semana={semana} />
           )}
 
           {/* Tab: Gráficas */}
@@ -750,6 +727,237 @@ export default function QM() {
           </p>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function MonthlyComplianceTab({ employees, semana }) {
+  const [filter, setFilter] = useState('all') // all | met | partial | not
+  const [expandedEmp, setExpandedEmp] = useState(null)
+
+  // Calculate monthly compliance for each employee
+  // schedule_compliance_pct already exists from backend (vs forecast del mes)
+  const enriched = employees.map(e => {
+    const total = e.total_competencies
+    const onSched = e.on_schedule
+    const belowSched = e.below_schedule
+    const pct = e.schedule_compliance_pct
+    let status = 'not'
+    if (pct >= 100) status = 'met'
+    else if (pct >= 70) status = 'partial'
+    return { ...e, monthly_pct: pct, monthly_status: status, met_count: onSched, gap_count: belowSched }
+  })
+
+  const filtered = enriched.filter(e => {
+    if (filter === 'all') return true
+    return e.monthly_status === filter
+  }).sort((a, b) => b.monthly_pct - a.monthly_pct)
+
+  const counts = {
+    met: enriched.filter(e => e.monthly_status === 'met').length,
+    partial: enriched.filter(e => e.monthly_status === 'partial').length,
+    not: enriched.filter(e => e.monthly_status === 'not').length,
+  }
+  const totalEmps = enriched.length
+  const monthName = semana ? new Date(semana + 'T12:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }) : ''
+
+  return (
+    <div className="space-y-3">
+      {/* Top KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <button onClick={() => setFilter('all')}
+          className={`bg-[#0f1d32] rounded-xl border p-4 text-left transition-all ${filter === 'all' ? 'border-purple-500/50 ring-1 ring-purple-500/30' : 'border-white/5 hover:border-purple-500/30'}`}>
+          <p className="text-2xl font-bold text-white">{totalEmps}</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Total empleados</p>
+        </button>
+        <button onClick={() => setFilter(filter === 'met' ? 'all' : 'met')}
+          className={`bg-[#0f1d32] rounded-xl border p-4 text-left transition-all ${filter === 'met' ? 'border-green-500/50 ring-1 ring-green-500/30' : 'border-white/5 hover:border-green-500/30'}`}>
+          <p className="text-2xl font-bold text-green-400">{counts.met}</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Cumplieron 100%</p>
+        </button>
+        <button onClick={() => setFilter(filter === 'partial' ? 'all' : 'partial')}
+          className={`bg-[#0f1d32] rounded-xl border p-4 text-left transition-all ${filter === 'partial' ? 'border-yellow-500/50 ring-1 ring-yellow-500/30' : 'border-white/5 hover:border-yellow-500/30'}`}>
+          <p className="text-2xl font-bold text-yellow-400">{counts.partial}</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Parcial (70-99%)</p>
+        </button>
+        <button onClick={() => setFilter(filter === 'not' ? 'all' : 'not')}
+          className={`bg-[#0f1d32] rounded-xl border p-4 text-left transition-all ${filter === 'not' ? 'border-red-500/50 ring-1 ring-red-500/30' : 'border-white/5 hover:border-red-500/30'}`}>
+          <p className="text-2xl font-bold text-red-400">{counts.not}</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">No cumplieron (&lt;70%)</p>
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5">
+          <h3 className="text-sm font-semibold text-white">Cumplimiento del mes — {monthName}</h3>
+          <p className="text-xs text-slate-500">Comparado contra el forecast mensual del calendario · Clic para ver detalle</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="px-4 py-2 text-left text-xs text-slate-400">Empleado</th>
+                <th className="px-3 py-2 text-center text-xs text-slate-400">Rol</th>
+                <th className="px-3 py-2 text-center text-xs text-slate-400">Total</th>
+                <th className="px-3 py-2 text-center text-xs text-green-400">Cumplió</th>
+                <th className="px-3 py-2 text-center text-xs text-red-400">Falta</th>
+                <th className="px-3 py-2 text-center text-xs text-purple-400">% Mes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((e, idx) => {
+                const isExpanded = expandedEmp === e.employee
+                const belowDetails = (e.details || []).filter(d => d.schedule_status === 'below_schedule')
+                return (
+                  <Fragment key={idx}>
+                    <tr onClick={() => setExpandedEmp(isExpanded ? null : e.employee)}
+                      className={`border-b border-white/5 hover:bg-slate-700/20 cursor-pointer ${isExpanded ? 'bg-purple-950/20' : ''}`}>
+                      <td className="px-4 py-2 text-white text-sm">
+                        <span className="text-slate-500 text-xs mr-1.5">{isExpanded ? '▾' : '▸'}</span>
+                        {e.employee}
+                      </td>
+                      <td className="px-3 py-2 text-center text-slate-400 text-xs">{e.role || '—'}</td>
+                      <td className="px-3 py-2 text-center text-slate-400">{e.total_competencies}</td>
+                      <td className="px-3 py-2 text-center text-green-400">{e.met_count}</td>
+                      <td className="px-3 py-2 text-center text-red-400">{e.gap_count}</td>
+                      <td className="px-3 py-2 text-center"><ComplianceBadge pct={e.monthly_pct} /></td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={6} className="px-0 py-0">
+                          <div className="bg-[#0a1628] border-y border-purple-500/20 px-6 py-3">
+                            {belowDetails.length === 0 ? (
+                              <p className="text-xs text-green-400">Cumplió todas sus competencias del mes ✓</p>
+                            ) : (
+                              <>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
+                                  Competencias debajo del forecast del mes ({belowDetails.length})
+                                </p>
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-white/5 text-slate-500">
+                                      <th className="px-3 py-1.5 text-left font-medium">Competencia</th>
+                                      <th className="px-3 py-1.5 text-center font-medium">Actual</th>
+                                      <th className="px-3 py-1.5 text-center font-medium">Forecast mes</th>
+                                      <th className="px-3 py-1.5 text-center font-medium">Target</th>
+                                      <th className="px-3 py-1.5 text-center font-medium">Brecha</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {belowDetails.map((d, i) => (
+                                      <tr key={i} className="border-b border-white/5">
+                                        <td className="px-3 py-1.5 text-slate-300">{d.competency}</td>
+                                        <td className="px-3 py-1.5 text-center text-slate-300">{d.current}</td>
+                                        <td className="px-3 py-1.5 text-center text-slate-400">{d.forecast}</td>
+                                        <td className="px-3 py-1.5 text-center text-slate-400">{d.target}</td>
+                                        <td className="px-3 py-1.5 text-center text-red-400 font-semibold">−{d.forecast - d.current}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500 text-sm">Sin empleados en esta categoría</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CompetenciesTab({ competencies }) {
+  const [expanded, setExpanded] = useState(null)
+  return (
+    <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5">
+        <h3 className="text-sm font-semibold text-white">Cumplimiento por competencia</h3>
+        <p className="text-xs text-slate-500">Ordenado por menor cumplimiento · Clic para ver quiénes están debajo</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/10">
+              <th className="px-4 py-2 text-left text-xs text-slate-400">Competencia</th>
+              <th className="px-3 py-2 text-center text-xs text-slate-400">Personas</th>
+              <th className="px-3 py-2 text-center text-xs text-green-400">En target</th>
+              <th className="px-3 py-2 text-center text-xs text-red-400">Debajo</th>
+              <th className="px-3 py-2 text-center text-xs text-purple-400">% Cumpl</th>
+              <th className="px-2 py-2 w-8"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {competencies.map((c, idx) => {
+              const isExpanded = expanded === idx
+              const hasBelow = (c.below_employees || []).length > 0
+              return (
+                <Fragment key={idx}>
+                  <tr
+                    onClick={() => hasBelow && setExpanded(isExpanded ? null : idx)}
+                    className={`border-b border-white/5 hover:bg-slate-700/20 ${hasBelow ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-purple-950/20' : ''}`}>
+                    <td className="px-4 py-2 text-white text-sm">
+                      <span className="text-slate-500 text-xs mr-1.5">{hasBelow ? (isExpanded ? '▾' : '▸') : ' '}</span>
+                      {c.competency}
+                    </td>
+                    <td className="px-3 py-2 text-center text-slate-400">{c.total}</td>
+                    <td className="px-3 py-2 text-center text-green-400">{c.on_target}</td>
+                    <td className="px-3 py-2 text-center text-red-400">{c.below_target}</td>
+                    <td className="px-3 py-2 text-center"><ComplianceBadge pct={c.compliance_pct} /></td>
+                    <td className="px-2 py-2 text-center text-slate-600 text-xs">
+                      {hasBelow ? `${c.below_employees.length}` : ''}
+                    </td>
+                  </tr>
+                  {isExpanded && hasBelow && (
+                    <tr>
+                      <td colSpan={6} className="px-0 py-0">
+                        <div className="bg-[#0a1628] border-y border-purple-500/20 px-6 py-3">
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
+                            Empleados debajo del target ({c.below_employees.length})
+                          </p>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-white/5 text-slate-500">
+                                <th className="px-3 py-1.5 text-left font-medium">Empleado</th>
+                                <th className="px-3 py-1.5 text-center font-medium">Actual</th>
+                                <th className="px-3 py-1.5 text-center font-medium">Forecast mes</th>
+                                <th className="px-3 py-1.5 text-center font-medium">Target final</th>
+                                <th className="px-3 py-1.5 text-center font-medium">Brecha</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {c.below_employees.map((e, i) => (
+                                <tr key={i} className="border-b border-white/5 hover:bg-slate-700/10">
+                                  <td className="px-3 py-1.5 text-slate-300">{e.employee}</td>
+                                  <td className="px-3 py-1.5 text-center text-slate-300">{e.current}</td>
+                                  <td className="px-3 py-1.5 text-center text-slate-400">{e.forecast}</td>
+                                  <td className="px-3 py-1.5 text-center text-slate-400">{e.target}</td>
+                                  <td className="px-3 py-1.5 text-center">
+                                    <span className="text-red-400 font-semibold">−{e.gap}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

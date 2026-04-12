@@ -250,7 +250,7 @@ export default function Dashboard() {
                     {cat.indicadores.map(ind => {
                       const val = promedios[ind.campo]
                       const color = getSemaforoColor(val, ind.target, ind.direccion)
-                      const displayVal = val != null ? (ind.unidad === '%' ? val.toFixed(1) : Math.round(val)) : '—'
+                      const displayVal = val != null ? (ind.unidad === '%' ? val.toFixed(1) : Math.round(val)) : 'NA'
 
                       return (
                         <div key={ind.campo} className={`px-4 py-2.5 flex items-center justify-between ${semaforoBg[color]}`}>
@@ -323,7 +323,7 @@ export default function Dashboard() {
                           const color = getSemaforoColor(val, ind.target, ind.direccion)
                           const displayVal = val != null
                             ? (ind.unidad === '%' ? Number(val).toFixed(1) : Math.round(Number(val)))
-                            : '—'
+                            : 'NA'
 
                           return (
                             <td key={ind.campo} className={`px-2 py-2.5 text-center text-xs semaforo-cell ${semaforoBg[color]}`}>

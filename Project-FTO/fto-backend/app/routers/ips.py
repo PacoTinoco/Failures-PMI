@@ -317,44 +317,135 @@ async def export_ips_excel(
             .execute().data
         all_cms.extend(cms)
 
-    # Build IPS dataframe
-    ips_rows = []
-    for r in records:
-        ips_rows.append({
-            "KDF": r["kdf"],
-            "Titulo": r["titulo"],
-            "Fecha": r.get("fecha", ""),
-            "Ubicacion": r.get("ubicacion", ""),
-            "Participantes": ", ".join(r.get("participants", []) or []),
-            "6W2H": "X" if r.get("section_6w2h") else "",
-            "BBC": "X" if r.get("section_bbc") else "",
-            "5W": "X" if r.get("section_5w") else "",
-            "Res": "X" if r.get("section_res") else "",
-            "Status": r.get("status", ""),
-            "# CMs": len([c for c in all_cms if c["ips_id"] == r["id"]]),
-        })
-    df_ips = pd.DataFrame(ips_rows)
-
-    # Build CM dataframe
-    ips_lookup = {r["id"]: r for r in records}
-    cm_rows = []
+    # Group countermeasures by IPS id
+    cms_by_ips = {}
     for cm in all_cms:
-        ips = ips_lookup.get(cm["ips_id"], {})
-        cm_rows.append({
-            "KDF": ips.get("kdf", ""),
-            "Titulo IPS": ips.get("titulo", ""),
-            "Contramedida": cm["descripcion"],
-            "Owner": cm.get("owner", ""),
-            "Status": cm.get("status", ""),
-            "Prioridad": cm.get("priority", ""),
-            "Fecha límite": cm.get("due_date", ""),
-        })
-    df_cm = pd.DataFrame(cm_rows) if cm_rows else pd.DataFrame(columns=["KDF","Titulo IPS","Contramedida","Owner","Status","Prioridad","Fecha límite"])
+        cms_by_ips.setdefault(cm["ips_id"], []).append(cm)
+
+    # Build print-ready workbook using openpyxl directly
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.page import PageMargins
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "IPS"
+
+    # Column widths (7 columns: KDF, Fecha, Título / Contramedida, Ubicación / Owner, Participantes / Status CM, Status IPS / Prioridad, Fecha límite)
+    col_widths = [8, 13, 42, 22, 28, 14, 13]
+    for i, w in enumerate(col_widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    thin = Side(border_style="thin", color="7F7F7F")
+    medium = Side(border_style="medium", color="000000")
+    border_all = Border(left=thin, right=thin, top=thin, bottom=thin)
+    border_heavy = Border(left=medium, right=medium, top=medium, bottom=medium)
+
+    header_fill = PatternFill("solid", fgColor="1F3864")
+    ips_fill = PatternFill("solid", fgColor="D9E1F2")
+    cm_fill = PatternFill("solid", fgColor="F2F2F2")
+    title_fill = PatternFill("solid", fgColor="2E75B6")
+
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+    # ── Title row ──
+    title_text = f"IPS — Issue Problem Solving" + (f"  |  KDF {kdf}" if kdf else "")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(col_widths))
+    c = ws.cell(row=1, column=1, value=title_text)
+    c.font = Font(name="Calibri", size=16, bold=True, color="FFFFFF")
+    c.fill = title_fill
+    c.alignment = center
+    ws.row_dimensions[1].height = 28
+
+    # Blank row
+    row_idx = 3
+
+    # ── Header row ──
+    headers = ["KDF", "Fecha", "Título / Contramedida", "Ubicación / Owner",
+               "Participantes / Status CM", "Status IPS / Prioridad", "Fecha límite"]
+    for col, h in enumerate(headers, start=1):
+        cell = ws.cell(row=row_idx, column=col, value=h)
+        cell.font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border_heavy
+    ws.row_dimensions[row_idx].height = 30
+    row_idx += 1
+
+    # ── Data rows: one IPS row + nested CM rows ──
+    for r in records:
+        # IPS row
+        ips_values = [
+            f"KDF {r['kdf']}",
+            str(r.get("fecha") or ""),
+            r.get("titulo") or "",
+            r.get("ubicacion") or "",
+            ", ".join(r.get("participants", []) or []),
+            r.get("status") or "",
+            "",
+        ]
+        for col, v in enumerate(ips_values, start=1):
+            cell = ws.cell(row=row_idx, column=col, value=v)
+            cell.font = Font(name="Calibri", size=11, bold=True, color="1F3864")
+            cell.fill = ips_fill
+            cell.alignment = left if col in (3, 4, 5) else center
+            cell.border = border_all
+        ws.row_dimensions[row_idx].height = 26
+        row_idx += 1
+
+        # Nested CM rows
+        cms_list = cms_by_ips.get(r["id"], [])
+        if not cms_list:
+            cell = ws.cell(row=row_idx, column=3, value="— Sin contramedidas registradas —")
+            cell.font = Font(name="Calibri", size=10, italic=True, color="7F7F7F")
+            cell.fill = cm_fill
+            cell.alignment = left
+            for col in range(1, len(col_widths) + 1):
+                c2 = ws.cell(row=row_idx, column=col)
+                c2.fill = cm_fill
+                c2.border = border_all
+            ws.row_dimensions[row_idx].height = 18
+            row_idx += 1
+        else:
+            for idx, cm in enumerate(cms_list, start=1):
+                cm_values = [
+                    "",
+                    "",
+                    f"   ↳ {idx}. {cm.get('descripcion') or ''}",
+                    cm.get("owner") or "",
+                    cm.get("status") or "",
+                    cm.get("priority") or "",
+                    str(cm.get("due_date") or ""),
+                ]
+                for col, v in enumerate(cm_values, start=1):
+                    cell = ws.cell(row=row_idx, column=col, value=v)
+                    cell.font = Font(name="Calibri", size=10, color="333333")
+                    cell.fill = cm_fill
+                    cell.alignment = left if col in (3, 4) else center
+                    cell.border = border_all
+                ws.row_dimensions[row_idx].height = 22
+                row_idx += 1
+
+        # Empty separator row between IPS blocks
+        row_idx += 1
+
+    # Freeze header
+    ws.freeze_panes = f"A{4}"
+
+    # Print setup: landscape, fit to width, margins
+    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+    ws.page_setup.paperSize = ws.PAPERSIZE_LETTER
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_margins = PageMargins(left=0.4, right=0.4, top=0.6, bottom=0.6, header=0.3, footer=0.3)
+    ws.print_options.horizontalCentered = True
+    ws.print_title_rows = f"{3}:{3}"  # repeat header row on each printed page
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df_ips.to_excel(writer, sheet_name="IPS", index=False)
-        df_cm.to_excel(writer, sheet_name="Contramedidas", index=False)
+    wb.save(output)
     output.seek(0)
 
     filename = f"IPS_Export_KDF{kdf}.xlsx" if kdf else "IPS_Export.xlsx"

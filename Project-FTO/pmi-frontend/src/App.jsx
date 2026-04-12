@@ -9,6 +9,7 @@ import QM from './pages/QM'
 import BOSQBOS from './pages/BOSQBOS'
 import FRR from './pages/FRR'
 import IPS from './pages/IPS'
+import QFlags from './pages/QFlags'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
 
       {/* IPS under FTO */}
       <Route path="/fto/ips" element={<Layout><IPS /></Layout>} />
+      <Route path="/fto/qflags" element={<Layout><QFlags /></Layout>} />
 
       {/* QM Section */}
       <Route path="/qm" element={<Layout><QM /></Layout>} />

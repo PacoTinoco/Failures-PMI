@@ -1,0 +1,96 @@
+<svg width="860" height="520" viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .card {
+        fill: #0f1d32;
+        stroke: #1e3a5f;
+        stroke-width: 1.5;
+        rx: 12;
+      }
+      .icon {
+        font-size: 32px;
+      }
+      .title {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        fill: #ffffff;
+      }
+      .description {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 11px;
+        fill: #94a3b8;
+        line-height: 1.4;
+      }
+    </style>
+  </defs>
+
+  <!-- Dark navy background -->
+  <rect width="860" height="520" fill="#0a1628"/>
+
+  <!-- Row 1 -->
+  <!-- Card 1: SQDCM Dashboard -->
+  <rect class="card" x="20" y="20" width="260" height="150"/>
+  <text class="icon" x="50" y="55">📊</text>
+  <text class="title" x="50" y="85">SQDCM Dashboard</text>
+  <text class="description" x="50" y="105">Real-time operator metrics</text>
+  <text class="description" x="50" y="120">with traffic-light indicators</text>
+
+  <!-- Card 2: Weekly DOS/DCS -->
+  <rect class="card" x="300" y="20" width="260" height="150"/>
+  <text class="icon" x="330" y="55">📈</text>
+  <text class="title" x="330" y="85">Weekly DOS/DCS</text>
+  <text class="description" x="330" y="105">Red/green zone charts with</text>
+  <text class="description" x="330" y="120">configurable targets</text>
+
+  <!-- Card 3: IPS Tracker -->
+  <rect class="card" x="580" y="20" width="260" height="150"/>
+  <text class="icon" x="610" y="55">🔍</text>
+  <text class="title" x="610" y="85">IPS Tracker</text>
+  <text class="description" x="610" y="105">Issue Problem Solving with</text>
+  <text class="description" x="610" y="120">nested countermeasures</text>
+
+  <!-- Row 2 -->
+  <!-- Card 4: BOS / QBOS -->
+  <rect class="card" x="20" y="185" width="260" height="150"/>
+  <text class="icon" x="50" y="220">👁</text>
+  <text class="title" x="50" y="250">BOS / QBOS</text>
+  <text class="description" x="50" y="270">Behavior observation uploads</text>
+  <text class="description" x="50" y="285">with smart alias matching</text>
+
+  <!-- Card 5: Q Flags (ComitDB) -->
+  <rect class="card" x="300" y="185" width="260" height="150"/>
+  <text class="icon" x="330" y="220">🎯</text>
+  <text class="title" x="330" y="250">Q Flags (ComitDB)</text>
+  <text class="description" x="330" y="270">Automatic Q Flag counting</text>
+  <text class="description" x="330" y="285">with week aggregation</text>
+
+  <!-- Card 6: QM Competencies -->
+  <rect class="card" x="580" y="185" width="260" height="150"/>
+  <text class="icon" x="610" y="220">🧩</text>
+  <text class="title" x="610" y="250">QM Competencies</text>
+  <text class="description" x="610" y="270">Skills matrix with monthly</text>
+  <text class="description" x="610" y="285">compliance tracking</text>
+
+  <!-- Row 3 -->
+  <!-- Card 7: DH Defects -->
+  <rect class="card" x="20" y="350" width="260" height="150"/>
+  <text class="icon" x="50" y="385">⚡</text>
+  <text class="title" x="50" y="415">DH Defects</text>
+  <text class="description" x="50" y="435">Defect hunting CSV import</text>
+  <text class="description" x="50" y="450">with email-based matching</text>
+
+  <!-- Card 8: FRR Analytics -->
+  <rect class="card" x="300" y="350" width="260" height="150"/>
+  <text class="icon" x="330" y="385">📉</text>
+  <text class="title" x="330" y="415">FRR Analytics</text>
+  <text class="description" x="330" y="435">First Run Rate calculation</text>
+  <text class="description" x="330" y="450">and trend visualization</text>
+
+  <!-- Card 9: Admin Panel -->
+  <rect class="card" x="580" y="350" width="260" height="150"/>
+  <text class="icon" x="610" y="385">⚙</text>
+  <text class="title" x="610" y="415">Admin Panel</text>
+  <text class="description" x="610" y="435">Cedula management and</text>
+  <text class="description" x="610" y="450">operator/LC CRUD</text>
+</svg>

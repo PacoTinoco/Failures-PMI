@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="900" height="220">
+  <defs>
+    <!-- Dark navy gradient background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1628;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a2d4d;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Subtle grid pattern -->
+    <pattern id="gridPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#38bdf8" stroke-width="0.5" opacity="0.08"/>
+    </pattern>
+
+    <!-- Hexagonal pattern overlay -->
+    <pattern id="hexPattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <circle cx="30" cy="30" r="1.5" fill="#38bdf8" opacity="0.06"/>
+      <path d="M 30 0 L 45 15 L 45 45 L 30 60 L 15 45 L 15 15 Z" fill="none" stroke="#38bdf8" stroke-width="0.3" opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="220" fill="url(#bgGradient)"/>
+
+  <!-- Grid pattern background -->
+  <rect width="900" height="220" fill="url(#gridPattern)"/>
+
+  <!-- Hexagonal pattern overlay -->
+  <rect width="900" height="220" fill="url(#hexPattern)"/>
+
+  <!-- Subtle radial gradient vignette -->
+  <defs>
+    <radialGradient id="vignetteGradient" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0.1" />
+    </radialGradient>
+  </defs>
+  <rect width="900" height="220" fill="url(#vignetteGradient)"/>
+
+  <!-- Top accent border -->
+  <rect x="0" y="0" width="900" height="3" fill="#06b6d4" opacity="0.8"/>
+
+  <!-- Bottom accent border -->
+  <rect x="0" y="217" width="900" height="3" fill="#06b6d4" opacity="0.8"/>
+
+  <!-- Left content area with padding -->
+  <g>
+    <!-- Main title: "PMI Platform" -->
+    <text x="50" y="80" font-family="'Segoe UI', 'Helvetica Neue', sans-serif" font-size="48" font-weight="700" fill="#ffffff" letter-spacing="-0.5">
+      PMI Platform
+    </text>
+
+    <!-- Subtitle: "FTO Digital — Filtros Cápsula" -->
+    <text x="50" y="125" font-family="'Segoe UI', 'Helvetica Neue', sans-serif" font-size="20" font-weight="600" fill="#38bdf8" letter-spacing="0.5">
+      FTO Digital — Filtros Cápsula
+    </text>
+
+    <!-- Tagline: "Real-time SQDCM Manufacturing Intelligence" -->
+    <text x="50" y="155" font-family="'Segoe UI', 'Helvetica Neue', sans-serif" font-size="14" font-weight="400" fill="#94a3b8" letter-spacing="0.3">
+      Real-time SQDCM Manufacturing Intelligence
+    </text>
+  </g>
+
+  <!-- Right side decorative elements -->
+  <g opacity="0.3">
+    <!-- Gear icon (mechanical symbol) -->
+    <g transform="translate(750, 60)">
+      <!-- Outer gear circle -->
+      <circle cx="0" cy="0" r="28" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+
+      <!-- Gear teeth -->
+      <g stroke="#38bdf8" stroke-width="2" fill="none">
+        <!-- Teeth -->
+        <line x1="0" y1="-35" x2="0" y2="-42"/>
+        <line x1="24.7" y1="-17.5" x2="30" y2="-22"/>
+        <line x1="35" y1="0" x2="42" y2="0"/>
+        <line x1="24.7" y1="17.5" x2="30" y2="22"/>
+        <line x1="0" y1="35" x2="0" y2="42"/>
+        <line x1="-24.7" y1="17.5" x2="-30" y2="22"/>
+        <line x1="-35" y1="0" x2="-42" y2="0"/>
+        <line x1="-24.7" y1="-17.5" x2="-30" y2="-22"/>
+      </g>
+
+      <!-- Center circle -->
+      <circle cx="0" cy="0" r="6" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="2.5" fill="#38bdf8"/>
+    </g>
+
+    <!-- Line chart (trending up) -->
+    <g transform="translate(820, 100)">
+      <!-- Axis lines -->
+      <line x1="0" y1="40" x2="50" y2="40" stroke="#38bdf8" stroke-width="1.5"/>
+      <line x1="0" y1="40" x2="0" y2="0" stroke="#38bdf8" stroke-width="1.5"/>
+
+      <!-- Upward trending line -->
+      <polyline points="5,35 15,25 25,18 35,10 45,5" stroke="#38bdf8" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- Data points -->
+      <circle cx="5" cy="35" r="2.5" fill="#38bdf8"/>
+      <circle cx="15" cy="25" r="2.5" fill="#38bdf8"/>
+      <circle cx="25" cy="18" r="2.5" fill="#38bdf8"/>
+      <circle cx="35" cy="10" r="2.5" fill="#38bdf8"/>
+      <circle cx="45" cy="5" r="2.5" fill="#38bdf8"/>
+
+      <!-- Subtle grid background -->
+      <line x1="10" y1="0" x2="10" y2="40" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+      <line x1="20" y1="0" x2="20" y2="40" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+      <line x1="30" y1="0" x2="30" y2="40" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+      <line x1="40" y1="0" x2="40" y2="40" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+
+      <line x1="0" y1="10" x2="50" y2="10" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+      <line x1="0" y1="20" x2="50" y2="20" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+      <line x1="0" y1="30" x2="50" y2="30" stroke="#38bdf8" stroke-width="0.5" opacity="0.3"/>
+    </g>
+  </g>
+
+  <!-- Decorative accent lines connecting elements -->
+  <line x1="580" y1="110" x2="710" y2="110" stroke="#06b6d4" stroke-width="1" opacity="0.4" stroke-dasharray="5,5"/>
+</svg>
