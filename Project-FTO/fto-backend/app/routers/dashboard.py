@@ -5,7 +5,6 @@ from app.services.supabase_client import get_supabase_admin
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
-
 @router.get("/resumen-lc")
 async def resumen_por_lc(
     cedula_id: str,
@@ -24,7 +23,6 @@ async def resumen_por_lc(
     result = query.execute()
 
     return {"data": result.data}
-
 
 @router.get("/semanas")
 async def listar_semanas(cedula_id: str):
