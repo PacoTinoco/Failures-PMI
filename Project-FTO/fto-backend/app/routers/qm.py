@@ -77,12 +77,17 @@ async def upload_calendario(
     # Borrar calendario anterior de esta cédula
     sb.table("qm_calendario").delete().eq("cedula_id", cedula_id).execute()
 
+    # Filtrar filas de Total y vacías
+    df = df[df['Employee'].notna()]
+    df = df[~df['Employee'].astype(str).str.strip().str.lower().isin(['total', 'nan', ''])]
+    df = df.dropna(how='all')
+
     # Insertar nuevo calendario
     records = []
     for _, row in df.iterrows():
         emp = str(row['Employee']).strip() if pd.notna(row['Employee']) else None
         comp = str(row['Competency']).strip() if pd.notna(row['Competency']) else None
-        if not emp or not comp:
+        if not emp or not comp or emp.lower() == 'total':
             continue
 
         rec = {
@@ -155,6 +160,34 @@ async def update_calendario_entry(record_id: str, body: dict):
     return {"success": True, "data": result.data[0] if result.data else None}
 
 
+@router.post("/calendario/entry")
+async def create_calendario_entry(body: dict):
+    """Crea una nueva entrada en el calendario QM."""
+    sb = get_supabase_admin()
+    required = {"cedula_id", "employee", "competency"}
+    if not required.issubset(set(body.keys())):
+        raise HTTPException(status_code=400, detail=f"Faltan campos requeridos: {required - set(body.keys())}")
+
+    allowed = {"cedula_id", "employee", "competency", "role", "target", "current_base",
+               "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep"}
+    rec = {k: v for k, v in body.items() if k in allowed}
+    rec.setdefault("target", 0)
+    rec.setdefault("current_base", 0)
+
+    result = sb.table("qm_calendario").upsert(
+        rec, on_conflict="cedula_id,employee,competency"
+    ).execute()
+    return {"success": True, "data": result.data[0] if result.data else None}
+
+
+@router.delete("/calendario/{record_id}")
+async def delete_calendario_entry(record_id: str):
+    """Elimina una entrada del calendario QM."""
+    sb = get_supabase_admin()
+    result = sb.table("qm_calendario").delete().eq("id", record_id).execute()
+    return {"success": True, "deleted": len(result.data or [])}
+
+
 # ══════════════════════════════════════════════════════════════
 # DATA SEMANAL
 # ══════════════════════════════════════════════════════════════
@@ -186,6 +219,11 @@ async def upload_data_preview(
             rename_map[c] = 'Employee'
     if rename_map:
         df = df.rename(columns=rename_map)
+
+    # Filtrar filas de Total y vacías
+    df = df[df['Employee'].notna()]
+    df = df[~df['Employee'].astype(str).str.strip().str.lower().isin(['total', 'nan', ''])]
+    df = df.dropna(how='all')
 
     required = {'Employee', 'Competency', 'Current'}
     if not required.issubset(set(df.columns)):
@@ -225,7 +263,7 @@ async def upload_data_preview(
     for _, row in df.iterrows():
         emp = str(row['Employee']).strip() if pd.notna(row['Employee']) else None
         comp = str(row['Competency']).strip() if pd.notna(row['Competency']) else None
-        if not emp or not comp:
+        if not emp or not comp or emp.lower() == 'total':
             continue
         if (emp, comp) not in cal_pairs:
             skipped += 1
@@ -1030,6 +1068,22 @@ async def get_analisis(
                 "changes": changes_this_month,
                 "is_overdue": is_past,
             })
+
+    # ── Enriquecer detalles por empleado con due_month (mes vencido) ──
+    # Mapear (employee, competency) → mes más antiguo vencido
+    overdue_map = {}  # (employee, competency) → month label
+    for uc in upcoming_changes:
+        if uc.get("is_overdue"):
+            for ch in uc["changes"]:
+                if ch.get("overdue"):
+                    key = (ch["employee"], ch["competency"])
+                    if key not in overdue_map:
+                        overdue_map[key] = uc["month"]  # primer mes vencido
+
+    for es in employees_summary:
+        for det in es["details"]:
+            key = (es["employee"], det["competency"])
+            det["due_month"] = overdue_map.get(key)  # None si no hay atraso
 
     # Totales globales
     total_all      = sum(s["total_competencies"] for s in employees_summary)

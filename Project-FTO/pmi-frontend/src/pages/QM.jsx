@@ -45,6 +45,15 @@ export default function QM() {
   const [empSortKey, setEmpSortKey]       = useState('name')   // 'name' | 'compliance_pct' | 'below_schedule' | 'on_target'
   const [empSortDir, setEmpSortDir]       = useState('asc')    // 'asc' | 'desc'
 
+  // ── Calendario inline editing ──
+  const [calData, setCalData]           = useState([])
+  const [calFilter, setCalFilter]       = useState('')
+  const [calEditing, setCalEditing]     = useState(null)   // record id being edited
+  const [calEditVals, setCalEditVals]   = useState({})
+  const [calSaving, setCalSaving]       = useState(false)
+  const [calAddMode, setCalAddMode]     = useState(false)
+  const [calNewEntry, setCalNewEntry]   = useState({ employee: '', competency: '', role: '', target: 0, current_base: 0 })
+
   const [deletingSemana, setDeletingSemana] = useState(null)
   const [error, setError] = useState(null)
   const [uploadHistory, setUploadHistory] = useState([])
@@ -100,6 +109,44 @@ export default function QM() {
     loadAnalisis()
     loadUploadHistory()
   }, [cedulaId, semana, calLoaded, semanas])
+
+  async function loadCalendario() {
+    if (!cedulaId) return
+    try {
+      const res = await api.getQMCalendario(cedulaId)
+      setCalData(res.data || [])
+    } catch (e) { setError(e.message) }
+  }
+
+  async function handleCalSave(recordId) {
+    setCalSaving(true)
+    try {
+      await api.updateQMCalendarioEntry(recordId, calEditVals)
+      setCalEditing(null)
+      setCalEditVals({})
+      await loadCalendario()
+    } catch (e) { setError(e.message) }
+    finally { setCalSaving(false) }
+  }
+
+  async function handleCalAdd() {
+    setCalSaving(true)
+    try {
+      await api.createQMCalendarioEntry({ ...calNewEntry, cedula_id: cedulaId })
+      setCalAddMode(false)
+      setCalNewEntry({ employee: '', competency: '', role: '', target: 0, current_base: 0 })
+      await loadCalendario()
+    } catch (e) { setError(e.message) }
+    finally { setCalSaving(false) }
+  }
+
+  async function handleCalDelete(recordId) {
+    if (!confirm('¿Eliminar esta entrada del calendario?')) return
+    try {
+      await api.deleteQMCalendarioEntry(recordId)
+      await loadCalendario()
+    } catch (e) { setError(e.message) }
+  }
 
   function loadAnalisis() {
     setAnalisisLoading(true)
@@ -567,6 +614,7 @@ export default function QM() {
               { key: 'charts', label: '📊 Gráficas' },
               { key: 'noproj', label: `Sin proyección (${analisis.not_projected_count ?? 0})` },
               { key: 'upcoming', label: 'Próximos cambios' },
+              { key: 'calendario', label: '📅 Calendario' },
             ].map(tab => (
               <button key={tab.key} onClick={() => setShowTab(tab.key)}
                 className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${
@@ -709,6 +757,180 @@ export default function QM() {
           {showTab === 'upcoming' && (
             <UpcomingChangesTab upcomingChanges={analisis.upcoming_changes || []} semana={semana} />
           )}
+
+          {/* Tab: Calendario inline */}
+          {showTab === 'calendario' && (() => {
+            // Load on first render of this tab
+            if (calData.length === 0 && cedulaId) { loadCalendario() }
+            const MONTHS = ['feb','mar','abr','may','jun','jul','ago','sep']
+            const filtered = calData.filter(r =>
+              r.employee.toLowerCase().includes(calFilter.toLowerCase()) ||
+              r.competency.toLowerCase().includes(calFilter.toLowerCase())
+            )
+            // Group by employee
+            const grouped = {}
+            filtered.forEach(r => {
+              if (!grouped[r.employee]) grouped[r.employee] = []
+              grouped[r.employee].push(r)
+            })
+            return (
+              <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                  <h3 className="text-white text-sm font-semibold">Calendario QM — Edición Inline</h3>
+                  <div className="flex items-center gap-2">
+                    <input type="text" placeholder="Buscar empleado/competencia..."
+                      value={calFilter} onChange={e => setCalFilter(e.target.value)}
+                      className="bg-[#0a1628] border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs w-56 focus:outline-none focus:ring-1 focus:ring-purple-500" />
+                    <button onClick={() => setCalAddMode(!calAddMode)}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg transition-colors">
+                      + Agregar
+                    </button>
+                    <button onClick={loadCalendario}
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg transition-colors">
+                      Recargar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add new entry form */}
+                {calAddMode && (
+                  <div className="bg-[#0a1628] rounded-lg border border-green-500/30 p-3 mb-4 flex flex-wrap gap-2 items-end">
+                    <div>
+                      <label className="text-slate-500 text-[10px] block mb-0.5">Empleado</label>
+                      <input type="text" value={calNewEntry.employee}
+                        onChange={e => setCalNewEntry(p => ({ ...p, employee: e.target.value }))}
+                        className="bg-[#0f1d32] border border-white/10 rounded px-2 py-1 text-white text-xs w-40 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] block mb-0.5">Competencia</label>
+                      <input type="text" value={calNewEntry.competency}
+                        onChange={e => setCalNewEntry(p => ({ ...p, competency: e.target.value }))}
+                        className="bg-[#0f1d32] border border-white/10 rounded px-2 py-1 text-white text-xs w-40 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] block mb-0.5">Rol</label>
+                      <input type="text" value={calNewEntry.role}
+                        onChange={e => setCalNewEntry(p => ({ ...p, role: e.target.value }))}
+                        className="bg-[#0f1d32] border border-white/10 rounded px-2 py-1 text-white text-xs w-32 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] block mb-0.5">Base</label>
+                      <input type="number" value={calNewEntry.current_base}
+                        onChange={e => setCalNewEntry(p => ({ ...p, current_base: Number(e.target.value) }))}
+                        className="bg-[#0f1d32] border border-white/10 rounded px-2 py-1 text-white text-xs w-14 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] block mb-0.5">Target</label>
+                      <input type="number" value={calNewEntry.target}
+                        onChange={e => setCalNewEntry(p => ({ ...p, target: Number(e.target.value) }))}
+                        className="bg-[#0f1d32] border border-white/10 rounded px-2 py-1 text-white text-xs w-14 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    </div>
+                    <button onClick={handleCalAdd} disabled={calSaving || !calNewEntry.employee || !calNewEntry.competency}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition-colors">
+                      {calSaving ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button onClick={() => setCalAddMode(false)}
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg transition-colors">
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 z-10 bg-[#0f1d32]">
+                      <tr className="border-b border-white/10">
+                        <th className="px-3 py-2 text-left text-slate-400 min-w-[140px]">Empleado</th>
+                        <th className="px-2 py-2 text-left text-slate-400 min-w-[120px]">Competencia</th>
+                        <th className="px-2 py-2 text-center text-slate-400 w-14">Base</th>
+                        <th className="px-2 py-2 text-center text-slate-400 w-14">Target</th>
+                        {MONTHS.map(m => (
+                          <th key={m} className="px-1 py-2 text-center text-slate-400 w-12">{m.charAt(0).toUpperCase() + m.slice(1)}</th>
+                        ))}
+                        <th className="px-2 py-2 text-center text-slate-400 w-20">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(grouped).sort().map(emp => (
+                        <Fragment key={emp}>
+                          {grouped[emp].sort((a, b) => a.competency.localeCompare(b.competency)).map((rec, ri) => {
+                            const isEditing = calEditing === rec.id
+                            return (
+                              <tr key={rec.id} className={`border-b border-white/5 hover:bg-slate-700/20 ${ri === 0 ? 'border-t border-white/10' : ''}`}>
+                                <td className="px-3 py-1.5 text-white font-medium">
+                                  {ri === 0 ? emp : ''}
+                                </td>
+                                <td className="px-2 py-1.5 text-slate-300">{rec.competency}</td>
+                                <td className="px-2 py-1.5 text-center">
+                                  {isEditing ? (
+                                    <input type="number" defaultValue={rec.current_base || 0}
+                                      onChange={e => setCalEditVals(p => ({ ...p, current_base: Number(e.target.value) }))}
+                                      className="bg-[#0a1628] border border-purple-500/50 rounded px-1 py-0.5 text-white text-xs w-12 text-center focus:outline-none" />
+                                  ) : <span className="text-slate-400">{rec.current_base ?? '—'}</span>}
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  {isEditing ? (
+                                    <input type="number" defaultValue={rec.target || 0}
+                                      onChange={e => setCalEditVals(p => ({ ...p, target: Number(e.target.value) }))}
+                                      className="bg-[#0a1628] border border-purple-500/50 rounded px-1 py-0.5 text-white text-xs w-12 text-center focus:outline-none" />
+                                  ) : <span className="text-cyan-400 font-medium">{rec.target ?? '—'}</span>}
+                                </td>
+                                {MONTHS.map(m => (
+                                  <td key={m} className="px-1 py-1.5 text-center">
+                                    {isEditing ? (
+                                      <input type="number" defaultValue={rec[m] ?? ''}
+                                        onChange={e => setCalEditVals(p => ({ ...p, [m]: e.target.value === '' ? null : Number(e.target.value) }))}
+                                        className="bg-[#0a1628] border border-purple-500/50 rounded px-0.5 py-0.5 text-white text-xs w-10 text-center focus:outline-none" />
+                                    ) : (
+                                      <span className={rec[m] != null ? (rec[m] >= (rec.target || 0) ? 'text-green-400' : 'text-yellow-400') : 'text-slate-600'}>
+                                        {rec[m] ?? '·'}
+                                      </span>
+                                    )}
+                                  </td>
+                                ))}
+                                <td className="px-2 py-1.5 text-center">
+                                  {isEditing ? (
+                                    <div className="flex gap-1 justify-center">
+                                      <button onClick={() => handleCalSave(rec.id)} disabled={calSaving}
+                                        className="px-2 py-0.5 bg-green-600 hover:bg-green-500 text-white text-[10px] rounded transition-colors">
+                                        {calSaving ? '...' : '✓'}
+                                      </button>
+                                      <button onClick={() => { setCalEditing(null); setCalEditVals({}) }}
+                                        className="px-2 py-0.5 bg-slate-600 hover:bg-slate-500 text-white text-[10px] rounded transition-colors">
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex gap-1 justify-center">
+                                      <button onClick={() => { setCalEditing(rec.id); setCalEditVals({}) }}
+                                        className="px-2 py-0.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 text-[10px] rounded transition-colors">
+                                        Editar
+                                      </button>
+                                      <button onClick={() => handleCalDelete(rec.id)}
+                                        className="px-2 py-0.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 text-[10px] rounded transition-colors">
+                                        ✕
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filtered.length === 0 && (
+                    <p className="text-center text-slate-500 py-8 text-sm">
+                      {calData.length === 0 ? 'Cargando calendario...' : 'Sin resultados para la búsqueda.'}
+                    </p>
+                  )}
+                </div>
+                <p className="text-slate-500 text-[10px] mt-2">{calData.length} registros totales • {Object.keys(grouped).length} empleados mostrados</p>
+              </div>
+            )
+          })()}
+
         </div>
       ) : calLoaded ? (
         <div className="bg-[#0f1d32] rounded-xl border border-white/5 px-6 py-16 text-center">
@@ -1666,6 +1888,7 @@ function EmployeeRow({ emp, isExpanded, onToggle }) {
                     <th className="px-2 py-1.5 text-center text-slate-500">Pronóstico</th>
                     <th className="px-2 py-1.5 text-center text-slate-500">Sem. ant.</th>
                     <th className="px-2 py-1.5 text-center text-slate-500">Estado</th>
+                    <th className="px-2 py-1.5 text-center text-slate-500">Vencido</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1696,6 +1919,13 @@ function EmployeeRow({ emp, isExpanded, onToggle }) {
                              d.status === 'above_target' ? 'Sobresaliente' :
                              d.schedule_status === 'below_schedule' ? 'Atrasado' : 'Pendiente'}
                           </span>
+                        </td>
+                        <td className="px-2 py-1 text-center">
+                          {d.due_month ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/15 text-orange-400">
+                              {d.due_month}
+                            </span>
+                          ) : '—'}
                         </td>
                       </tr>
                     ))}

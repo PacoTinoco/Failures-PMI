@@ -253,6 +253,16 @@ export async function updateQMCalendarioEntry(recordId, data) {
   })
 }
 
+export async function createQMCalendarioEntry(data) {
+  return apiRequest(`/qm/calendario/entry`, {
+    method: 'POST', body: JSON.stringify(data)
+  })
+}
+
+export async function deleteQMCalendarioEntry(recordId) {
+  return apiRequest(`/qm/calendario/${recordId}`, { method: 'DELETE' })
+}
+
 export async function uploadQMData(cedulaId, semana, file) {
   const formData = new FormData()
   formData.append('file', file)

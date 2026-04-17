@@ -44,7 +44,7 @@ export default function IPS() {
   const [filterKdf, setFilterKdf]       = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterUbi, setFilterUbi]       = useState('all')
-  const [filterOwner, setFilterOwner]   = useState('all')
+  const [filterOwner, setFilterOwner]   = useState([])  // [] = all, array of names = filtered
   const [sortKey, setSortKey]           = useState('fecha')
   const [sortDir, setSortDir]           = useState('desc')
 
@@ -67,6 +67,13 @@ export default function IPS() {
   // Add CM modal
   const [showAddCM, setShowAddCM] = useState(null) // ips_id
   const [newCM, setNewCM] = useState({ ...EMPTY_CM })
+
+  // Edit IPS
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editForm, setEditForm]           = useState({ ...EMPTY_IPS })
+  const [editId, setEditId]               = useState(null)
+  const [editSaving, setEditSaving]       = useState(false)
+  const [ownerDropOpen, setOwnerDropOpen] = useState(false)
 
   // Export
   const [exporting, setExporting] = useState(false)
@@ -268,6 +275,43 @@ export default function IPS() {
     } catch (err) { setError(err.message) }
   }
 
+  // ── Edit IPS record ──
+  function openEditModal(rec) {
+    setEditId(rec.id)
+    setEditForm({
+      kdf: rec.kdf || '',
+      titulo: rec.titulo || '',
+      fecha: rec.fecha || '',
+      ubicacion: rec.ubicacion || '',
+      participants: Array.isArray(rec.participants) ? rec.participants.join(', ') : (rec.participants || ''),
+      section_6w2h: rec.section_6w2h || false,
+      section_bbc: rec.section_bbc || false,
+      section_5w: rec.section_5w || false,
+      section_res: rec.section_res || false,
+      status: rec.status || 'Open',
+      notes: rec.notes || '',
+    })
+    setShowEditModal(true)
+  }
+
+  async function handleEditSave() {
+    setEditSaving(true)
+    try {
+      const data = {
+        ...editForm,
+        kdf: parseInt(editForm.kdf) || 0,
+        participants: typeof editForm.participants === 'string'
+          ? editForm.participants.split(',').map(p => p.trim()).filter(Boolean)
+          : editForm.participants,
+      }
+      await api.updateIPSRecord(editId, data)
+      setShowEditModal(false)
+      setEditId(null)
+      await loadData()
+    } catch (err) { setError(err.message) }
+    finally { setEditSaving(false) }
+  }
+
   // ── Filter & sort ──
   const uniqueKdfs = [...new Set(records.map(r => r.kdf))].sort((a, b) => a - b)
   const uniqueStatuses = [...new Set(records.map(r => r.status))].sort()
@@ -288,9 +332,9 @@ export default function IPS() {
       if (filterKdf !== 'all' && r.kdf !== parseInt(filterKdf)) return false
       if (filterStatus !== 'all' && r.status !== filterStatus) return false
       if (filterUbi !== 'all' && r.ubicacion !== filterUbi) return false
-      if (filterOwner !== 'all') {
+      if (filterOwner.length > 0) {
         const owners = cmOwnerMap[r.id]
-        if (!owners || !owners.has(filterOwner)) return false
+        if (!owners || !filterOwner.some(fo => owners.has(fo))) return false
       }
       return true
     })
@@ -413,15 +457,37 @@ export default function IPS() {
             ))}
           </div>
 
-          {/* Owner filter */}
+          {/* Owner multi-select filter */}
           <span className="text-xs text-slate-500 ml-2">Owner:</span>
-          <select value={filterOwner} onChange={e => setFilterOwner(e.target.value)}
-            className="bg-[#0a1628] border border-white/10 rounded-lg px-2.5 py-1 text-[11px] text-white focus:outline-none focus:border-purple-500/50">
-            <option value="all">Todos</option>
-            {uniqueOwners.map(o => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <button onClick={() => setOwnerDropOpen(!ownerDropOpen)}
+              className={`bg-[#0a1628] border ${filterOwner.length > 0 ? 'border-purple-500/60' : 'border-white/10'} rounded-lg px-2.5 py-1 text-[11px] text-white focus:outline-none min-w-[120px] text-left flex items-center justify-between gap-1`}>
+              <span className="truncate max-w-[140px]">
+                {filterOwner.length === 0 ? 'Todos' : filterOwner.length === 1 ? filterOwner[0] : `${filterOwner.length} seleccionados`}
+              </span>
+              <span className="text-slate-500 text-[9px]">▾</span>
+            </button>
+            {ownerDropOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-[#0f1d32] border border-white/10 rounded-lg shadow-xl z-50 w-56 max-h-60 overflow-y-auto">
+                <button onClick={() => { setFilterOwner([]); setOwnerDropOpen(false) }}
+                  className="w-full px-3 py-1.5 text-left text-[11px] text-slate-400 hover:bg-slate-700/50 border-b border-white/5">
+                  Todos (limpiar filtro)
+                </button>
+                {uniqueOwners.map(o => (
+                  <label key={o} className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-700/30 cursor-pointer">
+                    <input type="checkbox" checked={filterOwner.includes(o)}
+                      onChange={() => {
+                        setFilterOwner(prev =>
+                          prev.includes(o) ? prev.filter(x => x !== o) : [...prev, o]
+                        )
+                      }}
+                      className="rounded border-slate-600 text-purple-500 focus:ring-purple-500 w-3 h-3" />
+                    <span className="text-[11px] text-white truncate">{o}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex-1" />
 
@@ -526,7 +592,8 @@ export default function IPS() {
                       newCM={newCM}
                       setNewCM={setNewCM}
                       onAddCM={() => handleAddCM(r.id)}
-                      onCancelAddCM={() => setShowAddCM(null)} />
+                      onCancelAddCM={() => setShowAddCM(null)}
+                      onEdit={openEditModal} />
                   )
                 })}
                 {filtered.length === 0 && (
@@ -673,6 +740,92 @@ export default function IPS() {
           </div>
         </div>
       )}
+
+      {/* ── Edit IPS Modal ── */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowEditModal(false)}>
+          <div className="bg-[#0f1d32] rounded-xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Editar Registro IPS</h2>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white text-lg">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">KDF</label>
+                  <input type="number" value={editForm.kdf}
+                    onChange={e => setEditForm(f => ({ ...f, kdf: e.target.value }))}
+                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Status</label>
+                  <select value={editForm.status}
+                    onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
+                    {['Open','Closed','BCC','6W2H','Cancelled','Merged','Ascended','Missing'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Fecha</label>
+                  <input type="date" value={editForm.fecha}
+                    onChange={e => setEditForm(f => ({ ...f, fecha: e.target.value }))}
+                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Título</label>
+                <input type="text" value={editForm.titulo}
+                  onChange={e => setEditForm(f => ({ ...f, titulo: e.target.value }))}
+                  className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Ubicación</label>
+                  <input type="text" value={editForm.ubicacion}
+                    onChange={e => setEditForm(f => ({ ...f, ubicacion: e.target.value }))}
+                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Participantes (separados por coma)</label>
+                  <input type="text" value={editForm.participants}
+                    onChange={e => setEditForm(f => ({ ...f, participants: e.target.value }))}
+                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-slate-400">Secciones:</span>
+                {[['section_6w2h','6W2H'],['section_bbc','BBC'],['section_5w','5W'],['section_res','Res']].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={editForm[key]}
+                      onChange={() => setEditForm(f => ({ ...f, [key]: !f[key] }))}
+                      className="accent-green-500" />
+                    <span className="text-xs text-slate-300">{label}</span>
+                  </label>
+                ))}
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Notas</label>
+                <textarea value={editForm.notes}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50 resize-none" />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-white/5 flex items-center justify-end gap-3">
+              <button onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 rounded-lg text-xs text-slate-400 hover:text-white transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleEditSave} disabled={editSaving}
+                className="px-6 py-2 rounded-lg text-xs font-medium bg-purple-600 hover:bg-purple-500 text-white transition-colors disabled:opacity-50">
+                {editSaving ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -681,11 +834,11 @@ export default function IPS() {
 // ── IPS Row + expandable detail ──
 function IPSRow({ record: r, isExpanded, cmTotal, cmDone, expandedCMs, loadingCMs, filterOwner,
   onToggle, onStatusChange, onSectionToggle, onCMStatusChange, onDeleteIPS, onDeleteCM,
-  onShowAddCM, showAddCM, newCM, setNewCM, onAddCM, onCancelAddCM }) {
+  onShowAddCM, showAddCM, newCM, setNewCM, onAddCM, onCancelAddCM, onEdit }) {
 
   // Filter expanded CMs by owner if filter is active
-  const visibleCMs = filterOwner !== 'all'
-    ? expandedCMs.filter(cm => cm.owner === filterOwner)
+  const visibleCMs = Array.isArray(filterOwner) && filterOwner.length > 0
+    ? expandedCMs.filter(cm => filterOwner.includes(cm.owner))
     : expandedCMs
 
   return (
@@ -735,10 +888,16 @@ function IPSRow({ record: r, isExpanded, cmTotal, cmDone, expandedCMs, loadingCM
           ) : <span className="text-slate-700">—</span>}
         </td>
         <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
-          <button onClick={() => onDeleteIPS(r.id)}
-            className="text-slate-600 hover:text-red-400 text-xs transition-colors" title="Eliminar IPS">
-            ✕
-          </button>
+          <div className="flex gap-1 justify-center">
+            <button onClick={() => onEdit(r)}
+              className="text-slate-600 hover:text-purple-400 text-xs transition-colors" title="Editar IPS">
+              ✎
+            </button>
+            <button onClick={() => onDeleteIPS(r.id)}
+              className="text-slate-600 hover:text-red-400 text-xs transition-colors" title="Eliminar IPS">
+              ✕
+            </button>
+          </div>
         </td>
       </tr>
 
