@@ -10,6 +10,7 @@ import BOSQBOS from './pages/BOSQBOS'
 import FRR from './pages/FRR'
 import IPS from './pages/IPS'
 import QFlags from './pages/QFlags'
+import CO from './pages/CO'
 
 export default function App() {
   return (
@@ -34,6 +35,9 @@ export default function App() {
 
       {/* QM Section */}
       <Route path="/qm" element={<Layout><QM /></Layout>} />
+
+      {/* CO — Changeover Analysis */}
+      <Route path="/qm/co" element={<Layout><CO /></Layout>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/fto/captura" replace />} />

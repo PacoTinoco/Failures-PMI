@@ -11,6 +11,7 @@ function isNAVal(v) {
   return false
 }
 import CedulaSelector from '../components/CedulaSelector'
+import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
 
 // ══════════════════════════════════════════════════════
@@ -40,6 +41,7 @@ export default function Weekly() {
   const [cedulaId, setCedulaId]             = useState(null)
   const [cedulasLoading, setCedulasLoading] = useState(true)
   const [error, setError]                   = useState(null)
+  const [banner, setBanner]                 = useState(null)
 
   const [year, setYear]       = useState(getCurrentYear())
   const [quarter, setQuarter] = useState(getCurrentQuarter())
@@ -190,6 +192,7 @@ export default function Weekly() {
         if (deletes.length > 0) await api.deleteWeeklyTargets(deletes)
       }
       setPendingChanges({})
+      setBanner({ message: 'Datos guardados exitosamente', detail: `Q${quarter} ${year} · ${editMode === 'values' ? 'Valores' : 'Targets'}`, type: 'success' })
       // Reload the correct data source based on current view
       if (viewMode === 'machine') {
         const res = await api.getWeeklyChartData(cedulaId, year, quarter, null)
@@ -381,6 +384,8 @@ export default function Weekly() {
   // ══════════════════════════════════════════════════════
   return (
     <div className="space-y-4">
+      <UploadBanner show={!!banner} onClose={() => setBanner(null)}
+        message={banner?.message || ''} detail={banner?.detail} type={banner?.type} />
       <PageHeader cedulas={cedulas} cedulaId={cedulaId} setCedulaId={setCedulaId} cedulasLoading={cedulasLoading} />
       {error && <ErrorBanner error={error} onClose={() => setError(null)} />}
 

@@ -45,7 +45,8 @@ const sections = [
       </svg>
     ),
     items: [
-      { to: '/qm', label: 'Panel QM' }
+      { to: '/qm', label: 'Panel QM' },
+      { to: '/qm/co', label: 'Análisis CO' }
     ]
   }
 ]

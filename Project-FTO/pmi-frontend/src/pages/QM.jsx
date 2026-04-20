@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import CedulaSelector from '../components/CedulaSelector'
 import WeekSelector from '../components/WeekSelector'
+import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
 
 function getClosestMonday() {
@@ -61,6 +62,7 @@ export default function QM() {
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
   const [deletingLogId, setDeletingLogId] = useState(null)
+  const [banner, setBanner] = useState(null) // { message, detail, type }
   const calInputRef  = useRef(null)
   const dataInputRef = useRef(null)
 
@@ -175,6 +177,8 @@ export default function QM() {
       const res = await api.uploadQMCalendario(cedulaId, file)
       setCalResult(res)
       setCalLoaded(true)
+      const cName = cedulas.find(c => c.id === cedulaId)?.nombre || ''
+      setBanner({ message: 'Calendario cargado exitosamente', detail: `${res.total_records} registros · ${res.employees} empleados · ${cName}`, type: 'success' })
     } catch (err) { setError(err.message) }
     setCalUploading(false)
   }
@@ -211,6 +215,8 @@ export default function QM() {
         preview.changes_detail
       )
       setSaveResult(res)
+      const cName = cedulas.find(c => c.id === cedulaId)?.nombre || ''
+      setBanner({ message: 'Data semanal guardada', detail: `Semana ${semana} · ${cName}`, type: 'success' })
       // Refrescar lista de semanas y análisis
       refreshSemanas()
       loadAnalisis()
@@ -308,6 +314,9 @@ export default function QM() {
 
   return (
     <div className="space-y-6">
+      <UploadBanner show={!!banner} onClose={() => setBanner(null)}
+        cedulaName={banner?.cedulaName} message={banner?.message || ''} detail={banner?.detail} type={banner?.type} />
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

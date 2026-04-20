@@ -182,6 +182,29 @@ async def upload_qflags(
             f"Faltan columnas. Encontradas: {list(df.columns)}. Se requieren 'Created' y '[username]'."
         )
 
+    # ── Filtrar solo filas de "Single caps" / "Double caps" ──
+    # Busca en columnas type, category, subcategory o cualquiera que contenga esos valores
+    caps_col = find_col("type", "category", "subcategory")
+    caps_filter_applied = False
+    if caps_col:
+        # Verificar si la columna realmente tiene valores de caps
+        vals_lower = df[caps_col].astype(str).str.strip().str.lower().unique()
+        has_caps = any("single caps" in v or "double caps" in v for v in vals_lower)
+        if has_caps:
+            df = df[df[caps_col].astype(str).str.strip().str.lower().isin(["single caps", "double caps"])]
+            caps_filter_applied = True
+
+    # Si no encontró en la primera columna, buscar en todas las columnas por si acaso
+    if not caps_filter_applied:
+        for col in df.columns:
+            vals_lower = df[col].astype(str).str.strip().str.lower().unique()
+            has_caps = any("single caps" in v or "double caps" in v for v in vals_lower)
+            if has_caps:
+                df = df[df[col].astype(str).str.strip().str.lower().isin(["single caps", "double caps"])]
+                caps_filter_applied = True
+                caps_col = col
+                break
+
     sb = get_supabase_admin()
 
     # Carga operadores y aliases
@@ -251,6 +274,8 @@ async def upload_qflags(
         "success": True,
         "total_rows": total_rows,
         "skipped_rows": skipped_rows,
+        "caps_filter": caps_col if caps_filter_applied else None,
+        "rows_after_filter": len(df) if caps_filter_applied else total_rows,
         "matched_count": sum(counts.values()),
         "unique_operators": len({k[0] for k in counts.keys()}),
         "unique_weeks": sorted({k[1] for k in counts.keys()}),

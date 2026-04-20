@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import CedulaSelector from '../components/CedulaSelector'
+import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
 
 const STATUS_COLORS = {
@@ -78,6 +79,9 @@ export default function IPS() {
   // Export
   const [exporting, setExporting] = useState(false)
 
+  // Banner
+  const [banner, setBanner] = useState(null)
+
   // Dedup
   const [deduping, setDeduping] = useState(false)
 
@@ -119,6 +123,8 @@ export default function IPS() {
     try {
       const res = await api.uploadIPSExcel(cedulaId, file)
       setUploadResult(res)
+      const cName = cedulas.find(c => c.id === cedulaId)?.nombre || ''
+      setBanner({ message: 'IPS Excel cargado exitosamente', detail: `${res.message || ''} · ${cName}`, type: 'success' })
       await loadData()
     } catch (err) { setError(err.message) }
     finally { setUploading(false) }
@@ -369,6 +375,9 @@ export default function IPS() {
 
   return (
     <div className="space-y-4">
+      <UploadBanner show={!!banner} onClose={() => setBanner(null)}
+        message={banner?.message || ''} detail={banner?.detail} type={banner?.type} />
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

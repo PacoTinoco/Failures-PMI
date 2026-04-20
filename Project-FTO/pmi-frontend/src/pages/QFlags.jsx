@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import CedulaSelector from '../components/CedulaSelector'
+import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
 
 export default function QFlags() {
@@ -11,6 +12,7 @@ export default function QFlags() {
   const [result, setResult] = useState(null)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState(null)
+  const [banner, setBanner] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -43,6 +45,8 @@ export default function QFlags() {
     try {
       await api.saveQFlags(cedulaId, result.results)
       setSaved(true)
+      const cName = cedulas.find(c => c.id === cedulaId)?.nombre || ''
+      setBanner({ message: 'Q Flags guardados exitosamente', detail: `${result.results.length} registros · ${cName}`, type: 'success' })
     } catch (err) { setError(err.message) }
     finally { setSaving(false) }
   }
@@ -62,6 +66,9 @@ export default function QFlags() {
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-[#0a1628]">
+      <UploadBanner show={!!banner} onClose={() => setBanner(null)}
+        message={banner?.message || ''} detail={banner?.detail} type={banner?.type} />
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white">Q Flags — ComitDB</h1>

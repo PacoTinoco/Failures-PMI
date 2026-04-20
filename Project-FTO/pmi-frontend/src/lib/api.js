@@ -622,3 +622,67 @@ export async function saveQFlags(cedulaId, results) {
     body: JSON.stringify(results),
   })
 }
+
+// ============================================================
+// CO — Changeover Analysis
+// ============================================================
+
+export async function getCORecords(semana = null, maquina = null, operador = null) {
+  let path = '/co/records?'
+  const params = []
+  if (semana) params.push(`semana=${semana}`)
+  if (maquina) params.push(`maquina=${encodeURIComponent(maquina)}`)
+  if (operador) params.push(`operador=${encodeURIComponent(operador)}`)
+  return apiRequest(`/co/records${params.length ? '?' + params.join('&') : ''}`)
+}
+
+export async function getCOStats() {
+  return apiRequest('/co/stats')
+}
+
+export async function createCORecord(data) {
+  return apiRequest('/co/records', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function updateCORecord(coId, data) {
+  return apiRequest(`/co/records/${coId}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export async function deleteCORecord(coId) {
+  return apiRequest(`/co/records/${coId}`, { method: 'DELETE' })
+}
+
+export async function seedCO(file, clearExisting = false) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/co/seed?clear_existing=${clearExisting}`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function exportCOExcel(maquina = null, operador = null) {
+  let url = `${API_URL}/co/export?`
+  const params = []
+  if (maquina) params.push(`maquina=${encodeURIComponent(maquina)}`)
+  if (operador) params.push(`operador=${encodeURIComponent(operador)}`)
+  url += params.join('&')
+  const response = await fetch(url)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  const blob = await response.blob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = 'CO_Analysis_Export.xlsx'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(a.href)
+}

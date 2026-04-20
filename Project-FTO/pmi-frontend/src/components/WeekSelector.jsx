@@ -15,13 +15,21 @@ function getMondays(year) {
   return mondays
 }
 
+function getISOWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7)
+}
+
 function formatWeekLabel(date) {
   const endOfWeek = new Date(date)
   endOfWeek.setDate(endOfWeek.getDate() + 6)
   const opts = { day: 'numeric', month: 'short' }
   const start = date.toLocaleDateString('es-MX', opts)
   const end = endOfWeek.toLocaleDateString('es-MX', opts)
-  return `${start} — ${end}`
+  const wn = getISOWeekNumber(date)
+  return `W${wn} · ${start} — ${end}`
 }
 
 function toISODate(date) {
@@ -52,7 +60,7 @@ export default function WeekSelector({ value, onChange, className = '' }) {
     >
       {mondays.map((monday) => (
         <option key={toISODate(monday)} value={toISODate(monday)}>
-          Sem. {formatWeekLabel(monday)}
+          {formatWeekLabel(monday)}
         </option>
       ))}
     </select>
