@@ -47,7 +47,7 @@ async def upload_calendario(
     rename_map = {}
     for c in df.columns:
         cl = str(c).strip().lower()
-        if cl in ('personal number', 'personal_number', 'personalnumber', 'personnel number'):
+        if cl in ('personal number', 'personal_number', 'personnel number', 'Personnel Number'):
             rename_map[c] = 'Employee'
     if rename_map:
         df = df.rename(columns=rename_map)
@@ -211,11 +211,11 @@ async def upload_data_preview(
     content = await file.read()
     df = pd.read_excel(BytesIO(content))
 
-    # Normalize column aliases: "Personal Number" → "Employee"
+    # Normalize column aliases: "Personel Number" → "Employee"
     rename_map = {}
     for c in df.columns:
         cl = str(c).strip().lower()
-        if cl in ('personal number', 'personal_number', 'personalnumber', 'personnel number'):
+        if cl in ('personal number', 'personal_number', 'personalnumber', 'Personnel Number'):
             rename_map[c] = 'Employee'
     if rename_map:
         df = df.rename(columns=rename_map)
