@@ -686,3 +686,21 @@ export async function exportCOExcel(maquina = null, operador = null) {
   document.body.removeChild(a)
   URL.revokeObjectURL(a.href)
 }
+
+// ============================================================
+// INVENTORY MOVEMENTS
+// ============================================================
+
+export async function analyzeInventory(file, threshold = 50) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`${API_URL}/inventory/analyze?anomaly_threshold=${threshold}`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Error de red' }))
+    throw new Error(error.detail || `Error ${response.status}`)
+  }
+  return response.json()
+}

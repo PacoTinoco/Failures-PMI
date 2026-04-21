@@ -11,6 +11,7 @@ import FRR from './pages/FRR'
 import IPS from './pages/IPS'
 import QFlags from './pages/QFlags'
 import CO from './pages/CO'
+import Inventory from './pages/Inventory'
 
 export default function App() {
   return (
@@ -38,6 +39,9 @@ export default function App() {
 
       {/* CO — Changeover Analysis */}
       <Route path="/qm/co" element={<Layout><CO /></Layout>} />
+
+      {/* Inventory Movements */}
+      <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/fto/captura" replace />} />
