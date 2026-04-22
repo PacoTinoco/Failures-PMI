@@ -84,6 +84,37 @@ export default function Inventory() {
     return data.container_summaries.find(s => s.container === filterContainer)
   }, [data, filterContainer])
 
+  // Machines for selected container
+  const selectedMachines = useMemo(() => {
+    if (!data || filterContainer === 'all') return []
+    const movs = data.movements.filter(m => m.container === filterContainer)
+    return [...new Set(movs.map(m => m.dest_loc).filter(Boolean))].sort()
+  }, [data, filterContainer])
+
+  // Consumption start/end per container (for timeline table)
+  const consumptionTable = useMemo(() => {
+    if (!data) return []
+    return data.container_summaries.map(cs => {
+      const movs = data.movements.filter(m => m.container === cs.container)
+      // First real drop = first mov where new_qty < old_qty
+      const firstDrop = movs.find(m =>
+        m.new_qty != null && m.old_qty != null && m.new_qty < m.old_qty
+      )
+      const lastMov = movs.length > 0 ? movs[movs.length - 1] : null
+      return {
+        container: cs.container,
+        firstDropDate: firstDrop?.date || null,
+        firstDropQty: firstDrop ? { old: firstDrop.old_qty, new: firstDrop.new_qty } : null,
+        lastMovDate: lastMov?.date || null,
+        lastMovQty: lastMov ? lastMov.new_qty : null,
+        totalMoves: cs.total_moves,
+        machines: cs.machines,
+        initialQty: cs.initial_qty,
+        finalQty: cs.final_qty,
+      }
+    })
+  }, [data])
+
   if (!data && !loading) {
     return (
       <div className="p-6 space-y-6 min-h-screen bg-[#0a1628]">
@@ -229,6 +260,16 @@ export default function Inventory() {
                 ))}
               </div>
             </div>
+            {selectedMachines.length > 0 && (
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase">Máquina(s)</p>
+                <div className="flex gap-1 flex-wrap">
+                  {selectedMachines.map(m => (
+                    <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300 font-medium">{m}</span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -246,6 +287,67 @@ export default function Inventory() {
       {/* ═══════ TIMELINE TAB ═══════ */}
       {tab === 'timeline' && (
         <div className="space-y-4">
+          {/* Consumption start/end table */}
+          {consumptionTable.length > 0 && (
+            <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">Inicio y Fin de Consumo por Contenedor</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 text-slate-500">
+                      <th className="px-3 py-2 text-left font-medium">Contenedor</th>
+                      <th className="px-3 py-2 text-left font-medium">Máquina</th>
+                      <th className="px-3 py-2 text-center font-medium">Qty Inicial</th>
+                      <th className="px-3 py-2 text-left font-medium">Inicio Consumo</th>
+                      <th className="px-3 py-2 text-left font-medium">Último Movimiento</th>
+                      <th className="px-3 py-2 text-center font-medium">Qty Final</th>
+                      <th className="px-3 py-2 text-center font-medium">Movs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {consumptionTable.map(ct => {
+                      const isSelected = filterContainer === ct.container
+                      return (
+                        <tr key={ct.container}
+                          className={`border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors ${isSelected ? 'bg-cyan-500/[0.06]' : ''}`}
+                          onClick={() => { setFilterContainer(ct.container) }}>
+                          <td className="px-3 py-2 text-white font-mono text-[10px]">
+                            {ct.container}
+                            {isSelected && <span className="ml-1 text-cyan-400 text-[9px]">●</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex gap-1 flex-wrap">
+                              {ct.machines.map(m => (
+                                <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300">{m}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-center text-cyan-400 font-semibold">{ct.initialQty}</td>
+                          <td className="px-3 py-2">
+                            {ct.firstDropDate ? (
+                              <span className="text-green-400 whitespace-nowrap">
+                                {new Date(ct.firstDropDate).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            ) : <span className="text-slate-600">Sin consumo</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            {ct.lastMovDate ? (
+                              <span className="text-amber-400 whitespace-nowrap">
+                                {new Date(ct.lastMovDate).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            ) : <span className="text-slate-600">—</span>}
+                          </td>
+                          <td className="px-3 py-2 text-center text-white font-semibold">{ct.finalQty}</td>
+                          <td className="px-3 py-2 text-center text-slate-400">{ct.totalMoves}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Quantity over time */}
           <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
             <h3 className="text-sm font-semibold text-white mb-1">Cantidad (New Qty) por movimiento</h3>

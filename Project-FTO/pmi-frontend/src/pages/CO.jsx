@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -22,6 +22,11 @@ export default function CO() {
   const [filterMachine, setFilterMachine] = useState('all')
   const [filterOperator, setFilterOperator] = useState('all')
   const [filterWeek, setFilterWeek] = useState('all')
+  const [filterMarcaTermina, setFilterMarcaTermina] = useState('all')
+  const [filterMarcaNueva, setFilterMarcaNueva] = useState('all')
+
+  // Completitud expanded operator
+  const [expandedOp, setExpandedOp] = useState(null)
 
   // Seed upload
   const [seeding, setSeeding] = useState(false)
@@ -131,15 +136,19 @@ export default function CO() {
   const machines = useMemo(() => [...new Set(records.map(r => r.maquina).filter(Boolean))].sort(), [records])
   const operators = useMemo(() => [...new Set(records.map(r => r.operador).filter(Boolean))].sort(), [records])
   const weeks = useMemo(() => [...new Set(records.map(r => r.semana).filter(Boolean))].sort((a, b) => parseInt(a) - parseInt(b)), [records])
+  const marcasTermina = useMemo(() => stats?.all_marcas_termina || [...new Set(records.map(r => r.marca_termina).filter(Boolean))].sort(), [records, stats])
+  const marcasNueva = useMemo(() => stats?.all_marcas_nueva || [...new Set(records.map(r => r.marca_nueva).filter(Boolean))].sort(), [records, stats])
 
   const filtered = useMemo(() => {
     return records.filter(r => {
       if (filterMachine !== 'all' && r.maquina !== filterMachine) return false
       if (filterOperator !== 'all' && r.operador !== filterOperator) return false
       if (filterWeek !== 'all' && r.semana !== filterWeek) return false
+      if (filterMarcaTermina !== 'all' && r.marca_termina !== filterMarcaTermina) return false
+      if (filterMarcaNueva !== 'all' && r.marca_nueva !== filterMarcaNueva) return false
       return true
     })
-  }, [records, filterMachine, filterOperator, filterWeek])
+  }, [records, filterMachine, filterOperator, filterWeek, filterMarcaTermina, filterMarcaNueva])
 
   // Chart data
   const weeklyChart = useMemo(() => {
@@ -250,6 +259,16 @@ export default function CO() {
             className="px-3 py-2 bg-[#0f1d32] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
             <option value="all">Todas las semanas</option>
             {weeks.map(w => <option key={w} value={w}>W{w}</option>)}
+          </select>
+          <select value={filterMarcaTermina} onChange={e => setFilterMarcaTermina(e.target.value)}
+            className="px-3 py-2 bg-[#0f1d32] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="all">Marca origen (todas)</option>
+            {marcasTermina.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <select value={filterMarcaNueva} onChange={e => setFilterMarcaNueva(e.target.value)}
+            className="px-3 py-2 bg-[#0f1d32] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="all">Marca destino (todas)</option>
+            {marcasNueva.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
       )}
@@ -411,17 +430,19 @@ export default function CO() {
       {tab === 'Completitud' && stats?.completeness && (
         <div className="space-y-4">
           <p className="text-sm text-slate-400">
-            Análisis CF: 100% = Razón de desviación + Recomendación completas. 66% = solo una de las dos. 0% = ninguna.
+            Análisis CF: 100% = Razón de desviación + Recomendación completas. Desperdicio = promedio de "Desperdicio en la hora 2" (%).
+            Haz clic en un operador para ver sus detalles.
           </p>
           <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-white/5 text-slate-500">
+                  <th className="px-3 py-2 text-left font-medium w-5"></th>
                   <th className="px-3 py-2 text-left font-medium">Operador</th>
                   <th className="px-3 py-2 text-center font-medium">Total COs</th>
                   <th className="px-3 py-2 text-center font-medium">Razón Desv.</th>
                   <th className="px-3 py-2 text-center font-medium">Recomendación</th>
-                  <th className="px-3 py-2 text-center font-medium">Desperdicio</th>
+                  <th className="px-3 py-2 text-center font-medium">% Desperdicio Prom.</th>
                   <th className="px-3 py-2 text-center font-medium">Completitud Global</th>
                 </tr>
               </thead>
@@ -430,29 +451,103 @@ export default function CO() {
                   .sort((a, b) => b[1].total - a[1].total)
                   .map(([op, c]) => {
                     const globalPct = Math.round(((c.pct_razon + c.pct_recom + c.pct_desperdicio) / 3))
+                    const isExpanded = expandedOp === op
                     return (
-                      <tr key={op} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="px-3 py-2 text-white font-medium">{op}</td>
-                        <td className="px-3 py-2 text-center text-cyan-400 font-semibold">{c.total}</td>
-                        <td className="px-3 py-2 text-center">
-                          <CompletionBadge pct={c.pct_razon} filled={c.filled_razon} total={c.total} />
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <CompletionBadge pct={c.pct_recom} filled={c.filled_recom} total={c.total} />
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <CompletionBadge pct={c.pct_desperdicio} filled={c.filled_desperdicio} total={c.total} />
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${globalPct >= 80 ? 'bg-green-500' : globalPct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
-                                style={{ width: `${globalPct}%` }} />
+                      <React.Fragment key={op}>
+                        <tr className={`border-b border-white/5 hover:bg-white/[0.02] cursor-pointer ${isExpanded ? 'bg-white/[0.03]' : ''}`}
+                          onClick={() => setExpandedOp(isExpanded ? null : op)}>
+                          <td className="px-3 py-2 text-slate-500">
+                            <span className={`inline-block transition-transform text-[10px] ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                          </td>
+                          <td className="px-3 py-2 text-white font-medium">{op}</td>
+                          <td className="px-3 py-2 text-center text-cyan-400 font-semibold">{c.total}</td>
+                          <td className="px-3 py-2 text-center">
+                            <CompletionBadge pct={c.pct_razon} filled={c.filled_razon} total={c.total} />
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <CompletionBadge pct={c.pct_recom} filled={c.filled_recom} total={c.total} />
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            {c.avg_desperdicio != null ? (
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                                c.avg_desperdicio <= 2 ? 'bg-green-950/40 text-green-400' :
+                                c.avg_desperdicio <= 5 ? 'bg-amber-950/40 text-amber-400' :
+                                'bg-red-950/40 text-red-400'
+                              }`}>{c.avg_desperdicio}%</span>
+                            ) : (
+                              <span className="text-slate-600 text-[10px]">Sin datos</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${globalPct >= 80 ? 'bg-green-500' : globalPct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                  style={{ width: `${globalPct}%` }} />
+                              </div>
+                              <span className="text-slate-300 text-[11px]">{globalPct}%</span>
                             </div>
-                            <span className="text-slate-300 text-[11px]">{globalPct}%</span>
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
+                        {/* Expanded detail rows */}
+                        {isExpanded && c.details && (
+                          <tr>
+                            <td colSpan={7} className="px-0 py-0">
+                              <div className="bg-[#0a1628] border-y border-white/5 px-6 py-3">
+                                <div className="flex items-center justify-between mb-3">
+                                  <p className="text-xs text-slate-400 font-medium">Detalle de COs de {op}</p>
+                                  <span className="text-[10px] text-slate-500">{c.details.length} registros</span>
+                                </div>
+                                <div className="overflow-x-auto max-h-[300px]">
+                                  <table className="w-full text-[11px]">
+                                    <thead>
+                                      <tr className="text-slate-600 border-b border-white/5">
+                                        <th className="px-2 py-1.5 text-left font-medium">Fecha</th>
+                                        <th className="px-2 py-1.5 text-left font-medium">Máquina</th>
+                                        <th className="px-2 py-1.5 text-left font-medium">Marca Sale → Entra</th>
+                                        <th className="px-2 py-1.5 text-left font-medium">Razón de Desviación</th>
+                                        <th className="px-2 py-1.5 text-left font-medium">Recomendación</th>
+                                        <th className="px-2 py-1.5 text-center font-medium">Desp. H2</th>
+                                        <th className="px-2 py-1.5 text-center font-medium">Var%</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {c.details.map((d, di) => (
+                                        <tr key={di} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
+                                          <td className="px-2 py-1.5 text-slate-400 whitespace-nowrap">{d.fecha || '—'}</td>
+                                          <td className="px-2 py-1.5">
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300">{d.maquina}</span>
+                                          </td>
+                                          <td className="px-2 py-1.5 text-slate-300 whitespace-nowrap">{d.marca_termina || '?'} → {d.marca_nueva || '?'}</td>
+                                          <td className="px-2 py-1.5 text-slate-300 max-w-[200px] truncate" title={d.razon_desviacion || ''}>
+                                            {d.razon_desviacion || <span className="text-red-400/50">—</span>}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-slate-300 max-w-[200px] truncate" title={d.recomendacion || ''}>
+                                            {d.recomendacion || <span className="text-red-400/50">—</span>}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-center">
+                                            {d.desperdicio_hora2 != null ? (
+                                              <span className={d.desperdicio_hora2 <= 2 ? 'text-green-400' : d.desperdicio_hora2 <= 5 ? 'text-amber-400' : 'text-red-400'}>
+                                                {d.desperdicio_hora2}%
+                                              </span>
+                                            ) : <span className="text-slate-600">—</span>}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-center">
+                                            {d.variacion_co != null ? (
+                                              <span className={d.variacion_co > 0 ? 'text-red-400' : 'text-green-400'}>
+                                                {Math.round(d.variacion_co * 100)}%
+                                              </span>
+                                            ) : '—'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     )
                   })}
               </tbody>

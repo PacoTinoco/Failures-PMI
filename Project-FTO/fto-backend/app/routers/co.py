@@ -207,9 +207,19 @@ async def get_co_stats():
     by_week = {}
     variaciones = []
     mtbfs = []
-    completeness = {}  # operator → {total, filled_razon, filled_recom}
+    completeness = {}  # operator → {total, filled_razon, filled_recom, details[]}
     brand_pairs = {}
     time_data = []
+    all_marcas_termina = set()
+    all_marcas_nueva = set()
+
+    def _valid_str(val):
+        if not val:
+            return None
+        s = str(val).strip()
+        if s.lower() in ('', 'nan', 'na', 'none'):
+            return None
+        return s
 
     for r in records:
         maq = r.get("maquina") or "N/A"
@@ -227,19 +237,49 @@ async def get_co_stats():
         if r.get("mtbf") is not None:
             mtbfs.append(r["mtbf"])
 
-        # Completeness tracking
+        # Track unique brand names
+        mt = _valid_str(r.get("marca_termina"))
+        mn = _valid_str(r.get("marca_nueva"))
+        if mt:
+            all_marcas_termina.add(mt)
+        if mn:
+            all_marcas_nueva.add(mn)
+
+        # Completeness tracking with detail records
         if op not in completeness:
-            completeness[op] = {"total": 0, "filled_razon": 0, "filled_recom": 0, "filled_desperdicio": 0}
+            completeness[op] = {
+                "total": 0, "filled_razon": 0, "filled_recom": 0,
+                "filled_desperdicio": 0, "desperdicio_values": [],
+                "details": [],
+            }
         completeness[op]["total"] += 1
-        if r.get("razon_desviacion") and str(r["razon_desviacion"]).strip().lower() not in ('', 'nan', 'na', 'none'):
+
+        razon_val = _valid_str(r.get("razon_desviacion"))
+        recom_val = _valid_str(r.get("recomendacion"))
+        desp_val = r.get("desperdicio_hora2")
+
+        if razon_val:
             completeness[op]["filled_razon"] += 1
-        if r.get("recomendacion") and str(r["recomendacion"]).strip().lower() not in ('', 'nan', 'na', 'none'):
+        if recom_val:
             completeness[op]["filled_recom"] += 1
-        if r.get("desperdicio_hora2") is not None:
+        if desp_val is not None:
             completeness[op]["filled_desperdicio"] += 1
+            completeness[op]["desperdicio_values"].append(desp_val)
+
+        # Store detail record for dropdown
+        completeness[op]["details"].append({
+            "fecha": r.get("fecha"),
+            "maquina": maq,
+            "marca_termina": mt,
+            "marca_nueva": mn,
+            "razon_desviacion": razon_val,
+            "recomendacion": recom_val,
+            "desperdicio_hora2": desp_val,
+            "variacion_co": r.get("variacion_co"),
+        })
 
         # Brand pair tracking
-        pair_key = f"{r.get('marca_termina', '?')} → {r.get('marca_nueva', '?')}"
+        pair_key = f"{mt or '?'} → {mn or '?'}"
         brand_pairs[pair_key] = brand_pairs.get(pair_key, 0) + 1
 
         # Time deviation data
@@ -254,12 +294,15 @@ async def get_co_stats():
                 "variacion": r.get("variacion_co"),
             })
 
-    # Compute completeness percentages
+    # Compute completeness percentages + avg desperdicio
     for op in completeness:
         t = completeness[op]["total"]
         completeness[op]["pct_razon"] = round(completeness[op]["filled_razon"] / t * 100) if t else 0
         completeness[op]["pct_recom"] = round(completeness[op]["filled_recom"] / t * 100) if t else 0
         completeness[op]["pct_desperdicio"] = round(completeness[op]["filled_desperdicio"] / t * 100) if t else 0
+        dvals = completeness[op]["desperdicio_values"]
+        completeness[op]["avg_desperdicio"] = round(sum(dvals) / len(dvals), 2) if dvals else None
+        del completeness[op]["desperdicio_values"]  # no need to send raw list
 
     top_brands = sorted(brand_pairs.items(), key=lambda x: -x[1])[:15]
 
@@ -276,6 +319,8 @@ async def get_co_stats():
         "total_operators": len(set(r.get("operador") for r in records if r.get("operador"))),
         "total_machines": len(set(r.get("maquina") for r in records if r.get("maquina"))),
         "weeks_range": sorted(set(r.get("semana") for r in records if r.get("semana"))),
+        "all_marcas_termina": sorted(all_marcas_termina),
+        "all_marcas_nueva": sorted(all_marcas_nueva),
     }
 
 
