@@ -1,12 +1,10 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Cell, ScatterChart, Scatter, ZAxis
+  Tooltip, ResponsiveContainer, ReferenceLine, Cell, Brush, ReferenceArea
 } from 'recharts'
 import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
-
-const COLORS = ['#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#ec4899', '#f97316']
 
 export default function Inventory() {
   const [data, setData] = useState(null)
@@ -29,16 +27,27 @@ export default function Inventory() {
   // Tab
   const [tab, setTab] = useState('timeline')
 
+  // Floating consumption panel
+  const [showConsumption, setShowConsumption] = useState(false)
+  const [consumptionSearch, setConsumptionSearch] = useState('')
+
+  // Manual anomaly toggles (local only, keyed by excel_row)
+  const [manualAnomalies, setManualAnomalies] = useState({})
+
+  // Drag-select on anomaly chart
+  const [dragStart, setDragStart] = useState(null)
+  const [dragEnd, setDragEnd] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
+
   async function handleUpload(e) {
     const file = e.target.files[0]
     if (!file) return
     e.target.value = ''
-    setLoading(true); setError(null); setData(null)
+    setLoading(true); setError(null); setData(null); setManualAnomalies({})
     try {
       const result = await api.analyzeInventory(file, threshold)
       setData(result)
       setBanner({ message: 'Archivo analizado', detail: `${result.total_movements} movimientos, ${result.total_containers} contenedores, ${result.total_anomalies} anomalías`, type: 'success' })
-      // Auto-select first container
       if (result.filters.containers.length > 0) {
         setFilterContainer(result.filters.containers[0])
       }
@@ -46,7 +55,14 @@ export default function Inventory() {
     finally { setLoading(false) }
   }
 
-  // Filtered movements
+  // Check if a movement is anomaly (original OR manually toggled)
+  const isAnomaly = useCallback((m) => {
+    const row = m.excel_row
+    if (row in manualAnomalies) return manualAnomalies[row]
+    return m.is_anomaly
+  }, [manualAnomalies])
+
+  // Filtered movements — apply ALL filters
   const filtered = useMemo(() => {
     if (!data) return []
     return data.movements.filter(m => {
@@ -54,12 +70,27 @@ export default function Inventory() {
       if (filterDest && m.dest_loc && !m.dest_loc.toLowerCase().includes(filterDest.toLowerCase())) return false
       if (filterUser !== 'all' && m.user !== filterUser) return false
       if (filterTx !== 'all' && m.tx_context !== filterTx) return false
-      if (showAnomaliesOnly && !m.is_anomaly) return false
+      if (showAnomaliesOnly && !isAnomaly(m)) return false
       return true
     })
-  }, [data, filterContainer, filterDest, filterUser, filterTx, showAnomaliesOnly])
+  }, [data, filterContainer, filterDest, filterUser, filterTx, showAnomaliesOnly, isAnomaly])
 
-  // Timeline chart data for selected container
+  // Movements filtered by dest_loc only (for consumption table & resumen)
+  const destFiltered = useMemo(() => {
+    if (!data) return data
+    if (!filterDest) return data
+    const fMovs = data.movements.filter(m =>
+      m.dest_loc && m.dest_loc.toLowerCase().includes(filterDest.toLowerCase())
+    )
+    const containerIds = new Set(fMovs.map(m => m.container))
+    return {
+      ...data,
+      movements: fMovs,
+      container_summaries: data.container_summaries.filter(cs => containerIds.has(cs.container)),
+    }
+  }, [data, filterDest])
+
+  // Timeline chart data
   const timelineData = useMemo(() => {
     if (!filtered.length) return []
     return filtered.map((m, i) => ({
@@ -70,13 +101,15 @@ export default function Inventory() {
       user: m.user,
       date: m.date ? new Date(m.date).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '?',
       tx_context: m.tx_context,
-      is_anomaly: m.is_anomaly,
+      is_anomaly: isAnomaly(m),
       is_anomaly_user: m.is_anomaly_user,
       is_anomaly_qty: m.is_anomaly_qty,
       excel_row: m.excel_row,
+      container: m.container,
+      dest_loc: m.dest_loc,
       fill: m.is_anomaly_qty ? '#ef4444' : m.is_anomaly_user ? '#f59e0b' : '#06b6d4',
     }))
-  }, [filtered])
+  }, [filtered, isAnomaly])
 
   // Container summary for selected
   const selectedSummary = useMemo(() => {
@@ -91,12 +124,19 @@ export default function Inventory() {
     return [...new Set(movs.map(m => m.dest_loc).filter(Boolean))].sort()
   }, [data, filterContainer])
 
-  // Consumption start/end per container (for timeline table)
+  // Consumption table (filtered by dest_loc + search)
   const consumptionTable = useMemo(() => {
-    if (!data) return []
-    return data.container_summaries.map(cs => {
-      const movs = data.movements.filter(m => m.container === cs.container)
-      // First real drop = first mov where new_qty < old_qty
+    if (!destFiltered) return []
+    let summaries = destFiltered.container_summaries
+    if (consumptionSearch) {
+      const q = consumptionSearch.toLowerCase()
+      summaries = summaries.filter(cs =>
+        cs.container.toLowerCase().includes(q) ||
+        cs.machines.some(m => m.toLowerCase().includes(q))
+      )
+    }
+    return summaries.map(cs => {
+      const movs = destFiltered.movements.filter(m => m.container === cs.container)
       const firstDrop = movs.find(m =>
         m.new_qty != null && m.old_qty != null && m.new_qty < m.old_qty
       )
@@ -104,16 +144,116 @@ export default function Inventory() {
       return {
         container: cs.container,
         firstDropDate: firstDrop?.date || null,
-        firstDropQty: firstDrop ? { old: firstDrop.old_qty, new: firstDrop.new_qty } : null,
         lastMovDate: lastMov?.date || null,
-        lastMovQty: lastMov ? lastMov.new_qty : null,
         totalMoves: cs.total_moves,
         machines: cs.machines,
         initialQty: cs.initial_qty,
         finalQty: cs.final_qty,
       }
     })
-  }, [data])
+  }, [destFiltered, consumptionSearch])
+
+  // ─── Anomaly tab data: filtered by container AND dest_loc ───
+  const anomalyFilteredMovs = useMemo(() => {
+    if (!data) return []
+    return data.movements.filter(m => {
+      if (filterContainer !== 'all' && m.container !== filterContainer) return false
+      if (filterDest && m.dest_loc && !m.dest_loc.toLowerCase().includes(filterDest.toLowerCase())) return false
+      return true
+    })
+  }, [data, filterContainer, filterDest])
+
+  const anomaliesData = useMemo(() => {
+    return anomalyFilteredMovs.filter(m => isAnomaly(m))
+  }, [anomalyFilteredMovs, isAnomaly])
+
+  // Anomaly chart data (all filtered movements, anomalies highlighted)
+  const anomalyChartData = useMemo(() => {
+    return anomalyFilteredMovs.map((m, i) => ({
+      index: i + 1,
+      new_qty: m.new_qty,
+      qty_diff: m.qty_diff != null ? Math.round(m.qty_diff * 1000) / 1000 : 0,
+      date: m.date ? new Date(m.date).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '?',
+      is_anomaly: isAnomaly(m),
+      is_manual: m.excel_row in manualAnomalies,
+      excel_row: m.excel_row,
+      container: m.container,
+      user: m.user,
+      dest_loc: m.dest_loc,
+      fill: isAnomaly(m) ? (m.excel_row in manualAnomalies ? '#a855f7' : '#ef4444') : '#1e3a5f',
+    }))
+  }, [anomalyFilteredMovs, isAnomaly, manualAnomalies])
+
+  // Toggle manual anomaly
+  function toggleManualAnomaly(excelRow, currentIsAnomaly) {
+    setManualAnomalies(prev => {
+      const next = { ...prev }
+      if (excelRow in next) {
+        delete next[excelRow]
+      } else {
+        next[excelRow] = !currentIsAnomaly
+      }
+      return next
+    })
+  }
+
+  // Drag-select handlers for anomaly chart
+  function handleAnomalyMouseDown(e) {
+    if (e && e.activeLabel) {
+      setDragStart(e.activeLabel)
+      setDragEnd(e.activeLabel)
+      setIsDragging(true)
+    }
+  }
+  function handleAnomalyMouseMove(e) {
+    if (isDragging && e && e.activeLabel) {
+      setDragEnd(e.activeLabel)
+    }
+  }
+  function handleAnomalyMouseUp() {
+    if (isDragging && dragStart != null && dragEnd != null) {
+      setIsDragging(false)
+      // Don't auto-mark, just keep the selection visible
+    }
+  }
+  function confirmDragSelection() {
+    if (dragStart == null || dragEnd == null) return
+    const start = Math.min(dragStart, dragEnd)
+    const end = Math.max(dragStart, dragEnd)
+    const movs = anomalyChartData.filter(m => m.index >= start && m.index <= end)
+    setManualAnomalies(prev => {
+      const next = { ...prev }
+      movs.forEach(m => { next[m.excel_row] = true })
+      return next
+    })
+    setDragStart(null)
+    setDragEnd(null)
+  }
+  function clearDragSelection() {
+    setDragStart(null)
+    setDragEnd(null)
+    setIsDragging(false)
+  }
+
+  // Export anomalies to CSV
+  function exportAnomaliesCSV() {
+    if (!anomaliesData.length) return
+    const headers = ['Fila Excel', 'Fecha', 'Container', 'Dest Loc', 'Old Qty', 'New Qty', 'Δ Qty', 'User', 'Transaction', 'SAP Batch', 'Tipo']
+    const rows = anomaliesData.map(m => [
+      m.excel_row, m.date || '', m.container || '', m.dest_loc || '',
+      m.old_qty ?? '', m.new_qty ?? '', m.qty_diff ?? '', m.user || '',
+      m.tx_context || '', m.sap_batch || '',
+      m.excel_row in manualAnomalies ? 'Manual' : m.is_anomaly_qty ? 'Qty' : 'User'
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'anomalias_inventario.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ═══════ RENDER ═══════
 
   if (!data && !loading) {
     return (
@@ -145,8 +285,11 @@ export default function Inventory() {
     </div>
   )
 
+  const selMin = dragStart != null && dragEnd != null ? Math.min(dragStart, dragEnd) : null
+  const selMax = dragStart != null && dragEnd != null ? Math.max(dragStart, dragEnd) : null
+
   return (
-    <div className="p-6 space-y-5 min-h-screen bg-[#0a1628]">
+    <div className="p-6 space-y-5 min-h-screen bg-[#0a1628] relative">
       <UploadBanner show={!!banner} onClose={() => setBanner(null)}
         message={banner?.message || ''} detail={banner?.detail} type={banner?.type} />
 
@@ -161,6 +304,10 @@ export default function Inventory() {
           <button onClick={() => fileRef.current?.click()}
             className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors">
             📤 Nuevo archivo
+          </button>
+          <button onClick={() => setShowConsumption(p => !p)}
+            className={`px-3 py-2 text-sm rounded-lg transition-colors ${showConsumption ? 'bg-amber-600 text-white' : 'bg-[#0f1d32] border border-white/10 text-slate-300 hover:text-white hover:border-white/20'}`}>
+            📊 Consumo
           </button>
         </div>
       </div>
@@ -264,9 +411,13 @@ export default function Inventory() {
               <div>
                 <p className="text-[10px] text-slate-500 uppercase">Máquina(s)</p>
                 <div className="flex gap-1 flex-wrap">
-                  {selectedMachines.map(m => (
+                  {selectedMachines.slice(0, 3).map(m => (
                     <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300 font-medium">{m}</span>
                   ))}
+                  {selectedMachines.length > 3 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400"
+                      title={selectedMachines.slice(3).join(', ')}>+{selectedMachines.length - 3}</span>
+                  )}
                 </div>
               </div>
             )}
@@ -276,10 +427,10 @@ export default function Inventory() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-[#0f1d32] rounded-lg p-1 w-fit">
-        {['timeline', 'tabla', 'resumen'].map(t => (
+        {['timeline', 'anomalias', 'tabla', 'resumen'].map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 text-sm rounded-md capitalize transition-colors ${tab === t ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            {t === 'timeline' ? 'Timeline' : t === 'tabla' ? 'Tabla de Movimientos' : 'Resumen Contenedores'}
+            className={`px-4 py-1.5 text-sm rounded-md transition-colors ${tab === t ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+            {t === 'timeline' ? 'Timeline' : t === 'anomalias' ? 'Anomalías' : t === 'tabla' ? 'Tabla de Movimientos' : 'Resumen Contenedores'}
           </button>
         ))}
       </div>
@@ -287,79 +438,18 @@ export default function Inventory() {
       {/* ═══════ TIMELINE TAB ═══════ */}
       {tab === 'timeline' && (
         <div className="space-y-4">
-          {/* Consumption start/end table */}
-          {consumptionTable.length > 0 && (
-            <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Inicio y Fin de Consumo por Contenedor</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-white/5 text-slate-500">
-                      <th className="px-3 py-2 text-left font-medium">Contenedor</th>
-                      <th className="px-3 py-2 text-left font-medium">Máquina</th>
-                      <th className="px-3 py-2 text-center font-medium">Qty Inicial</th>
-                      <th className="px-3 py-2 text-left font-medium">Inicio Consumo</th>
-                      <th className="px-3 py-2 text-left font-medium">Último Movimiento</th>
-                      <th className="px-3 py-2 text-center font-medium">Qty Final</th>
-                      <th className="px-3 py-2 text-center font-medium">Movs</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {consumptionTable.map(ct => {
-                      const isSelected = filterContainer === ct.container
-                      return (
-                        <tr key={ct.container}
-                          className={`border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors ${isSelected ? 'bg-cyan-500/[0.06]' : ''}`}
-                          onClick={() => { setFilterContainer(ct.container) }}>
-                          <td className="px-3 py-2 text-white font-mono text-[10px]">
-                            {ct.container}
-                            {isSelected && <span className="ml-1 text-cyan-400 text-[9px]">●</span>}
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex gap-1 flex-wrap">
-                              {ct.machines.map(m => (
-                                <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300">{m}</span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 text-center text-cyan-400 font-semibold">{ct.initialQty}</td>
-                          <td className="px-3 py-2">
-                            {ct.firstDropDate ? (
-                              <span className="text-green-400 whitespace-nowrap">
-                                {new Date(ct.firstDropDate).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            ) : <span className="text-slate-600">Sin consumo</span>}
-                          </td>
-                          <td className="px-3 py-2">
-                            {ct.lastMovDate ? (
-                              <span className="text-amber-400 whitespace-nowrap">
-                                {new Date(ct.lastMovDate).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            ) : <span className="text-slate-600">—</span>}
-                          </td>
-                          <td className="px-3 py-2 text-center text-white font-semibold">{ct.finalQty}</td>
-                          <td className="px-3 py-2 text-center text-slate-400">{ct.totalMoves}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Quantity over time */}
           <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
             <h3 className="text-sm font-semibold text-white mb-1">Cantidad (New Qty) por movimiento</h3>
             <p className="text-[10px] text-slate-500 mb-3">
               <span className="inline-block w-2 h-2 rounded-full bg-cyan-500 mr-1" /> Normal
               <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1 ml-3" /> Usuario no-sistema
               <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1 ml-3" /> Pico de cantidad (&gt;{threshold}kg)
+              <span className="text-slate-600 ml-3">— Arrastra la barra inferior para hacer zoom</span>
             </p>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={340}>
               <LineChart data={timelineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
-                <XAxis dataKey="index" tick={{ fill: '#94a3b8', fontSize: 10 }} label={{ value: 'Mov #', position: 'insideBottom', offset: -5, fill: '#64748b', fontSize: 10 }} />
+                <XAxis dataKey="index" tick={{ fill: '#94a3b8', fontSize: 10 }} label={{ value: 'Mov #', position: 'insideBottom', offset: -15, fill: '#64748b', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} label={{ value: 'Qty', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Line type="stepAfter" dataKey="new_qty" stroke="#06b6d4" strokeWidth={2} dot={(props) => {
@@ -369,14 +459,14 @@ export default function Inventory() {
                   const r = payload.is_anomaly ? 5 : 3
                   return <circle cx={cx} cy={cy} r={r} fill={color} stroke={color} strokeWidth={1} className="cursor-pointer" />
                 }} activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }} />
+                <Brush dataKey="index" height={25} stroke="#06b6d4" fill="#0a1628" travellerWidth={8} tickFormatter={() => ''} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Qty diff bar chart */}
           <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
             <h3 className="text-sm font-semibold text-white mb-3">Diferencia de Cantidad por movimiento (New - Old)</h3>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={timelineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                 <XAxis dataKey="index" tick={{ fill: '#94a3b8', fontSize: 10 }} />
@@ -390,8 +480,147 @@ export default function Inventory() {
                     <Cell key={i} fill={entry.fill} />
                   ))}
                 </Bar>
+                <Brush dataKey="index" height={20} stroke="#06b6d4" fill="#0a1628" travellerWidth={8} tickFormatter={() => ''} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ ANOMALÍAS TAB ═══════ */}
+      {tab === 'anomalias' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">
+                {anomaliesData.length} anomalías detectadas
+                {filterContainer !== 'all' && <span className="text-cyan-400 ml-1">(contenedor: ...{filterContainer.slice(-8)})</span>}
+                {filterDest && <span className="text-cyan-400 ml-1">(máquina: {filterDest})</span>}
+                {Object.keys(manualAnomalies).length > 0 && (
+                  <span className="text-purple-400 ml-2">{Object.values(manualAnomalies).filter(v => v).length} marcadas manualmente</span>
+                )}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {Object.keys(manualAnomalies).length > 0 && (
+                <button onClick={() => setManualAnomalies({})}
+                  className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors">
+                  Resetear manuales
+                </button>
+              )}
+              <button onClick={exportAnomaliesCSV} disabled={!anomaliesData.length}
+                className="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white rounded-lg transition-colors">
+                📥 Exportar CSV
+              </button>
+            </div>
+          </div>
+
+          {/* Anomaly chart with drag-select */}
+          <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Mapa de Anomalías</h3>
+              <div className="flex items-center gap-3 text-[10px]">
+                <span><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" /> Auto-detectada</span>
+                <span><span className="inline-block w-2 h-2 rounded-full bg-purple-500 mr-1" /> Manual</span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-500">Arrastra sobre la gráfica para seleccionar un rango</span>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={anomalyChartData}
+                onMouseDown={handleAnomalyMouseDown}
+                onMouseMove={handleAnomalyMouseMove}
+                onMouseUp={handleAnomalyMouseUp}
+                style={{ cursor: 'crosshair' }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
+                <XAxis dataKey="index" tick={{ fill: '#94a3b8', fontSize: 9 }} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <Tooltip content={<AnomalyTooltip />} />
+                <ReferenceLine y={0} stroke="#475569" />
+                <Bar dataKey="qty_diff" name="Δ Qty" radius={[2, 2, 0, 0]}>
+                  {anomalyChartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Bar>
+                {selMin != null && selMax != null && (
+                  <ReferenceArea x1={selMin} x2={selMax} fill="#a855f7" fillOpacity={0.15} stroke="#a855f7" strokeOpacity={0.4} />
+                )}
+                <Brush dataKey="index" height={20} stroke="#06b6d4" fill="#0a1628" travellerWidth={8} tickFormatter={() => ''} />
+              </BarChart>
+            </ResponsiveContainer>
+            {selMin != null && selMax != null && !isDragging && (
+              <div className="flex items-center justify-center gap-3 mt-2 bg-purple-500/5 rounded-lg py-2">
+                <span className="text-xs text-slate-400">Selección: Mov {selMin} — {selMax} ({selMax - selMin + 1} movimientos)</span>
+                <button onClick={confirmDragSelection}
+                  className="px-3 py-1 text-xs bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors">
+                  ⚡ Marcar como anomalía
+                </button>
+                <button onClick={clearDragSelection}
+                  className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">
+                  ✕ Cancelar
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Anomalies table */}
+          <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+            <div className="px-4 py-2 border-b border-white/5">
+              <span className="text-xs text-slate-400">{anomaliesData.length} anomalías</span>
+            </div>
+            <div className="overflow-x-auto max-h-[400px]">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-[#0f1d32] z-10">
+                  <tr className="border-b border-white/5 text-slate-500">
+                    {['Fila', 'Fecha', 'Container', 'Dest Loc', 'Old Qty', 'New Qty', 'Δ Qty', 'User', 'Tipo', ''].map(h => (
+                      <th key={h} className="px-2 py-2 text-left font-medium whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {anomaliesData.map((m, i) => {
+                    const isManual = m.excel_row in manualAnomalies
+                    return (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.03]">
+                        <td className="px-2 py-1.5 text-slate-500 font-mono">{m.excel_row}</td>
+                        <td className="px-2 py-1.5 text-slate-300 whitespace-nowrap">
+                          {m.date ? new Date(m.date).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </td>
+                        <td className="px-2 py-1.5 text-white font-mono text-[10px]">...{(m.container || '').slice(-8)}</td>
+                        <td className="px-2 py-1.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300">{m.dest_loc}</span></td>
+                        <td className="px-2 py-1.5 text-slate-400">{m.old_qty != null ? m.old_qty.toFixed(2) : '—'}</td>
+                        <td className="px-2 py-1.5 text-white font-medium">{m.new_qty != null ? m.new_qty.toFixed(2) : '—'}</td>
+                        <td className="px-2 py-1.5">
+                          <span className={`font-medium ${m.qty_diff < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {m.qty_diff > 0 ? '+' : ''}{m.qty_diff?.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            m.is_anomaly_user ? 'bg-amber-950/50 text-amber-400' : 'bg-slate-800 text-slate-400'
+                          }`}>{m.user}</span>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                            isManual ? 'bg-purple-950/50 text-purple-400' :
+                            m.is_anomaly_qty ? 'bg-red-950/50 text-red-400' : 'bg-amber-950/50 text-amber-400'
+                          }`}>
+                            {isManual ? '✎ Manual' : m.is_anomaly_qty ? '⚡ QTY' : '👤 USER'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <button onClick={() => toggleManualAnomaly(m.excel_row, m.is_anomaly)}
+                            className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                            title={isManual ? 'Revertir a original' : 'Desmarcar anomalía'}>
+                            {isManual ? '↩' : '✕'}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -399,7 +628,7 @@ export default function Inventory() {
       {/* ═══════ TABLA TAB ═══════ */}
       {tab === 'tabla' && (
         <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-          <div className="px-4 py-2 border-b border-white/5 flex items-center justify-between">
+          <div className="px-4 py-2 border-b border-white/5">
             <span className="text-xs text-slate-400">{filtered.length} movimientos{showAnomaliesOnly ? ' (solo anomalías)' : ''}</span>
           </div>
           <div className="overflow-x-auto max-h-[500px]">
@@ -414,7 +643,7 @@ export default function Inventory() {
               <tbody>
                 {filtered.map((m, i) => (
                   <tr key={i} className={`border-b border-white/5 hover:bg-white/[0.03] cursor-pointer ${
-                    m.is_anomaly ? 'bg-red-500/[0.03]' : ''
+                    isAnomaly(m) ? 'bg-red-500/[0.03]' : ''
                   }`} onClick={() => setSelectedMov(m)}>
                     <td className="px-2 py-1.5 text-slate-500 font-mono">{m.excel_row}</td>
                     <td className="px-2 py-1.5 text-slate-300 whitespace-nowrap">{m.date ? new Date(m.date).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}</td>
@@ -437,9 +666,11 @@ export default function Inventory() {
                     <td className="px-2 py-1.5 text-slate-400 text-[10px]">{m.tx_context}</td>
                     <td className="px-2 py-1.5 text-slate-500 text-[10px]">{m.sap_batch}</td>
                     <td className="px-2 py-1.5">
-                      {m.is_anomaly && (
-                        <span className="text-[9px] px-1 py-0.5 rounded bg-red-950/50 text-red-400">
-                          {m.is_anomaly_qty ? '⚡ QTY' : '👤 USER'}
+                      {isAnomaly(m) && (
+                        <span className={`text-[9px] px-1 py-0.5 rounded ${
+                          m.excel_row in manualAnomalies ? 'bg-purple-950/50 text-purple-400' : 'bg-red-950/50 text-red-400'
+                        }`}>
+                          {m.excel_row in manualAnomalies ? '✎ Manual' : m.is_anomaly_qty ? '⚡ QTY' : '👤 USER'}
                         </span>
                       )}
                     </td>
@@ -454,8 +685,11 @@ export default function Inventory() {
       {/* ═══════ RESUMEN TAB ═══════ */}
       {tab === 'resumen' && (
         <div className="space-y-4">
+          {filterDest && (
+            <p className="text-xs text-slate-500">Filtrado por máquina: <span className="text-cyan-400">{filterDest}</span></p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.container_summaries.map((cs, i) => (
+            {(destFiltered?.container_summaries || []).map((cs) => (
               <div key={cs.container}
                 className={`bg-[#0f1d32] rounded-xl border border-white/5 p-4 cursor-pointer hover:border-cyan-500/30 transition-colors ${
                   filterContainer === cs.container ? 'ring-1 ring-cyan-500/50' : ''
@@ -487,9 +721,11 @@ export default function Inventory() {
                 <div className="flex flex-wrap gap-2 text-[10px]">
                   <span className="text-slate-500">{cs.total_moves} movs</span>
                   <span className="text-slate-500">·</span>
-                  <span className="text-slate-400">{cs.machines.join(', ')}</span>
+                  <span className="text-slate-400" title={cs.machines.join(', ')}>
+                    {cs.machines[0] || '—'}{cs.machines.length > 1 && ` +${cs.machines.length - 1}`}
+                  </span>
                   <span className="text-slate-500">·</span>
-                  <span className="text-slate-400">{cs.sap_batches.join(', ')}</span>
+                  <span className="text-slate-400">{cs.sap_batches[0] || '—'}{cs.sap_batches.length > 1 && ` +${cs.sap_batches.length - 1}`}</span>
                 </div>
                 <div className="flex gap-1 mt-2">
                   {cs.users.map(u => (
@@ -504,6 +740,67 @@ export default function Inventory() {
         </div>
       )}
 
+      {/* ═══════ FLOATING CONSUMPTION PANEL ═══════ */}
+      {showConsumption && data && (
+        <div className="fixed top-20 right-4 z-40 w-[400px] bg-[#0f1d32] rounded-xl border border-white/10 shadow-2xl shadow-black/40 flex flex-col"
+          style={{ maxHeight: 'min(50vh, 380px)' }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 shrink-0">
+            <h4 className="text-xs font-semibold text-white">📊 Consumo ({consumptionTable.length})</h4>
+            <button onClick={() => setShowConsumption(false)} className="text-slate-500 hover:text-white text-xs">✕</button>
+          </div>
+          {/* Search */}
+          <div className="px-3 py-1.5 border-b border-white/5 shrink-0">
+            <input value={consumptionSearch} onChange={e => setConsumptionSearch(e.target.value)}
+              placeholder="Buscar contenedor o máquina..."
+              className="w-full px-2 py-1 bg-[#0a1628] border border-white/10 rounded text-[10px] text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50" />
+          </div>
+          <div className="overflow-y-auto flex-1 p-1">
+            <table className="w-full text-[10px]">
+              <thead className="sticky top-0 bg-[#0f1d32]">
+                <tr className="text-slate-600 border-b border-white/5">
+                  <th className="px-1.5 py-1 text-left font-medium">ID</th>
+                  <th className="px-1.5 py-1 text-left font-medium">Máq.</th>
+                  <th className="px-1.5 py-1 text-center font-medium">Ini</th>
+                  <th className="px-1.5 py-1 text-left font-medium">Inicio</th>
+                  <th className="px-1.5 py-1 text-left font-medium">Fin</th>
+                  <th className="px-1.5 py-1 text-center font-medium">Fin Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {consumptionTable.map(ct => {
+                  const isSelected = filterContainer === ct.container
+                  return (
+                    <tr key={ct.container}
+                      className={`border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer ${isSelected ? 'bg-cyan-500/[0.06]' : ''}`}
+                      onClick={() => { setFilterContainer(ct.container); setTab('timeline') }}>
+                      <td className="px-1.5 py-1 text-white font-mono text-[9px]" title={ct.container}>
+                        ...{ct.container.slice(-6)}
+                        {isSelected && <span className="ml-0.5 text-cyan-400">●</span>}
+                      </td>
+                      <td className="px-1.5 py-1 text-cyan-300 text-[9px]" title={ct.machines.join(', ')}>
+                        {ct.machines[0] || '—'}
+                        {ct.machines.length > 1 && <span className="text-slate-600 ml-0.5">+{ct.machines.length - 1}</span>}
+                      </td>
+                      <td className="px-1.5 py-1 text-center text-cyan-400 font-semibold">{ct.initialQty}</td>
+                      <td className="px-1.5 py-1 text-green-400 whitespace-nowrap">
+                        {ct.firstDropDate ? new Date(ct.firstDropDate).toLocaleString('es-MX', { day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </td>
+                      <td className="px-1.5 py-1 text-amber-400 whitespace-nowrap">
+                        {ct.lastMovDate ? new Date(ct.lastMovDate).toLocaleString('es-MX', { day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </td>
+                      <td className="px-1.5 py-1 text-center text-white font-semibold">{ct.finalQty}</td>
+                    </tr>
+                  )
+                })}
+                {consumptionTable.length === 0 && (
+                  <tr><td colSpan={6} className="px-3 py-4 text-center text-slate-600 text-[10px]">Sin resultados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ═══════ DETAIL MODAL ═══════ */}
       {selectedMov && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSelectedMov(null)}>
@@ -513,9 +810,11 @@ export default function Inventory() {
               <h2 className="text-base font-semibold text-white">
                 Detalle del Movimiento — Fila {selectedMov.excel_row} del Excel
               </h2>
-              {selectedMov.is_anomaly && (
-                <span className="text-xs px-2 py-1 rounded bg-red-950/50 text-red-400 font-medium">
-                  {selectedMov.is_anomaly_qty ? '⚡ Anomalía de cantidad' : '👤 Usuario no-sistema'}
+              {isAnomaly(selectedMov) && (
+                <span className={`text-xs px-2 py-1 rounded font-medium ${
+                  selectedMov.excel_row in manualAnomalies ? 'bg-purple-950/50 text-purple-400' : 'bg-red-950/50 text-red-400'
+                }`}>
+                  {selectedMov.excel_row in manualAnomalies ? '✎ Anomalía manual' : selectedMov.is_anomaly_qty ? '⚡ Anomalía de cantidad' : '👤 Usuario no-sistema'}
                 </span>
               )}
             </div>
@@ -531,7 +830,6 @@ export default function Inventory() {
                 </div>
               ))}
             </div>
-            {/* Raw original columns */}
             {Object.entries(selectedMov).filter(([k]) => k.startsWith('raw_')).length > 0 && (
               <div>
                 <p className="text-xs text-slate-500 mb-2">Columnas adicionales del Excel</p>
@@ -545,7 +843,11 @@ export default function Inventory() {
                 </div>
               </div>
             )}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <button onClick={() => toggleManualAnomaly(selectedMov.excel_row, selectedMov.is_anomaly)}
+                className="px-4 py-2 text-sm rounded-lg bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 transition-colors">
+                {selectedMov.excel_row in manualAnomalies ? '↩ Revertir anomalía' : isAnomaly(selectedMov) ? '✕ Desmarcar anomalía' : '⚡ Marcar como anomalía'}
+              </button>
               <button onClick={() => setSelectedMov(null)}
                 className="px-4 py-2 text-slate-400 hover:text-white text-sm">Cerrar</button>
             </div>
@@ -585,6 +887,26 @@ function DiffTooltip({ active, payload }) {
         Δ Qty: {d.qty_diff > 0 ? '+' : ''}{d.qty_diff}
       </p>
       <p className="text-slate-400">User: {d.user} · {d.tx_context}</p>
+    </div>
+  )
+}
+
+function AnomalyTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  return (
+    <div className="bg-[#0f1d32] border border-white/10 rounded-lg p-3 text-xs shadow-xl">
+      <p className="text-slate-400">Mov #{d.index} · {d.date}</p>
+      <p className="text-white">Container: <span className="font-mono text-[10px]">...{(d.container || '').slice(-8)}</span></p>
+      <p className={`font-bold ${d.qty_diff < 0 ? 'text-red-400' : 'text-green-400'}`}>
+        Δ Qty: {d.qty_diff > 0 ? '+' : ''}{d.qty_diff}
+      </p>
+      <p className="text-slate-400">User: {d.user} · Dest: {d.dest_loc}</p>
+      {d.is_anomaly && (
+        <p className={`font-medium mt-1 ${d.is_manual ? 'text-purple-400' : 'text-red-400'}`}>
+          {d.is_manual ? '✎ Anomalía manual' : '⚡ Anomalía detectada'}
+        </p>
+      )}
     </div>
   )
 }
