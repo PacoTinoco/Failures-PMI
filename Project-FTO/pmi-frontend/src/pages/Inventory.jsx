@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Cell, Brush, ReferenceArea
+  Tooltip, ResponsiveContainer, ReferenceLine, Brush, ReferenceArea
 } from 'recharts'
 import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
@@ -38,6 +38,13 @@ export default function Inventory() {
   const [dragStart, setDragStart] = useState(null)
   const [dragEnd, setDragEnd] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
+
+  // Click-to-highlight anomaly from table
+  const [selectedAnomalyRow, setSelectedAnomalyRow] = useState(null)
+  const [anomalyBrushRange, setAnomalyBrushRange] = useState(null)
+
+  // Confirmation dialog for unmarking anomalies
+  const [confirmUnmark, setConfirmUnmark] = useState(null)
 
   async function handleUpload(e) {
     const file = e.target.files[0]
@@ -122,6 +129,19 @@ export default function Inventory() {
     if (!data || filterContainer === 'all') return []
     const movs = data.movements.filter(m => m.container === filterContainer)
     return [...new Set(movs.map(m => m.dest_loc).filter(Boolean))].sort()
+  }, [data, filterContainer])
+
+  // Time info for selected container (first real drop & last movement)
+  const containerTimeInfo = useMemo(() => {
+    if (!data || filterContainer === 'all') return null
+    const movs = data.movements.filter(m => m.container === filterContainer)
+    if (!movs.length) return null
+    const firstDrop = movs.find(m => m.new_qty != null && m.old_qty != null && m.new_qty < m.old_qty)
+    const lastMov = movs[movs.length - 1]
+    return {
+      firstChangeDate: firstDrop?.date || null,
+      lastChangeDate: lastMov?.date || null,
+    }
   }, [data, filterContainer])
 
   // Consumption table (filtered by dest_loc + search)
@@ -233,6 +253,29 @@ export default function Inventory() {
     setDragStart(null)
     setDragEnd(null)
     setIsDragging(false)
+  }
+
+  // Click anomaly table row → highlight on chart + scroll Brush
+  function handleAnomalyRowClick(excelRow) {
+    setSelectedAnomalyRow(prev => prev === excelRow ? null : excelRow)
+    const idx = anomalyChartData.findIndex(d => d.excel_row === excelRow)
+    if (idx >= 0) {
+      const half = 20
+      setAnomalyBrushRange({
+        startIndex: Math.max(0, idx - half),
+        endIndex: Math.min(anomalyChartData.length - 1, idx + half),
+      })
+    }
+  }
+
+  // Handle unmark with confirmation
+  function handleUnmarkClick(excelRow, isOriginal) {
+    setConfirmUnmark({ excelRow, isOriginal })
+  }
+  function confirmUnmarkAction() {
+    if (!confirmUnmark) return
+    toggleManualAnomaly(confirmUnmark.excelRow, confirmUnmark.isOriginal)
+    setConfirmUnmark(null)
   }
 
   // Export anomalies to CSV
@@ -411,15 +454,31 @@ export default function Inventory() {
               <div>
                 <p className="text-[10px] text-slate-500 uppercase">Máquina(s)</p>
                 <div className="flex gap-1 flex-wrap">
-                  {selectedMachines.slice(0, 3).map(m => (
+                  {selectedMachines.map(m => (
                     <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300 font-medium">{m}</span>
                   ))}
-                  {selectedMachines.length > 3 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400"
-                      title={selectedMachines.slice(3).join(', ')}>+{selectedMachines.length - 3}</span>
-                  )}
                 </div>
               </div>
+            )}
+            {containerTimeInfo && (
+              <>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase">Primer cambio real</p>
+                  <p className="text-xs text-green-400 font-medium">
+                    {containerTimeInfo.firstChangeDate
+                      ? new Date(containerTimeInfo.firstChangeDate).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                      : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase">Último movimiento</p>
+                  <p className="text-xs text-amber-400 font-medium">
+                    {containerTimeInfo.lastChangeDate
+                      ? new Date(containerTimeInfo.lastChangeDate).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                      : '—'}
+                  </p>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -475,11 +534,15 @@ export default function Inventory() {
                 <ReferenceLine y={0} stroke="#475569" />
                 <ReferenceLine y={threshold} stroke="#ef4444" strokeDasharray="5 5" label={{ value: `+${threshold}`, fill: '#ef4444', fontSize: 10 }} />
                 <ReferenceLine y={-threshold} stroke="#ef4444" strokeDasharray="5 5" label={{ value: `-${threshold}`, fill: '#ef4444', fontSize: 10 }} />
-                <Bar dataKey="qty_diff" name="Δ Qty" radius={[2, 2, 0, 0]}>
-                  {timelineData.map((entry, i) => (
-                    <Cell key={i} fill={entry.fill} />
-                  ))}
-                </Bar>
+                <Bar dataKey="qty_diff" name="Δ Qty"
+                  shape={(props) => {
+                    const { x, y, width, height, payload } = props
+                    const fill = payload?.fill || '#06b6d4'
+                    const ay = height < 0 ? y + height : y
+                    const ah = Math.abs(height)
+                    return <rect x={x} y={ay} width={width} height={ah} fill={fill} rx={2} />
+                  }}
+                />
                 <Brush dataKey="index" height={20} stroke="#06b6d4" fill="#0a1628" travellerWidth={8} tickFormatter={() => ''} />
               </BarChart>
             </ResponsiveContainer>
@@ -537,15 +600,29 @@ export default function Inventory() {
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} />
                 <Tooltip content={<AnomalyTooltip />} />
                 <ReferenceLine y={0} stroke="#475569" />
-                <Bar dataKey="qty_diff" name="Δ Qty" radius={[2, 2, 0, 0]}>
-                  {anomalyChartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.fill} />
-                  ))}
-                </Bar>
+                <Bar dataKey="qty_diff" name="Δ Qty"
+                  shape={(props) => {
+                    const { x, y, width, height, payload } = props
+                    const fill = payload?.fill || '#1e3a5f'
+                    const ay = height < 0 ? y + height : y
+                    const ah = Math.abs(height)
+                    const isSel = payload?.excel_row === selectedAnomalyRow
+                    return (
+                      <g>
+                        <rect x={x} y={ay} width={width} height={ah} fill={fill} rx={2} />
+                        {isSel && <rect x={x - 2} y={ay - 2} width={width + 4} height={ah + 4} fill="none" stroke="#facc15" strokeWidth={2.5} rx={3} />}
+                      </g>
+                    )
+                  }}
+                />
                 {selMin != null && selMax != null && (
                   <ReferenceArea x1={selMin} x2={selMax} fill="#a855f7" fillOpacity={0.15} stroke="#a855f7" strokeOpacity={0.4} />
                 )}
-                <Brush dataKey="index" height={20} stroke="#06b6d4" fill="#0a1628" travellerWidth={8} tickFormatter={() => ''} />
+                <Brush dataKey="index" height={20} stroke="#06b6d4" fill="#0a1628" travellerWidth={8} tickFormatter={() => ''}
+                  startIndex={anomalyBrushRange?.startIndex}
+                  endIndex={anomalyBrushRange?.endIndex}
+                  onChange={(range) => setAnomalyBrushRange(range)}
+                />
               </BarChart>
             </ResponsiveContainer>
             {selMin != null && selMax != null && !isDragging && (
@@ -580,8 +657,11 @@ export default function Inventory() {
                 <tbody>
                   {anomaliesData.map((m, i) => {
                     const isManual = m.excel_row in manualAnomalies
+                    const isSelected = m.excel_row === selectedAnomalyRow
                     return (
-                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.03]">
+                      <tr key={i}
+                        className={`border-b border-white/5 hover:bg-white/[0.03] cursor-pointer ${isSelected ? 'bg-yellow-500/[0.08] ring-1 ring-yellow-500/30' : ''}`}
+                        onClick={() => handleAnomalyRowClick(m.excel_row)}>
                         <td className="px-2 py-1.5 text-slate-500 font-mono">{m.excel_row}</td>
                         <td className="px-2 py-1.5 text-slate-300 whitespace-nowrap">
                           {m.date ? new Date(m.date).toLocaleString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -609,7 +689,7 @@ export default function Inventory() {
                           </span>
                         </td>
                         <td className="px-2 py-1.5">
-                          <button onClick={() => toggleManualAnomaly(m.excel_row, m.is_anomaly)}
+                          <button onClick={(e) => { e.stopPropagation(); handleUnmarkClick(m.excel_row, m.is_anomaly) }}
                             className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
                             title={isManual ? 'Revertir a original' : 'Desmarcar anomalía'}>
                             {isManual ? '↩' : '✕'}
@@ -797,6 +877,38 @@ export default function Inventory() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ CONFIRM UNMARK MODAL ═══════ */}
+      {confirmUnmark && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setConfirmUnmark(null)}>
+          <div className="bg-[#0f1d32] rounded-xl border border-white/10 p-6 w-full max-w-sm space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="text-sm font-semibold text-white">¿Desmarcar esta anomalía?</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Fila Excel: <span className="text-white font-mono">{confirmUnmark.excelRow}</span>
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {confirmUnmark.excelRow in manualAnomalies
+                    ? 'Se revertirá al estado original de esta anomalía.'
+                    : 'Se desmarcará este registro como anomalía. Podrás volver a marcarlo después.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmUnmark(null)}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmUnmarkAction}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">
+                Sí, desmarcar
+              </button>
+            </div>
           </div>
         </div>
       )}
