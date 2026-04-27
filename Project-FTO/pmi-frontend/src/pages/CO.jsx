@@ -462,10 +462,10 @@ export default function CO() {
                           <td className="px-3 py-2 text-white font-medium">{op}</td>
                           <td className="px-3 py-2 text-center text-cyan-400 font-semibold">{c.total}</td>
                           <td className="px-3 py-2 text-center">
-                            <CompletionBadge pct={c.pct_razon} filled={c.filled_razon} total={c.total} />
+                            <CompletionBadge pct={c.pct_razon} filled={c.filled_razon} total={c.total} items={c.razon_items} />
                           </td>
                           <td className="px-3 py-2 text-center">
-                            <CompletionBadge pct={c.pct_recom} filled={c.filled_recom} total={c.total} />
+                            <CompletionBadge pct={c.pct_recom} filled={c.filled_recom} total={c.total} items={c.recom_items} />
                           </td>
                           <td className="px-3 py-2 text-center">
                             {c.avg_desperdicio != null ? (
@@ -497,7 +497,7 @@ export default function CO() {
                                   <p className="text-xs text-slate-400 font-medium">Detalle de COs de {op}</p>
                                   <span className="text-[10px] text-slate-500">{c.details.length} registros</span>
                                 </div>
-                                <div className="overflow-x-auto max-h-[300px]">
+                                <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
                                   <table className="w-full text-[11px]">
                                     <thead>
                                       <tr className="text-slate-600 border-b border-white/5">
@@ -518,11 +518,15 @@ export default function CO() {
                                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300">{d.maquina}</span>
                                           </td>
                                           <td className="px-2 py-1.5 text-slate-300 whitespace-nowrap">{d.marca_termina || '?'} → {d.marca_nueva || '?'}</td>
-                                          <td className="px-2 py-1.5 text-slate-300 max-w-[200px] truncate" title={d.razon_desviacion || ''}>
-                                            {d.razon_desviacion || <span className="text-red-400/50">—</span>}
+                                          <td className="px-2 py-1.5 text-slate-300 min-w-[200px] max-w-[400px]">
+                                            {d.razon_desviacion ? (
+                                              <span className="whitespace-pre-line break-words text-[11px] leading-relaxed">{d.razon_desviacion}</span>
+                                            ) : <span className="text-red-400/50">—</span>}
                                           </td>
-                                          <td className="px-2 py-1.5 text-slate-300 max-w-[200px] truncate" title={d.recomendacion || ''}>
-                                            {d.recomendacion || <span className="text-red-400/50">—</span>}
+                                          <td className="px-2 py-1.5 text-slate-300 min-w-[200px] max-w-[400px]">
+                                            {d.recomendacion ? (
+                                              <span className="whitespace-pre-line break-words text-[11px] leading-relaxed">{d.recomendacion}</span>
+                                            ) : <span className="text-red-400/50">—</span>}
                                           </td>
                                           <td className="px-2 py-1.5 text-center">
                                             {d.desperdicio_hora2 != null ? (
@@ -705,11 +709,14 @@ function StatCard({ label, value, color = 'text-white' }) {
   )
 }
 
-function CompletionBadge({ pct, filled, total }) {
+function CompletionBadge({ pct, filled, total, items }) {
   const color = pct >= 80 ? 'text-green-400 bg-green-950/40' : pct >= 50 ? 'text-amber-400 bg-amber-950/40' : 'text-red-400 bg-red-950/40'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded ${color}`}>
+    <span className={`text-xs px-2 py-0.5 rounded ${color}`} title={items != null ? `${items} items individuales en ${filled} registros` : undefined}>
       {filled}/{total} ({pct}%)
+      {items != null && items > filled && (
+        <span className="text-[9px] ml-1 opacity-60">· {items} items</span>
+      )}
     </span>
   )
 }

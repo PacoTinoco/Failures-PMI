@@ -221,6 +221,15 @@ async def get_co_stats():
             return None
         return s
 
+    def _count_items(text):
+        """Count individual items separated by '.' in razones/recomendaciones.
+        Uses '. ' (period+space) to avoid splitting codes like '20.A481'."""
+        if not text:
+            return 0
+        # Split by period followed by whitespace, or period at end of string
+        parts = re.split(r'\.\s+', text.strip().rstrip('.'))
+        return len([p for p in parts if p.strip() and len(p.strip()) > 1])
+
     for r in records:
         maq = r.get("maquina") or "N/A"
         by_machine[maq] = by_machine.get(maq, 0) + 1
@@ -250,6 +259,7 @@ async def get_co_stats():
             completeness[op] = {
                 "total": 0, "filled_razon": 0, "filled_recom": 0,
                 "filled_desperdicio": 0, "desperdicio_values": [],
+                "razon_items": 0, "recom_items": 0,
                 "details": [],
             }
         completeness[op]["total"] += 1
@@ -260,8 +270,10 @@ async def get_co_stats():
 
         if razon_val:
             completeness[op]["filled_razon"] += 1
+            completeness[op]["razon_items"] += _count_items(razon_val)
         if recom_val:
             completeness[op]["filled_recom"] += 1
+            completeness[op]["recom_items"] += _count_items(recom_val)
         if desp_val is not None:
             completeness[op]["filled_desperdicio"] += 1
             completeness[op]["desperdicio_values"].append(desp_val)
