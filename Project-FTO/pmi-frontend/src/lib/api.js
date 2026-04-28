@@ -133,6 +133,22 @@ export async function deleteOperador(operadorId) {
   })
 }
 
+// Aliases (para matching QM, BOS, DH)
+export async function getAliasesByCedula(cedulaId) {
+  return apiRequest(`/equipos/aliases?cedula_id=${cedulaId}`)
+}
+
+export async function getAlias(personaId) {
+  return apiRequest(`/equipos/aliases/${personaId}`)
+}
+
+export async function upsertAlias(personaId, aliasData) {
+  return apiRequest(`/equipos/aliases/${personaId}`, {
+    method: 'PUT',
+    body: JSON.stringify(aliasData)
+  })
+}
+
 // ============================================================
 // DASHBOARD
 // ============================================================

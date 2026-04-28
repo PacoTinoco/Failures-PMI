@@ -19,6 +19,7 @@ export default function Administrar() {
   const [error, setError] = useState(null)
   const [modal, setModal] = useState(null) // { type: 'create'|'edit', entity: 'cedula'|'lc'|'operador', data?: {} }
   const [saving, setSaving] = useState(false)
+  const [aliasesMap, setAliasesMap] = useState({}) // persona_id → alias data
 
   // Fetch cédulas on mount
   useEffect(() => {
@@ -44,7 +45,8 @@ export default function Administrar() {
       const res = await api.getCedulas()
       setCedulas(res.data || [])
       if (!selectedCedulaId && res.data?.length > 0) {
-        setSelectedCedulaId(res.data[0].id)
+        const cap = res.data.find(c => (c.nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes('capsula'))
+        setSelectedCedulaId((cap || res.data[0]).id)
       }
     } catch (err) {
       setError(err.message)
@@ -74,6 +76,15 @@ export default function Administrar() {
     try {
       const res = await api.getOperadores(selectedCedulaId)
       setOperadores(res.data || [])
+      // Also load aliases for all operators
+      try {
+        const aliasRes = await api.getAliasesByCedula(selectedCedulaId)
+        const map = {}
+        for (const a of (aliasRes.data || [])) {
+          map[a.persona_id] = a
+        }
+        setAliasesMap(map)
+      } catch { /* aliases table might not exist yet */ }
     } catch (err) {
       console.error('Error cargando operadores:', err)
     }
@@ -126,10 +137,33 @@ export default function Administrar() {
         }
         fetchLS()
       } else if (modal.entity === 'operador') {
+        // Separate alias fields from operator fields
+        const { nombre_qbos, email_bos, email_dh, nombre_bd, username_comitdb, ...opData } = formData
+        const hasAliases = nombre_qbos || email_bos || email_dh || nombre_bd || username_comitdb
+
+        let opId
         if (modal.type === 'create') {
-          await api.createOperador({ ...formData, cedula_id: selectedCedulaId })
+          const res = await api.createOperador({ ...opData, cedula_id: selectedCedulaId })
+          opId = res.data?.id
         } else {
-          await api.updateOperador(modal.data.id, formData)
+          await api.updateOperador(modal.data.id, opData)
+          opId = modal.data.id
+        }
+
+        // Save aliases if any alias field was provided
+        if (opId && hasAliases) {
+          try {
+            await api.upsertAlias(opId, {
+              persona_tipo: 'operador',
+              nombre_qbos: nombre_qbos || null,
+              email_bos: email_bos || null,
+              email_dh: email_dh || null,
+              nombre_bd: nombre_bd || null,
+              username_comitdb: username_comitdb || null,
+            })
+          } catch (aliasErr) {
+            console.error('Error guardando aliases:', aliasErr)
+          }
         }
         fetchOperadores()
       }
@@ -225,8 +259,19 @@ export default function Administrar() {
           lcs={lcs}
           loading={loading}
           selectedCedulaId={selectedCedulaId}
+          aliasesMap={aliasesMap}
           onAdd={() => setModal({ type: 'create', entity: 'operador' })}
-          onEdit={(op) => setModal({ type: 'edit', entity: 'operador', data: op })}
+          onEdit={(op) => {
+            const alias = aliasesMap[op.id] || {}
+            setModal({ type: 'edit', entity: 'operador', data: {
+              ...op,
+              nombre_qbos: alias.nombre_qbos || '',
+              email_bos: alias.email_bos || '',
+              email_dh: alias.email_dh || '',
+              nombre_bd: alias.nombre_bd || '',
+              username_comitdb: alias.username_comitdb || '',
+            }})
+          }}
           onDelete={(op) => handleDelete('operador', op.id, op.nombre)}
         />
       )}
@@ -373,7 +418,7 @@ function LSTab({ lsMembers, loading, selectedCedulaId, onAdd, onEdit, onDelete }
   )
 }
 
-function OperadoresTab({ operadores, lcs, loading, selectedCedulaId, onAdd, onEdit, onDelete }) {
+function OperadoresTab({ operadores, lcs, loading, selectedCedulaId, onAdd, onEdit, onDelete, aliasesMap }) {
   if (!selectedCedulaId) return <EmptyMessage text="Selecciona una cédula para ver sus operadores." />
 
   return (
@@ -391,23 +436,38 @@ function OperadoresTab({ operadores, lcs, loading, selectedCedulaId, onAdd, onEd
             <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Line Coordinator</th>
             <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Turno</th>
             <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Máquina</th>
+            <th className="px-4 py-2 text-left text-slate-400 font-medium text-xs">Aliases</th>
             <th className="px-4 py-2 text-right text-slate-400 font-medium text-xs">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {operadores.length === 0 ? (
-            <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">No hay operadores para esta cédula.</td></tr>
-          ) : operadores.map(op => (
-            <tr key={op.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-              <td className="px-4 py-2.5 text-white font-medium">{op.nombre}</td>
-              <td className="px-4 py-2.5 text-slate-400">{op.line_coordinators?.nombre || '—'}</td>
-              <td className="px-4 py-2.5 text-slate-400">{op.turno || '—'}</td>
-              <td className="px-4 py-2.5 text-slate-400">{op.maquina || '—'}</td>
-              <td className="px-4 py-2.5 text-right">
-                <ActionButtons onEdit={() => onEdit(op)} onDelete={() => onDelete(op)} />
-              </td>
-            </tr>
-          ))}
+            <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No hay operadores para esta cédula.</td></tr>
+          ) : operadores.map(op => {
+            const alias = aliasesMap?.[op.id]
+            const aliasCount = alias ? [alias.nombre_qbos, alias.email_bos, alias.email_dh, alias.nombre_bd, alias.username_comitdb].filter(Boolean).length : 0
+            return (
+              <tr key={op.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                <td className="px-4 py-2.5 text-white font-medium">{op.nombre}</td>
+                <td className="px-4 py-2.5 text-slate-400">{op.line_coordinators?.nombre || '—'}</td>
+                <td className="px-4 py-2.5 text-slate-400">{op.turno || '—'}</td>
+                <td className="px-4 py-2.5 text-slate-400">{op.maquina || '—'}</td>
+                <td className="px-4 py-2.5">
+                  {aliasCount > 0 ? (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/40 text-purple-400"
+                      title={[alias.nombre_qbos && `QM: ${alias.nombre_qbos}`, alias.email_bos && `BOS: ${alias.email_bos}`, alias.email_dh && `DH: ${alias.email_dh}`, alias.nombre_bd && `BD: ${alias.nombre_bd}`, alias.username_comitdb && `QFlags: ${alias.username_comitdb}`].filter(Boolean).join('\n')}>
+                      {aliasCount} alias{aliasCount > 1 ? 'es' : ''}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-600">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <ActionButtons onEdit={() => onEdit(op)} onDelete={() => onDelete(op)} />
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -460,7 +520,10 @@ function FormModal({ modal, lcs, saving, onSave, onClose }) {
     } else if (entity === 'ls') {
       return { nombre: data.nombre || '', rol: data.rol || '', email: data.email || '', turno: data.turno || '' }
     } else {
-      return { nombre: data.nombre || '', lc_id: data.lc_id || '', turno: data.turno || '', maquina: data.maquina || '' }
+      return {
+        nombre: data.nombre || '', lc_id: data.lc_id || '', turno: data.turno || '', maquina: data.maquina || '',
+        nombre_qbos: data.nombre_qbos || '', email_bos: data.email_bos || '', email_dh: data.email_dh || '', nombre_bd: data.nombre_bd || '', username_comitdb: data.username_comitdb || '',
+      }
     }
   })
 
@@ -532,7 +595,28 @@ function FormModal({ modal, lcs, saving, onSave, onClose }) {
           )}
 
           {entity === 'operador' && (
-            <FormField label="Máquina" value={form.maquina} onChange={v => handleChange('maquina', v)} />
+            <>
+              <FormField label="Máquina" value={form.maquina} onChange={v => handleChange('maquina', v)} />
+
+              <div className="border-t border-white/5 pt-3 mt-1">
+                <p className="text-xs text-slate-500 mb-3">
+                  Aliases para matching automático con archivos Excel (QM, BOS, DH).
+                  Agrega los nombres o emails alternativos que usa esta persona en los diferentes sistemas.
+                </p>
+                <div className="grid grid-cols-1 gap-3">
+                  <FormField label="Nombre QM / QBOS" value={form.nombre_qbos} onChange={v => handleChange('nombre_qbos', v)}
+                    placeholder="Ej: Najera Jesus, como aparece en el Excel QM" />
+                  <FormField label="Nombre BD (base de datos)" value={form.nombre_bd} onChange={v => handleChange('nombre_bd', v)}
+                    placeholder="Nombre alternativo en otros reportes" />
+                  <FormField label="Email BOS" value={form.email_bos} onChange={v => handleChange('email_bos', v)}
+                    type="email" placeholder="Ej: jesus.najera@pmi.com" />
+                  <FormField label="Email DH" value={form.email_dh} onChange={v => handleChange('email_dh', v)}
+                    type="email" placeholder="Email en reportes DH" />
+                  <FormField label="Q Flags / Commits (username)" value={form.username_comitdb} onChange={v => handleChange('username_comitdb', v)}
+                    placeholder="Ej: jnajera, como aparece en Q Flags / ComitDB" />
+                </div>
+              </div>
+            </>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-2">

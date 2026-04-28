@@ -45,7 +45,7 @@ export default function BOSQBOS() {
     api.getCedulas()
       .then(res => {
         setCedulas(res.data || [])
-        if (res.data?.length > 0) setCedulaId(res.data[0].id)
+        if (res.data?.length > 0) { const cap = res.data.find(c => (c.nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes('capsula')); setCedulaId((cap || res.data[0]).id) }
       })
       .catch(err => setError(err.message))
       .finally(() => setCedulasLoading(false))

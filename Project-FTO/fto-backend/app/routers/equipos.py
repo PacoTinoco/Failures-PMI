@@ -1,4 +1,6 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 from app.models.schemas import (
     OperadorCreate, OperadorUpdate,
     LCCreate, LCUpdate,
@@ -7,6 +9,15 @@ from app.models.schemas import (
     UsuarioCreate
 )
 from app.services.supabase_client import get_supabase_admin
+
+
+class AliasUpsert(BaseModel):
+    persona_tipo: str = "operador"
+    nombre_bd: Optional[str] = None
+    nombre_qbos: Optional[str] = None
+    email_bos: Optional[str] = None
+    email_dh: Optional[str] = None
+    username_comitdb: Optional[str] = None
 
 router = APIRouter(prefix="/equipos", tags=["Gestión de Equipos"])
 
@@ -206,6 +217,55 @@ async def desactivar_operador(op_id: str):
     sb = get_supabase_admin()
     result = sb.table("operadores").update({"activo": False}).eq("id", op_id).execute()
     return {"success": True, "message": "Operador desactivado"}
+
+
+# ============================================================
+# ALIASES (para matching QM → Dashboard, BOS, DH, etc.)
+# ============================================================
+
+@router.get("/aliases")
+async def listar_aliases(cedula_id: str):
+    """Retorna todos los aliases de operadores de una cédula."""
+    sb = get_supabase_admin()
+    ops = sb.table("operadores").select("id").eq("cedula_id", cedula_id).execute()
+    op_ids = [o["id"] for o in (ops.data or [])]
+    if not op_ids:
+        return {"data": []}
+    result = sb.table("operador_aliases").select("*").in_("persona_id", op_ids).execute()
+    return {"data": result.data or []}
+
+
+@router.get("/aliases/{persona_id}")
+async def get_alias(persona_id: str):
+    """Retorna el alias de una persona específica."""
+    sb = get_supabase_admin()
+    result = sb.table("operador_aliases").select("*").eq("persona_id", persona_id).execute()
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.put("/aliases/{persona_id}")
+async def upsert_alias(persona_id: str, body: AliasUpsert):
+    """Crea o actualiza el alias de una persona."""
+    sb = get_supabase_admin()
+    data = {
+        "persona_id": persona_id,
+        "persona_tipo": body.persona_tipo,
+        "nombre_bd": body.nombre_bd,
+        "nombre_qbos": body.nombre_qbos,
+        "email_bos": body.email_bos,
+        "email_dh": body.email_dh,
+        "username_comitdb": body.username_comitdb,
+    }
+    # Remove None values to avoid overwriting with null
+    data = {k: v for k, v in data.items() if v is not None}
+    data["persona_id"] = persona_id  # always keep this
+    try:
+        result = sb.table("operador_aliases").upsert(
+            data, on_conflict="persona_id"
+        ).execute()
+        return {"success": True, "data": result.data[0] if result.data else None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================
