@@ -1,17 +1,52 @@
 import { useState, useEffect, useRef } from 'react'
+import * as XLSX from 'xlsx'
 import CedulaSelector from '../components/CedulaSelector'
 import UploadBanner from '../components/UploadBanner'
 import * as api from '../lib/api'
 
 const STATUS_COLORS = {
   Open:      'bg-blue-500/15 text-blue-400',
-  Closed:    'bg-green-500/15 text-green-400',
-  Cancelled: 'bg-slate-500/15 text-slate-400',
-  Merged:    'bg-purple-500/15 text-purple-400',
-  BCC:       'bg-amber-500/15 text-amber-400',
   '6W2H':   'bg-cyan-500/15 text-cyan-400',
+  BCC:       'bg-amber-500/15 text-amber-400',
+  '5W':     'bg-teal-500/15 text-teal-400',
+  Closing:   'bg-lime-500/15 text-lime-400',
+  Closed:    'bg-green-500/15 text-green-400',
+  Merged:    'bg-purple-500/15 text-purple-400',
+  Cancelled: 'bg-slate-500/15 text-slate-400',
   Ascended:  'bg-indigo-500/15 text-indigo-400',
   Missing:   'bg-red-500/15 text-red-400',
+}
+
+// Ordered status list for dropdowns and filters
+const STATUS_ORDER = ['Open', '6W2H', 'BCC', '5W', 'Closing', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
+
+// Hierarchy for auto-filling checkboxes when status changes
+// 6W → BB → 5W → Rs
+const STATUS_CHECKBOX_MAP = {
+  'Open':      { section_6w2h: false, section_bbc: false, section_5w: false, section_res: false },
+  '6W2H':     { section_6w2h: true,  section_bbc: false, section_5w: false, section_res: false },
+  'BCC':       { section_6w2h: true,  section_bbc: true,  section_5w: false, section_res: false },
+  '5W':       { section_6w2h: true,  section_bbc: true,  section_5w: true,  section_res: false },
+  'Closing':   { section_6w2h: true,  section_bbc: true,  section_5w: true,  section_res: true },
+  'Closed':    { section_6w2h: true,  section_bbc: true,  section_5w: true,  section_res: true },
+  'Merged':    {},
+  'Cancelled': {},
+  'Ascended':  {},
+  'Missing':   {},
+}
+
+function getQuarter(dateStr) {
+  if (!dateStr) return null
+  const m = new Date(dateStr + 'T12:00:00').getMonth() + 1
+  if (m <= 3) return 'Q1'
+  if (m <= 6) return 'Q2'
+  if (m <= 9) return 'Q3'
+  return 'Q4'
+}
+
+function getYear(dateStr) {
+  if (!dateStr) return null
+  return new Date(dateStr + 'T12:00:00').getFullYear()
 }
 
 const CM_STATUS_COLORS = {
@@ -46,6 +81,8 @@ export default function IPS() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterUbi, setFilterUbi]       = useState('all')
   const [filterOwner, setFilterOwner]   = useState([])  // [] = all, array of names = filtered
+  const [filterQuarter, setFilterQuarter] = useState('all')
+  const [filterYear, setFilterYear]     = useState('all')
   const [sortKey, setSortKey]           = useState('fecha')
   const [sortDir, setSortDir]           = useState('desc')
 
@@ -142,7 +179,7 @@ export default function IPS() {
     finally { setDeduping(false) }
   }
 
-  // ── Export ──
+  // ── Export (general) ──
   async function handleExport() {
     if (!cedulaId) return
     setExporting(true); setError(null)
@@ -151,6 +188,38 @@ export default function IPS() {
       await api.exportIPSExcel(cedulaId, kdfParam)
     } catch (err) { setError(err.message) }
     finally { setExporting(false) }
+  }
+
+  // ── Export Open IPS to Excel (client-side) ──
+  function handleExportOpen() {
+    const openRecords = records.filter(r => r.status === 'Open')
+    if (openRecords.length === 0) { setError('No hay IPS con status "Open" para exportar'); return }
+
+    const rows = openRecords.map(r => ({
+      'KDF': r.kdf,
+      'Título': r.titulo,
+      'Personas': Array.isArray(r.participants) ? r.participants.join(', ') : (r.participants || ''),
+      'Fecha': r.fecha || '',
+      '6W2H': r.section_6w2h ? '✓' : '',
+      'BBC': r.section_bbc ? '✓' : '',
+      '5W': r.section_5w ? '✓' : '',
+      'Res': r.section_res ? '✓' : '',
+      'Status': r.status,
+      'CMs': `${cmDoneMap[r.id] || 0}/${cmCountMap[r.id] || 0}`,
+      'Notas': r.notes || '',
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    // Auto column widths
+    const colWidths = Object.keys(rows[0]).map(k => ({
+      wch: Math.max(k.length, ...rows.map(r => String(r[k] || '').length)) + 2
+    }))
+    ws['!cols'] = colWidths
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'IPS Open')
+    const cName = cedulas.find(c => c.id === cedulaId)?.nombre || 'IPS'
+    XLSX.writeFile(wb, `IPS_Open_${cName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   // ── Create IPS ──
@@ -246,11 +315,13 @@ export default function IPS() {
     } catch (err) { setError(err.message) }
   }
 
-  // ── Update IPS status inline ──
+  // ── Update IPS status inline (with auto-fill checkboxes) ──
   async function handleIPSStatusChange(ipsId, newStatus) {
     try {
-      await api.updateIPSRecord(ipsId, { status: newStatus })
-      setRecords(prev => prev.map(r => r.id === ipsId ? { ...r, status: newStatus } : r))
+      const checkboxes = STATUS_CHECKBOX_MAP[newStatus] || {}
+      const updateData = { status: newStatus, ...checkboxes }
+      await api.updateIPSRecord(ipsId, updateData)
+      setRecords(prev => prev.map(r => r.id === ipsId ? { ...r, ...updateData } : r))
     } catch (err) { setError(err.message) }
   }
 
@@ -320,9 +391,9 @@ export default function IPS() {
 
   // ── Filter & sort ──
   const uniqueKdfs = [...new Set(records.map(r => r.kdf))].sort((a, b) => a - b)
-  const uniqueStatuses = [...new Set(records.map(r => r.status))].sort()
   const uniqueUbis = [...new Set(records.map(r => r.ubicacion).filter(Boolean))].sort()
   const uniqueOwners = [...new Set(allCMs.map(c => c.owner).filter(Boolean))].sort()
+  const uniqueYears = [...new Set(records.map(r => getYear(r.fecha)).filter(Boolean))].sort((a, b) => b - a)
 
   // Build CM ownership map: ips_id → [owners]
   const cmOwnerMap = {}
@@ -338,6 +409,8 @@ export default function IPS() {
       if (filterKdf !== 'all' && r.kdf !== parseInt(filterKdf)) return false
       if (filterStatus !== 'all' && r.status !== filterStatus) return false
       if (filterUbi !== 'all' && r.ubicacion !== filterUbi) return false
+      if (filterQuarter !== 'all' && getQuarter(r.fecha) !== filterQuarter) return false
+      if (filterYear !== 'all' && getYear(r.fecha) !== parseInt(filterYear)) return false
       if (filterOwner.length > 0) {
         const owners = cmOwnerMap[r.id]
         if (!owners || !filterOwner.some(fo => owners.has(fo))) return false
@@ -390,9 +463,13 @@ export default function IPS() {
             className="px-4 py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-50 whitespace-nowrap">
             + Nuevo IPS
           </button>
-          <button onClick={handleExport} disabled={exporting || !cedulaId || records.length === 0}
+          <button onClick={handleExportOpen} disabled={!cedulaId || records.filter(r => r.status === 'Open').length === 0}
             className="px-4 py-2 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 whitespace-nowrap">
-            {exporting ? 'Exportando...' : 'Exportar Excel'}
+            Exportar Open
+          </button>
+          <button onClick={handleExport} disabled={exporting || !cedulaId || records.length === 0}
+            className="px-4 py-2 rounded-lg text-xs font-medium bg-slate-600 hover:bg-slate-500 text-white transition-colors disabled:opacity-50 whitespace-nowrap">
+            {exporting ? 'Exportando...' : 'Exportar Todo'}
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleUpload} className="hidden" />
           <button onClick={() => fileRef.current?.click()} disabled={uploading || !cedulaId}
@@ -498,6 +575,40 @@ export default function IPS() {
             )}
           </div>
 
+          {/* Quarter filter */}
+          <span className="text-xs text-slate-500 ml-2">Q:</span>
+          <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
+            <button onClick={() => setFilterQuarter('all')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterQuarter === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+              Todos
+            </button>
+            {['Q1','Q2','Q3','Q4'].map(q => (
+              <button key={q} onClick={() => setFilterQuarter(filterQuarter === q ? 'all' : q)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterQuarter === q ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* Year filter */}
+          {uniqueYears.length > 0 && (
+            <>
+              <span className="text-xs text-slate-500 ml-2">Año:</span>
+              <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
+                <button onClick={() => setFilterYear('all')}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterYear === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  Todos
+                </button>
+                {uniqueYears.map(y => (
+                  <button key={y} onClick={() => setFilterYear(filterYear === String(y) ? 'all' : String(y))}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterYear === String(y) ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           <div className="flex-1" />
 
           {/* Search */}
@@ -543,7 +654,7 @@ export default function IPS() {
                 className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterStatus === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
                 Todos
               </button>
-              {uniqueStatuses.map(s => (
+              {STATUS_ORDER.map(s => (
                 <button key={s} onClick={() => setFilterStatus(filterStatus === s ? 'all' : s)}
                   className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterStatus === s ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
                   {s}
@@ -635,9 +746,13 @@ export default function IPS() {
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Status</label>
                   <select value={createForm.status}
-                    onChange={e => setCreateForm(f => ({ ...f, status: e.target.value }))}
+                    onChange={e => {
+                      const s = e.target.value
+                      const checks = STATUS_CHECKBOX_MAP[s] || {}
+                      setCreateForm(f => ({ ...f, status: s, ...checks }))
+                    }}
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                    {['Open','Closed','BCC','6W2H','Cancelled','Merged','Ascended','Missing'].map(s => (
+                    {STATUS_ORDER.map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -769,9 +884,13 @@ export default function IPS() {
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Status</label>
                   <select value={editForm.status}
-                    onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                    onChange={e => {
+                      const s = e.target.value
+                      const checks = STATUS_CHECKBOX_MAP[s] || {}
+                      setEditForm(f => ({ ...f, status: s, ...checks }))
+                    }}
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                    {['Open','Closed','BCC','6W2H','Cancelled','Merged','Ascended','Missing'].map(s => (
+                    {STATUS_ORDER.map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -883,7 +1002,7 @@ function IPSRow({ record: r, isExpanded, cmTotal, cmDone, expandedCMs, loadingCM
           <select value={r.status}
             onChange={e => onStatusChange(r.id, e.target.value)}
             className={`text-[11px] font-medium px-2 py-0.5 rounded border-0 cursor-pointer focus:outline-none ${STATUS_COLORS[r.status] || 'bg-slate-500/15 text-slate-400'}`}>
-            {['Open','Closed','BCC','6W2H','Cancelled','Merged','Ascended','Missing'].map(s => (
+            {STATUS_ORDER.map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>

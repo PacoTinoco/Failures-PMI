@@ -13,6 +13,7 @@ export default function QFlags() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState(null)
   const [banner, setBanner] = useState(null)
+  const [unmatchedExpanded, setUnmatchedExpanded] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -94,10 +95,11 @@ export default function QFlags() {
             <p className="text-xs text-slate-400">
               Columnas esperadas: <code className="text-cyan-400">Created</code>,{' '}
               <code className="text-cyan-400">[username]</code>,{' '}
+              <code className="text-cyan-400">[BU]</code>,{' '}
               <code className="text-cyan-400">Workcenter</code>
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
-              El match se hace con aliases configurados o heurístico contra operadores.
+              Se filtran solo SingleCaps / DoubleCaps en máquinas de filtros. Match con alias de <code className="text-cyan-400/60">username_comitdb</code> o heurístico.
             </p>
           </div>
           <div>
@@ -132,23 +134,65 @@ export default function QFlags() {
 
           {/* Unmatched */}
           {result.unmatched_users?.length > 0 && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-              <p className="text-sm font-semibold text-amber-400 mb-2">
-                ⚠ {result.unmatched_users.length} usuarios sin match ({result.unmatched_users.reduce((s, u) => s + u.count, 0)} filas ignoradas)
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {result.unmatched_users.slice(0, 20).map(u => (
-                  <span key={u.username} className="text-xs bg-amber-950/40 text-amber-300 px-2 py-1 rounded">
-                    {u.username} <span className="text-amber-500/60">({u.count})</span>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setUnmatchedExpanded(!unmatchedExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-amber-500/5 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-400 text-sm">⚠</span>
+                  <span className="text-sm font-semibold text-amber-400">
+                    {result.unmatched_users.length} usuarios sin match
                   </span>
-                ))}
-                {result.unmatched_users.length > 20 && (
-                  <span className="text-xs text-amber-400">+{result.unmatched_users.length - 20} más</span>
-                )}
-              </div>
-              <p className="text-[11px] text-amber-300/70 mt-2">
-                Puedes agregar estos usuarios en el Excel de aliases (columna <code>username_comitdb</code>) y volver a subir.
-              </p>
+                  <span className="text-xs text-amber-500/70">
+                    ({result.unmatched_users.reduce((s, u) => s + u.count, 0)} Q Flags no asignadas)
+                  </span>
+                </div>
+                <span className="text-amber-400 text-xs">{unmatchedExpanded ? '▾ Ocultar' : '▸ Ver detalle'}</span>
+              </button>
+
+              {unmatchedExpanded && (
+                <div className="border-t border-amber-500/20">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-amber-500/10 text-amber-500/80">
+                        <th className="px-4 py-2 text-left font-medium">Username</th>
+                        <th className="px-3 py-2 text-center font-medium">Q Flags</th>
+                        <th className="px-3 py-2 text-left font-medium">Máquinas</th>
+                        <th className="px-3 py-2 text-left font-medium">Fechas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.unmatched_users.map(u => (
+                        <tr key={u.username} className="border-b border-amber-500/10 hover:bg-amber-500/5">
+                          <td className="px-4 py-2 text-amber-200 font-medium">{u.username}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">{u.count}</span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1">
+                              {(u.workcenters || []).map(wc => (
+                                <span key={wc} className="text-[10px] bg-cyan-950/40 text-cyan-400 px-1.5 py-0.5 rounded">{wc}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-slate-400">
+                            {(u.dates || []).length <= 3
+                              ? u.dates.map(d => new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })).join(', ')
+                              : `${u.dates.slice(0, 2).map(d => new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })).join(', ')} +${u.dates.length - 2} más`
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-4 py-2.5 bg-amber-950/20 border-t border-amber-500/10">
+                    <p className="text-[11px] text-amber-300/70">
+                      Para asignar estos usuarios, ve a <span className="text-amber-200 font-medium">Administración → Operadores → Editar</span> y agrega el username en el campo <span className="text-amber-200 font-medium">"Q Flags / Commits"</span>.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

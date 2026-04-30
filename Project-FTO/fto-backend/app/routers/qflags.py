@@ -24,6 +24,11 @@ import pandas as pd
 
 router = APIRouter(prefix="/qflags", tags=["Q Flags"])
 
+# Workcenters de filtros que nos interesan
+FILTER_WORKCENTERS = {"FI1", "FI3", "FI4", "FI6", "FI7", "FI8", "FI9", "FI11", "FI17", "MULF1"}
+# BU values relevantes (SingleCaps / DoubleCaps)
+CAPS_BU_VALUES = {"singlecaps", "doublecaps", "single caps", "double caps"}
+
 
 # ══════════════════════════════════════════════════════
 # Helpers
@@ -182,28 +187,36 @@ async def upload_qflags(
             f"Faltan columnas. Encontradas: {list(df.columns)}. Se requieren 'Created' y '[username]'."
         )
 
-    # ── Filtrar solo filas de "Single caps" / "Double caps" ──
-    # Busca en columnas type, category, subcategory o cualquiera que contenga esos valores
-    caps_col = find_col("type", "category", "subcategory")
+    # ── Filtrar solo filas de SingleCaps / DoubleCaps ──
+    # Busca la columna [BU] (o [bu], bu, type, category)
+    bu_col = find_col("[bu]", "bu", "type", "category", "subcategory")
     caps_filter_applied = False
-    if caps_col:
-        # Verificar si la columna realmente tiene valores de caps
-        vals_lower = df[caps_col].astype(str).str.strip().str.lower().unique()
-        has_caps = any("single caps" in v or "double caps" in v for v in vals_lower)
+    caps_col = None
+
+    if bu_col:
+        vals_lower = df[bu_col].astype(str).str.strip().str.lower().unique()
+        has_caps = any(v in CAPS_BU_VALUES for v in vals_lower)
         if has_caps:
-            df = df[df[caps_col].astype(str).str.strip().str.lower().isin(["single caps", "double caps"])]
+            df = df[df[bu_col].astype(str).str.strip().str.lower().isin(CAPS_BU_VALUES)]
             caps_filter_applied = True
+            caps_col = bu_col
 
     # Si no encontró en la primera columna, buscar en todas las columnas por si acaso
     if not caps_filter_applied:
         for col in df.columns:
             vals_lower = df[col].astype(str).str.strip().str.lower().unique()
-            has_caps = any("single caps" in v or "double caps" in v for v in vals_lower)
+            has_caps = any(v in CAPS_BU_VALUES for v in vals_lower)
             if has_caps:
-                df = df[df[col].astype(str).str.strip().str.lower().isin(["single caps", "double caps"])]
+                df = df[df[col].astype(str).str.strip().str.lower().isin(CAPS_BU_VALUES)]
                 caps_filter_applied = True
                 caps_col = col
                 break
+
+    # ── Filtrar solo filas con workcenters de filtros ──
+    wc_filter_applied = False
+    if wc_col:
+        df = df[df[wc_col].astype(str).str.strip().str.upper().isin(FILTER_WORKCENTERS)]
+        wc_filter_applied = True
 
     sb = get_supabase_admin()
 
@@ -221,7 +234,8 @@ async def upload_qflags(
 
     # Agrupa conteos por (persona_id, semana)
     counts = defaultdict(int)
-    unmatched_users = defaultdict(int)
+    # unmatched_users: username → { count, dates: set, workcenters: set }
+    unmatched_users = {}
     total_rows = 0
     skipped_rows = 0
 
@@ -229,6 +243,7 @@ async def upload_qflags(
         total_rows += 1
         raw_user = row.get(user_col)
         raw_date = row.get(created_col)
+        raw_wc = str(row.get(wc_col, "")).strip() if wc_col else ""
         username = clean_username(raw_user)
         d = parse_date_flexible(raw_date)
         if not username or not d:
@@ -249,7 +264,12 @@ async def upload_qflags(
             if best_op and best_score >= 70:
                 info = {"persona_id": best_op["id"], "persona_tipo": "operador"}
             else:
-                unmatched_users[username] += 1
+                if username not in unmatched_users:
+                    unmatched_users[username] = {"count": 0, "dates": set(), "workcenters": set()}
+                unmatched_users[username]["count"] += 1
+                unmatched_users[username]["dates"].add(d.isoformat())
+                if raw_wc:
+                    unmatched_users[username]["workcenters"].add(raw_wc)
                 continue
 
         if info["persona_tipo"] != "operador":
@@ -279,7 +299,15 @@ async def upload_qflags(
         "matched_count": sum(counts.values()),
         "unique_operators": len({k[0] for k in counts.keys()}),
         "unique_weeks": sorted({k[1] for k in counts.keys()}),
-        "unmatched_users": [{"username": u, "count": c} for u, c in sorted(unmatched_users.items(), key=lambda x: -x[1])],
+        "unmatched_users": [
+            {
+                "username": u,
+                "count": info["count"],
+                "dates": sorted(info["dates"]),
+                "workcenters": sorted(info["workcenters"]),
+            }
+            for u, info in sorted(unmatched_users.items(), key=lambda x: -x[1]["count"])
+        ],
         "results": results,
     }
 
