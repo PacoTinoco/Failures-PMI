@@ -17,8 +17,12 @@ const STATUS_COLORS = {
   Missing:   'bg-red-500/15 text-red-400',
 }
 
-// Ordered status list for dropdowns and filters
-const STATUS_ORDER = ['Open', '6W2H', 'BCC', '5W', 'Closing', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
+// Ordered status list for filters (includes 'Open' as meta-filter)
+const STATUS_FILTER_ORDER = ['Open', '6W2H', 'BCC', '5W', 'Closing', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
+// Status options for dropdowns (no 'Open' — it's not a real status, it's a filter)
+const STATUS_DROPDOWN = ['6W2H', 'BCC', '5W', 'Closing', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
+// 'Open' meta-filter maps to these real statuses
+const OPEN_STATUSES = new Set(['6W2H', 'BCC', '5W'])
 
 // Hierarchy for auto-filling checkboxes when status changes
 // 6W → BB → 5W → Rs
@@ -59,7 +63,7 @@ const CM_STATUS_COLORS = {
 const EMPTY_IPS = {
   kdf: '', titulo: '', fecha: '', ubicacion: '', participants: '',
   section_6w2h: false, section_bbc: false, section_5w: false, section_res: false,
-  status: 'Open', notes: '',
+  status: '6W2H', notes: '',
 }
 
 const EMPTY_CM = { descripcion: '', owner: '', status: 'Pending', priority: '', due_date: '' }
@@ -83,6 +87,7 @@ export default function IPS() {
   const [filterOwner, setFilterOwner]   = useState([])  // [] = all, array of names = filtered
   const [filterQuarter, setFilterQuarter] = useState('all')
   const [filterYear, setFilterYear]     = useState('all')
+  const [filterPendingCMs, setFilterPendingCMs] = useState(false)
   const [sortKey, setSortKey]           = useState('fecha')
   const [sortDir, setSortDir]           = useState('desc')
 
@@ -192,8 +197,8 @@ export default function IPS() {
 
   // ── Export Open IPS to Excel (client-side) ──
   function handleExportOpen() {
-    const openRecords = records.filter(r => r.status === 'Open')
-    if (openRecords.length === 0) { setError('No hay IPS con status "Open" para exportar'); return }
+    const openRecords = records.filter(r => OPEN_STATUSES.has(r.status))
+    if (openRecords.length === 0) { setError('No hay IPS abiertos (6W2H/BCC/5W) para exportar'); return }
 
     const rows = openRecords.map(r => ({
       'KDF': r.kdf,
@@ -220,6 +225,42 @@ export default function IPS() {
     XLSX.utils.book_append_sheet(wb, ws, 'IPS Open')
     const cName = cedulas.find(c => c.id === cedulaId)?.nombre || 'IPS'
     XLSX.writeFile(wb, `IPS_Open_${cName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+  // ── Export Pending/On-going CMs to Excel (client-side) ──
+  function handleExportPendingCMs() {
+    const pendingCMs = allCMs.filter(cm => cm.status === 'Pending' || cm.status === 'On going')
+    if (pendingCMs.length === 0) { setError('No hay contramedidas pendientes para exportar'); return }
+
+    // Enrich with IPS info
+    const ipsMap = {}
+    for (const r of records) ipsMap[r.id] = r
+
+    const rows = pendingCMs.map(cm => {
+      const ips = ipsMap[cm.ips_id] || {}
+      return {
+        'KDF': ips.kdf || '',
+        'IPS Título': ips.titulo || '',
+        'Máquina': ips.ubicacion || '',
+        'CM Descripción': cm.descripcion || '',
+        'Owner': cm.owner || '',
+        'Status CM': cm.status,
+        'Prioridad': cm.priority || '',
+        'Fecha Límite': cm.due_date || '',
+        'IPS Status': ips.status || '',
+      }
+    })
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const colWidths = Object.keys(rows[0]).map(k => ({
+      wch: Math.max(k.length, ...rows.map(r => String(r[k] || '').length).slice(0, 50)) + 2
+    }))
+    ws['!cols'] = colWidths
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'CMs Pendientes')
+    const cName = cedulas.find(c => c.id === cedulaId)?.nombre || 'IPS'
+    XLSX.writeFile(wb, `CMs_Pendientes_${cName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   // ── Create IPS ──
@@ -365,7 +406,7 @@ export default function IPS() {
       section_bbc: rec.section_bbc || false,
       section_5w: rec.section_5w || false,
       section_res: rec.section_res || false,
-      status: rec.status || 'Open',
+      status: rec.status || '6W2H',
       notes: rec.notes || '',
     })
     setShowEditModal(true)
@@ -402,12 +443,25 @@ export default function IPS() {
     if (cm.owner) cmOwnerMap[cm.ips_id].add(cm.owner)
   }
 
+  // IPS ids that have pending CMs (Pending or On going)
+  const ipsWithPendingCMs = new Set()
+  const cmPendingCountMap = {}
+  for (const cm of allCMs) {
+    if (cm.status === 'Pending' || cm.status === 'On going') {
+      ipsWithPendingCMs.add(cm.ips_id)
+      cmPendingCountMap[cm.ips_id] = (cmPendingCountMap[cm.ips_id] || 0) + 1
+    }
+  }
+
   const filtered = records
     .filter(r => {
       if (search && !r.titulo.toLowerCase().includes(search.toLowerCase()) &&
           !(r.participants || []).some(p => p.toLowerCase().includes(search.toLowerCase()))) return false
       if (filterKdf !== 'all' && r.kdf !== parseInt(filterKdf)) return false
-      if (filterStatus !== 'all' && r.status !== filterStatus) return false
+      // 'Open' meta-filter → shows 6W2H, BCC, 5W
+      if (filterStatus === 'Open') {
+        if (!OPEN_STATUSES.has(r.status)) return false
+      } else if (filterStatus !== 'all' && r.status !== filterStatus) return false
       if (filterUbi !== 'all' && r.ubicacion !== filterUbi) return false
       if (filterQuarter !== 'all' && getQuarter(r.fecha) !== filterQuarter) return false
       if (filterYear !== 'all' && getYear(r.fecha) !== parseInt(filterYear)) return false
@@ -415,6 +469,7 @@ export default function IPS() {
         const owners = cmOwnerMap[r.id]
         if (!owners || !filterOwner.some(fo => owners.has(fo))) return false
       }
+      if (filterPendingCMs && !ipsWithPendingCMs.has(r.id)) return false
       return true
     })
     .sort((a, b) => {
@@ -463,7 +518,7 @@ export default function IPS() {
             className="px-4 py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-50 whitespace-nowrap">
             + Nuevo IPS
           </button>
-          <button onClick={handleExportOpen} disabled={!cedulaId || records.filter(r => r.status === 'Open').length === 0}
+          <button onClick={handleExportOpen} disabled={!cedulaId || records.filter(r => OPEN_STATUSES.has(r.status)).length === 0}
             className="px-4 py-2 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 whitespace-nowrap">
             Exportar Open
           </button>
@@ -512,113 +567,174 @@ export default function IPS() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters — redesigned into logical groups */}
       {records.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-500">KDF:</span>
-          <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
-            <button onClick={() => setFilterKdf('all')}
-              className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${filterKdf === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-              Todas
-            </button>
-            {uniqueKdfs.map(k => (
-              <button key={k} onClick={() => setFilterKdf(filterKdf === String(k) ? 'all' : String(k))}
-                className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${filterKdf === String(k) ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                KDF {k}
+        <div className="bg-[#0f1d32] rounded-xl border border-white/5 p-4 space-y-3">
+          {/* Row 1: Status filter bar + Search */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5 flex-wrap">
+              <button onClick={() => setFilterStatus('all')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterStatus === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                Todos
               </button>
-            ))}
-          </div>
-
-          <span className="text-xs text-slate-500 ml-2">Ubi:</span>
-          <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
-            <button onClick={() => setFilterUbi('all')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterUbi === 'all' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-              Todas
-            </button>
-            {uniqueUbis.map(u => (
-              <button key={u} onClick={() => setFilterUbi(filterUbi === u ? 'all' : u)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterUbi === u ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                {u}
-              </button>
-            ))}
-          </div>
-
-          {/* Owner multi-select filter */}
-          <span className="text-xs text-slate-500 ml-2">Owner:</span>
-          <div className="relative">
-            <button onClick={() => setOwnerDropOpen(!ownerDropOpen)}
-              className={`bg-[#0a1628] border ${filterOwner.length > 0 ? 'border-purple-500/60' : 'border-white/10'} rounded-lg px-2.5 py-1 text-[11px] text-white focus:outline-none min-w-[120px] text-left flex items-center justify-between gap-1`}>
-              <span className="truncate max-w-[140px]">
-                {filterOwner.length === 0 ? 'Todos' : filterOwner.length === 1 ? filterOwner[0] : `${filterOwner.length} seleccionados`}
-              </span>
-              <span className="text-slate-500 text-[9px]">▾</span>
-            </button>
-            {ownerDropOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-[#0f1d32] border border-white/10 rounded-lg shadow-xl z-50 w-56 max-h-60 overflow-y-auto">
-                <button onClick={() => { setFilterOwner([]); setOwnerDropOpen(false) }}
-                  className="w-full px-3 py-1.5 text-left text-[11px] text-slate-400 hover:bg-slate-700/50 border-b border-white/5">
-                  Todos (limpiar filtro)
+              {STATUS_FILTER_ORDER.map(s => (
+                <button key={s} onClick={() => setFilterStatus(filterStatus === s ? 'all' : s)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterStatus === s ? (s === 'Open' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white') : 'text-slate-400 hover:text-white'}`}>
+                  {s}
                 </button>
-                {uniqueOwners.map(o => (
-                  <label key={o} className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-700/30 cursor-pointer">
-                    <input type="checkbox" checked={filterOwner.includes(o)}
-                      onChange={() => {
-                        setFilterOwner(prev =>
-                          prev.includes(o) ? prev.filter(x => x !== o) : [...prev, o]
-                        )
-                      }}
-                      className="rounded border-slate-600 text-purple-500 focus:ring-purple-500 w-3 h-3" />
-                    <span className="text-[11px] text-white truncate">{o}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+              ))}
+            </div>
+
+            <div className="flex-1" />
+
+            {/* Search */}
+            <div className="relative">
+              <input type="text" placeholder="Buscar título o persona..."
+                value={search} onChange={e => setSearch(e.target.value)}
+                className="bg-[#0a1628] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50 w-52" />
+              {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs">✕</button>}
+            </div>
+            <span className="text-[11px] text-slate-500">{filtered.length}/{records.length}</span>
           </div>
 
-          {/* Quarter filter */}
-          <span className="text-xs text-slate-500 ml-2">Q:</span>
-          <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
-            <button onClick={() => setFilterQuarter('all')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterQuarter === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-              Todos
-            </button>
-            {['Q1','Q2','Q3','Q4'].map(q => (
-              <button key={q} onClick={() => setFilterQuarter(filterQuarter === q ? 'all' : q)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterQuarter === q ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                {q}
-              </button>
-            ))}
-          </div>
-
-          {/* Year filter */}
-          {uniqueYears.length > 0 && (
-            <>
-              <span className="text-xs text-slate-500 ml-2">Año:</span>
-              <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
-                <button onClick={() => setFilterYear('all')}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterYear === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                  Todos
+          {/* Row 2: Location + Time + Owner filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* KDF */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">KDF</span>
+              <div className="flex items-center gap-0.5 bg-[#0a1628] rounded-lg p-0.5">
+                <button onClick={() => setFilterKdf('all')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterKdf === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  All
                 </button>
-                {uniqueYears.map(y => (
-                  <button key={y} onClick={() => setFilterYear(filterYear === String(y) ? 'all' : String(y))}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterYear === String(y) ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                    {y}
+                {uniqueKdfs.map(k => (
+                  <button key={k} onClick={() => setFilterKdf(filterKdf === String(k) ? 'all' : String(k))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterKdf === String(k) ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                    {k}
                   </button>
                 ))}
               </div>
-            </>
-          )}
+            </div>
 
-          <div className="flex-1" />
+            {/* Ubicacion */}
+            {uniqueUbis.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Ubi</span>
+                <div className="flex items-center gap-0.5 bg-[#0a1628] rounded-lg p-0.5">
+                  <button onClick={() => setFilterUbi('all')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterUbi === 'all' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                    All
+                  </button>
+                  {uniqueUbis.map(u => (
+                    <button key={u} onClick={() => setFilterUbi(filterUbi === u ? 'all' : u)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterUbi === u ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {/* Search */}
-          <div className="relative">
-            <input type="text" placeholder="Buscar título o persona..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="bg-[#0a1628] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50 w-52" />
-            {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs">✕</button>}
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Quarter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">Quarter</span>
+              <div className="flex items-center gap-0.5 bg-[#0a1628] rounded-lg p-0.5">
+                <button onClick={() => setFilterQuarter('all')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterQuarter === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  All
+                </button>
+                {['Q1','Q2','Q3','Q4'].map(q => (
+                  <button key={q} onClick={() => setFilterQuarter(filterQuarter === q ? 'all' : q)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterQuarter === q ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Year */}
+            {uniqueYears.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Año</span>
+                <div className="flex items-center gap-0.5 bg-[#0a1628] rounded-lg p-0.5">
+                  <button onClick={() => setFilterYear('all')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterYear === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                    All
+                  </button>
+                  {uniqueYears.map(y => (
+                    <button key={y} onClick={() => setFilterYear(filterYear === String(y) ? 'all' : String(y))}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterYear === String(y) ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Owner multi-select */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">Owner</span>
+              <div className="relative">
+                <button onClick={() => setOwnerDropOpen(!ownerDropOpen)}
+                  className={`bg-[#0a1628] border ${filterOwner.length > 0 ? 'border-purple-500/60' : 'border-white/10'} rounded-lg px-2.5 py-0.5 text-[10px] text-white focus:outline-none min-w-[100px] text-left flex items-center justify-between gap-1`}>
+                  <span className="truncate max-w-[120px]">
+                    {filterOwner.length === 0 ? 'Todos' : filterOwner.length === 1 ? filterOwner[0] : `${filterOwner.length} sel.`}
+                  </span>
+                  <span className="text-slate-500 text-[9px]">▾</span>
+                </button>
+                {ownerDropOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-[#0f1d32] border border-white/10 rounded-lg shadow-xl z-50 w-56 max-h-60 overflow-y-auto">
+                    <button onClick={() => { setFilterOwner([]); setOwnerDropOpen(false) }}
+                      className="w-full px-3 py-1.5 text-left text-[11px] text-slate-400 hover:bg-slate-700/50 border-b border-white/5">
+                      Todos (limpiar filtro)
+                    </button>
+                    {uniqueOwners.map(o => (
+                      <label key={o} className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-700/30 cursor-pointer">
+                        <input type="checkbox" checked={filterOwner.includes(o)}
+                          onChange={() => {
+                            setFilterOwner(prev =>
+                              prev.includes(o) ? prev.filter(x => x !== o) : [...prev, o]
+                            )
+                          }}
+                          className="rounded border-slate-600 text-purple-500 focus:ring-purple-500 w-3 h-3" />
+                        <span className="text-[11px] text-white truncate">{o}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Pending CMs toggle */}
+            <button onClick={() => setFilterPendingCMs(!filterPendingCMs)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors border ${
+                filterPendingCMs
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                  : 'bg-[#0a1628] border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+              }`}>
+              <span className="text-[10px]">{filterPendingCMs ? '◉' : '○'}</span>
+              CMs Pendientes
+              {ipsWithPendingCMs.size > 0 && (
+                <span className={`px-1.5 py-0 rounded text-[9px] font-bold ${filterPendingCMs ? 'bg-amber-500/30 text-amber-200' : 'bg-slate-700 text-slate-400'}`}>
+                  {ipsWithPendingCMs.size}
+                </span>
+              )}
+            </button>
+
+            {/* Export pending CMs */}
+            {allCMs.some(cm => cm.status === 'Pending' || cm.status === 'On going') && (
+              <button onClick={handleExportPendingCMs}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-amber-600/80 hover:bg-amber-500 text-white transition-colors whitespace-nowrap">
+                Exportar CMs Pend.
+              </button>
+            )}
           </div>
-          <span className="text-xs text-slate-500">{filtered.length} de {records.length}</span>
         </div>
       )}
 
@@ -644,23 +760,8 @@ export default function IPS() {
         </div>
       ) : (
         <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Registro IPS</h3>
-              <p className="text-xs text-slate-500">{filtered.length} IPS · Clic para ver contramedidas</p>
-            </div>
-            <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
-              <button onClick={() => setFilterStatus('all')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterStatus === 'all' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                Todos
-              </button>
-              {STATUS_ORDER.map(s => (
-                <button key={s} onClick={() => setFilterStatus(filterStatus === s ? 'all' : s)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${filterStatus === s ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-                  {s}
-                </button>
-              ))}
-            </div>
+          <div className="px-4 py-2.5 border-b border-white/5">
+            <p className="text-xs text-slate-500">{filtered.length} IPS · Clic en fila para ver contramedidas</p>
           </div>
 
           <div className="overflow-x-auto">
@@ -752,7 +853,7 @@ export default function IPS() {
                       setCreateForm(f => ({ ...f, status: s, ...checks }))
                     }}
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                    {STATUS_ORDER.map(s => (
+                    {STATUS_DROPDOWN.map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -890,7 +991,7 @@ export default function IPS() {
                       setEditForm(f => ({ ...f, status: s, ...checks }))
                     }}
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                    {STATUS_ORDER.map(s => (
+                    {STATUS_DROPDOWN.map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -1002,7 +1103,7 @@ function IPSRow({ record: r, isExpanded, cmTotal, cmDone, expandedCMs, loadingCM
           <select value={r.status}
             onChange={e => onStatusChange(r.id, e.target.value)}
             className={`text-[11px] font-medium px-2 py-0.5 rounded border-0 cursor-pointer focus:outline-none ${STATUS_COLORS[r.status] || 'bg-slate-500/15 text-slate-400'}`}>
-            {STATUS_ORDER.map(s => (
+            {STATUS_DROPDOWN.map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
