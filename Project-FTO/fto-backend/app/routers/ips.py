@@ -25,12 +25,14 @@ class IPSCreate(BaseModel):
     titulo: str
     fecha: Optional[str] = None
     ubicacion: Optional[str] = None
+    turno_responsable: Optional[str] = None
+    sig_accion: Optional[str] = None
     participants: Optional[List[str]] = []
     section_6w2h: bool = False
     section_bbc: bool = False
     section_5w: bool = False
     section_res: bool = False
-    status: str = "Open"
+    status: str = "6W2H"
     priority: Optional[str] = None
     notes: Optional[str] = None
 
@@ -39,6 +41,8 @@ class IPSUpdate(BaseModel):
     titulo: Optional[str] = None
     fecha: Optional[str] = None
     ubicacion: Optional[str] = None
+    turno_responsable: Optional[str] = None
+    sig_accion: Optional[str] = None
     participants: Optional[List[str]] = None
     section_6w2h: Optional[bool] = None
     section_bbc: Optional[bool] = None
@@ -657,4 +661,208 @@ async def upload_ips_excel(
         "imported_cm": imported_cm,
         "skipped": skipped,
         "duplicates_skipped": duplicates_skipped,
+    }
+
+
+# ══════════════════════════════════════════════════════
+# Weekly Tracking — seguimiento semanal de avance
+# ══════════════════════════════════════════════════════
+
+DAYS = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+
+
+class TrackingUpsert(BaseModel):
+    ips_id: str
+    week_start: str  # ISO date, must be a Monday
+    lunes: Optional[str] = None
+    martes: Optional[str] = None
+    miercoles: Optional[str] = None
+    jueves: Optional[str] = None
+    viernes: Optional[str] = None
+    sabado: Optional[str] = None
+    domingo: Optional[str] = None
+
+
+class TrackingBatchItem(BaseModel):
+    ips_id: str
+    lunes: Optional[str] = None
+    martes: Optional[str] = None
+    miercoles: Optional[str] = None
+    jueves: Optional[str] = None
+    viernes: Optional[str] = None
+    sabado: Optional[str] = None
+    domingo: Optional[str] = None
+
+
+@router.get("/tracking")
+async def get_weekly_tracking(
+    cedula_id: str = Query(...),
+    week_start: str = Query(...),
+):
+    """Get all tracking records for a cédula and week."""
+    sb = get_supabase_admin()
+    # Get IPS ids for this cédula
+    ips_recs = sb.table("ips_records") \
+        .select("id") \
+        .eq("cedula_id", cedula_id) \
+        .execute().data
+    if not ips_recs:
+        return {"data": []}
+    ips_ids = [r["id"] for r in ips_recs]
+
+    BATCH = 50
+    all_tracking = []
+    for i in range(0, len(ips_ids), BATCH):
+        batch = ips_ids[i:i + BATCH]
+        result = sb.table("ips_weekly_tracking") \
+            .select("*") \
+            .in_("ips_id", batch) \
+            .eq("week_start", week_start) \
+            .execute()
+        all_tracking.extend(result.data)
+    return {"data": all_tracking}
+
+
+@router.post("/tracking")
+async def upsert_tracking(body: TrackingUpsert):
+    """Create or update a single tracking record (upsert on ips_id + week_start)."""
+    sb = get_supabase_admin()
+    record = {k: v for k, v in body.dict().items() if v is not None}
+    record["updated_at"] = "now()"
+
+    # Check if exists
+    existing = sb.table("ips_weekly_tracking") \
+        .select("id") \
+        .eq("ips_id", body.ips_id) \
+        .eq("week_start", body.week_start) \
+        .execute().data
+
+    if existing:
+        tid = existing[0]["id"]
+        updates = {k: v for k, v in record.items() if k not in ("ips_id", "week_start")}
+        result = sb.table("ips_weekly_tracking").update(updates).eq("id", tid).execute()
+    else:
+        result = sb.table("ips_weekly_tracking").insert(record).execute()
+
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.post("/tracking/batch")
+async def upsert_tracking_batch(
+    week_start: str = Query(...),
+    items: List[TrackingBatchItem] = [],
+):
+    """Batch upsert tracking records for a given week."""
+    sb = get_supabase_admin()
+    results = []
+    for item in items:
+        record = {k: v for k, v in item.dict().items() if v is not None}
+        record["week_start"] = week_start
+
+        existing = sb.table("ips_weekly_tracking") \
+            .select("id") \
+            .eq("ips_id", item.ips_id) \
+            .eq("week_start", week_start) \
+            .execute().data
+
+        if existing:
+            tid = existing[0]["id"]
+            updates = {k: v for k, v in record.items() if k not in ("ips_id", "week_start")}
+            if updates:
+                res = sb.table("ips_weekly_tracking").update(updates).eq("id", tid).execute()
+                results.append(res.data[0] if res.data else None)
+        else:
+            res = sb.table("ips_weekly_tracking").insert(record).execute()
+            results.append(res.data[0] if res.data else None)
+
+    return {"data": results, "count": len(results)}
+
+
+@router.get("/tracking/stats")
+async def get_tracking_stats(
+    cedula_id: str = Query(...),
+    week_start: str = Query(...),
+):
+    """Calculate progress % by turno and by KDF for a given week."""
+    sb = get_supabase_admin()
+
+    # Get IPS records with turno info
+    ips_recs = sb.table("ips_records") \
+        .select("id, kdf, turno_responsable, status") \
+        .eq("cedula_id", cedula_id) \
+        .execute().data
+    if not ips_recs:
+        return {"by_turno": {}, "by_kdf": {}, "by_turno_day": {}, "by_kdf_day": {}}
+
+    # Only consider "active" IPS (not Closed, Cancelled, Paused, Merged, Ascended)
+    active_statuses = {"6W2H", "BCC", "5W", "Closing"}
+    active_ips = {r["id"]: r for r in ips_recs if r["status"] in active_statuses}
+    if not active_ips:
+        return {"by_turno": {}, "by_kdf": {}, "by_turno_day": {}, "by_kdf_day": {}}
+
+    ips_ids = list(active_ips.keys())
+    BATCH = 50
+    tracking = []
+    for i in range(0, len(ips_ids), BATCH):
+        batch = ips_ids[i:i + BATCH]
+        result = sb.table("ips_weekly_tracking") \
+            .select("*") \
+            .in_("ips_id", batch) \
+            .eq("week_start", week_start) \
+            .execute()
+        tracking.extend(result.data)
+
+    tracking_map = {t["ips_id"]: t for t in tracking}
+
+    # Calculate per-turno and per-KDF progress
+    # Progress = days with '1' / (days with '1' + days with '0') * 100
+    # 'NA' and null are excluded
+    def calc_progress(day_values):
+        ones = sum(1 for v in day_values if v == '1')
+        zeros = sum(1 for v in day_values if v == '0')
+        total = ones + zeros
+        return round(ones / total * 100, 1) if total > 0 else None
+
+    # Aggregate by turno (weekly)
+    turno_days = {}  # turno → [all day values]
+    turno_by_day = {}  # turno → {day → [values]}
+    kdf_days = {}  # kdf → [all day values]
+    kdf_by_day = {}  # kdf → {day → [values]}
+
+    for ips_id, ips in active_ips.items():
+        turno = ips.get("turno_responsable") or "Sin turno"
+        kdf = str(ips["kdf"])
+        t = tracking_map.get(ips_id, {})
+
+        if turno not in turno_days:
+            turno_days[turno] = []
+            turno_by_day[turno] = {d: [] for d in DAYS}
+        if kdf not in kdf_days:
+            kdf_days[kdf] = []
+            kdf_by_day[kdf] = {d: [] for d in DAYS}
+
+        for day in DAYS:
+            val = t.get(day)
+            if val in ('1', '0'):
+                turno_days[turno].append(val)
+                kdf_days[kdf].append(val)
+            turno_by_day[turno][day].append(val)
+            kdf_by_day[kdf][day].append(val)
+
+    by_turno = {t: calc_progress(vals) for t, vals in turno_days.items()}
+    by_kdf = {k: calc_progress(vals) for k, vals in kdf_days.items()}
+
+    by_turno_day = {}
+    for turno, days_data in turno_by_day.items():
+        by_turno_day[turno] = {d: calc_progress(vals) for d, vals in days_data.items()}
+
+    by_kdf_day = {}
+    for kdf, days_data in kdf_by_day.items():
+        by_kdf_day[kdf] = {d: calc_progress(vals) for d, vals in days_data.items()}
+
+    return {
+        "by_turno": by_turno,
+        "by_kdf": by_kdf,
+        "by_turno_day": by_turno_day,
+        "by_kdf_day": by_kdf_day,
     }

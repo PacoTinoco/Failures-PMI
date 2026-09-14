@@ -614,6 +614,27 @@ export async function uploadIPSExcel(cedulaId, file) {
   return response.json()
 }
 
+// --- IPS Weekly Tracking ---
+
+export async function getWeeklyTracking(cedulaId, weekStart) {
+  return apiRequest(`/ips/tracking?cedula_id=${cedulaId}&week_start=${weekStart}`)
+}
+
+export async function upsertWeeklyTracking(data) {
+  return apiRequest('/ips/tracking', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function upsertTrackingBatch(weekStart, items) {
+  return apiRequest(`/ips/tracking/batch?week_start=${weekStart}`, {
+    method: 'POST',
+    body: JSON.stringify(items),
+  })
+}
+
+export async function getTrackingStats(cedulaId, weekStart) {
+  return apiRequest(`/ips/tracking/stats?cedula_id=${cedulaId}&week_start=${weekStart}`)
+}
+
 // ============================================================
 // Q FLAGS (ComitDB)
 // ============================================================

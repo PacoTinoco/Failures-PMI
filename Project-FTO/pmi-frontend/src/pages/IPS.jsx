@@ -11,6 +11,7 @@ const STATUS_COLORS = {
   '5W':     'bg-teal-500/15 text-teal-400',
   Closing:   'bg-lime-500/15 text-lime-400',
   Closed:    'bg-green-500/15 text-green-400',
+  Paused:    'bg-orange-500/15 text-orange-400',
   Merged:    'bg-purple-500/15 text-purple-400',
   Cancelled: 'bg-slate-500/15 text-slate-400',
   Ascended:  'bg-indigo-500/15 text-indigo-400',
@@ -18,11 +19,13 @@ const STATUS_COLORS = {
 }
 
 // Ordered status list for filters (includes 'Open' as meta-filter)
-const STATUS_FILTER_ORDER = ['Open', '6W2H', 'BCC', '5W', 'Closing', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
+const STATUS_FILTER_ORDER = ['Open', '6W2H', 'BCC', '5W', 'Closing', 'Paused', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
 // Status options for dropdowns (no 'Open' — it's not a real status, it's a filter)
-const STATUS_DROPDOWN = ['6W2H', 'BCC', '5W', 'Closing', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
-// 'Open' meta-filter maps to these real statuses
+const STATUS_DROPDOWN = ['6W2H', 'BCC', '5W', 'Closing', 'Paused', 'Closed', 'Merged', 'Cancelled', 'Ascended', 'Missing']
+// 'Open' meta-filter maps to these real statuses (excludes Paused and Cancelled)
 const OPEN_STATUSES = new Set(['6W2H', 'BCC', '5W'])
+// Statuses excluded from active tracking indicators
+const INACTIVE_STATUSES = new Set(['Closed', 'Cancelled', 'Paused', 'Merged', 'Ascended', 'Missing'])
 
 // Hierarchy for auto-filling checkboxes when status changes
 // 6W → BB → 5W → Rs
@@ -33,6 +36,7 @@ const STATUS_CHECKBOX_MAP = {
   '5W':       { section_6w2h: true,  section_bbc: true,  section_5w: true,  section_res: false },
   'Closing':   { section_6w2h: true,  section_bbc: true,  section_5w: true,  section_res: true },
   'Closed':    { section_6w2h: true,  section_bbc: true,  section_5w: true,  section_res: true },
+  'Paused':    {},
   'Merged':    {},
   'Cancelled': {},
   'Ascended':  {},
@@ -61,7 +65,7 @@ const CM_STATUS_COLORS = {
 }
 
 const EMPTY_IPS = {
-  kdf: '', titulo: '', fecha: '', ubicacion: '', participants: '',
+  kdf: '', titulo: '', fecha: '', turno_responsable: '', sig_accion: '', participants: '',
   section_6w2h: false, section_bbc: false, section_5w: false, section_res: false,
   status: '6W2H', notes: '',
 }
@@ -127,6 +131,22 @@ export default function IPS() {
   // Dedup
   const [deduping, setDeduping] = useState(false)
 
+  // Weekly tracking
+  const [trackingWeek, setTrackingWeek] = useState(() => {
+    // Default to current week's Monday
+    const now = new Date()
+    const day = now.getDay()
+    const diff = day === 0 ? 6 : day - 1
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - diff)
+    return monday.toISOString().slice(0, 10)
+  })
+  const [trackingData, setTrackingData] = useState([]) // raw tracking records
+  const [trackingStats, setTrackingStats] = useState(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+  const [savingTracking, setSavingTracking] = useState(false)
+  const [showIndicators, setShowIndicators] = useState(false)
+
   // ── Load cédulas ──
   useEffect(() => {
     api.getCedulas()
@@ -154,6 +174,64 @@ export default function IPS() {
       setStats(st)
     } catch (err) { setError(err.message) }
     finally { setLoading(false) }
+  }
+
+  // ── Load weekly tracking data ──
+  useEffect(() => {
+    if (!cedulaId || records.length === 0) return
+    loadTracking()
+  }, [cedulaId, trackingWeek, records.length])
+
+  async function loadTracking() {
+    setTrackingLoading(true)
+    try {
+      const [td, ts] = await Promise.all([
+        api.getWeeklyTracking(cedulaId, trackingWeek),
+        api.getTrackingStats(cedulaId, trackingWeek),
+      ])
+      setTrackingData(td.data || [])
+      setTrackingStats(ts)
+    } catch (err) { console.error('Tracking load error:', err) }
+    finally { setTrackingLoading(false) }
+  }
+
+  // ── Week navigation ──
+  function shiftWeek(delta) {
+    const d = new Date(trackingWeek + 'T12:00:00')
+    d.setDate(d.getDate() + delta * 7)
+    setTrackingWeek(d.toISOString().slice(0, 10))
+  }
+
+  function getWeekLabel(weekStart) {
+    const d = new Date(weekStart + 'T12:00:00')
+    const end = new Date(d)
+    end.setDate(d.getDate() + 6)
+    const fmt = (dt) => dt.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
+    const weekNum = Math.ceil(((d - new Date(d.getFullYear(), 0, 1)) / 86400000 + 1) / 7)
+    return `W${weekNum} · ${fmt(d)} — ${fmt(end)}`
+  }
+
+  // ── Update a single tracking cell ──
+  async function handleTrackingChange(ipsId, day, value) {
+    // Optimistic update
+    setTrackingData(prev => {
+      const existing = prev.find(t => t.ips_id === ipsId)
+      if (existing) {
+        return prev.map(t => t.ips_id === ipsId ? { ...t, [day]: value } : t)
+      }
+      return [...prev, { ips_id: ipsId, week_start: trackingWeek, [day]: value }]
+    })
+
+    try {
+      await api.upsertWeeklyTracking({
+        ips_id: ipsId,
+        week_start: trackingWeek,
+        [day]: value,
+      })
+      // Refresh stats
+      const ts = await api.getTrackingStats(cedulaId, trackingWeek)
+      setTrackingStats(ts)
+    } catch (err) { setError(err.message) }
   }
 
   // ── Upload ──
@@ -205,13 +283,14 @@ export default function IPS() {
       'Título': r.titulo,
       'Personas': Array.isArray(r.participants) ? r.participants.join(', ') : (r.participants || ''),
       'Fecha': r.fecha || '',
+      'Turno': r.turno_responsable || '',
       '6W2H': r.section_6w2h ? '✓' : '',
       'BBC': r.section_bbc ? '✓' : '',
       '5W': r.section_5w ? '✓' : '',
       'Res': r.section_res ? '✓' : '',
       'Status': r.status,
+      'Sig. Acción': r.sig_accion || '',
       'CMs': `${cmDoneMap[r.id] || 0}/${cmCountMap[r.id] || 0}`,
-      'Notas': r.notes || '',
     }))
 
     const ws = XLSX.utils.json_to_sheet(rows)
@@ -241,7 +320,7 @@ export default function IPS() {
       return {
         'KDF': ips.kdf || '',
         'IPS Título': ips.titulo || '',
-        'Máquina': ips.ubicacion || '',
+        'Turno': ips.turno_responsable || '',
         'CM Descripción': cm.descripcion || '',
         'Owner': cm.owner || '',
         'Status CM': cm.status,
@@ -275,7 +354,8 @@ export default function IPS() {
         kdf: parseInt(createForm.kdf),
         titulo: createForm.titulo,
         fecha: createForm.fecha || null,
-        ubicacion: createForm.ubicacion || null,
+        turno_responsable: createForm.turno_responsable || null,
+        sig_accion: createForm.sig_accion || null,
         participants,
         section_6w2h: createForm.section_6w2h,
         section_bbc: createForm.section_bbc,
@@ -400,7 +480,8 @@ export default function IPS() {
       kdf: rec.kdf || '',
       titulo: rec.titulo || '',
       fecha: rec.fecha || '',
-      ubicacion: rec.ubicacion || '',
+      turno_responsable: rec.turno_responsable || '',
+      sig_accion: rec.sig_accion || '',
       participants: Array.isArray(rec.participants) ? rec.participants.join(', ') : (rec.participants || ''),
       section_6w2h: rec.section_6w2h || false,
       section_bbc: rec.section_bbc || false,
@@ -432,7 +513,7 @@ export default function IPS() {
 
   // ── Filter & sort ──
   const uniqueKdfs = [...new Set(records.map(r => r.kdf))].sort((a, b) => a - b)
-  const uniqueUbis = [...new Set(records.map(r => r.ubicacion).filter(Boolean))].sort()
+  const uniqueTurnos = [...new Set(records.map(r => r.turno_responsable).filter(Boolean))].sort()
   const uniqueOwners = [...new Set(allCMs.map(c => c.owner).filter(Boolean))].sort()
   const uniqueYears = [...new Set(records.map(r => getYear(r.fecha)).filter(Boolean))].sort((a, b) => b - a)
 
@@ -462,7 +543,7 @@ export default function IPS() {
       if (filterStatus === 'Open') {
         if (!OPEN_STATUSES.has(r.status)) return false
       } else if (filterStatus !== 'all' && r.status !== filterStatus) return false
-      if (filterUbi !== 'all' && r.ubicacion !== filterUbi) return false
+      if (filterUbi !== 'all' && r.turno_responsable !== filterUbi) return false
       if (filterQuarter !== 'all' && getQuarter(r.fecha) !== filterQuarter) return false
       if (filterYear !== 'all' && getYear(r.fecha) !== parseInt(filterYear)) return false
       if (filterOwner.length > 0) {
@@ -495,9 +576,11 @@ export default function IPS() {
     return <span className="text-purple-400 ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
-  // CM counts per IPS
+  // CM counts per IPS — exclude Cancelled from totals
   const cmCountMap = {}
-  for (const cm of allCMs) { cmCountMap[cm.ips_id] = (cmCountMap[cm.ips_id] || 0) + 1 }
+  for (const cm of allCMs) {
+    if (cm.status !== 'Cancelled') cmCountMap[cm.ips_id] = (cmCountMap[cm.ips_id] || 0) + 1
+  }
   const cmDoneMap = {}
   for (const cm of allCMs) { if (cm.status === 'Done') cmDoneMap[cm.ips_id] = (cmDoneMap[cm.ips_id] || 0) + 1 }
 
@@ -616,16 +699,16 @@ export default function IPS() {
               </div>
             </div>
 
-            {/* Ubicacion */}
-            {uniqueUbis.length > 0 && (
+            {/* Turno Responsable */}
+            {uniqueTurnos.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Ubi</span>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Turno</span>
                 <div className="flex items-center gap-0.5 bg-[#0a1628] rounded-lg p-0.5">
                   <button onClick={() => setFilterUbi('all')}
                     className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterUbi === 'all' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>
                     All
                   </button>
-                  {uniqueUbis.map(u => (
+                  {uniqueTurnos.map(u => (
                     <button key={u} onClick={() => setFilterUbi(filterUbi === u ? 'all' : u)}
                       className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${filterUbi === u ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>
                       {u}
@@ -778,7 +861,8 @@ export default function IPS() {
                   <th className="px-3 py-2 text-center text-xs text-slate-400 cursor-pointer select-none hover:text-white" onClick={() => toggleSort('fecha')}>
                     Fecha <SortIcon col="fecha" />
                   </th>
-                  <th className="px-3 py-2 text-center text-xs text-slate-400">Ubi</th>
+                  <th className="px-3 py-2 text-center text-xs text-slate-400">Turno</th>
+                  <th className="px-3 py-2 text-left text-xs text-slate-400">Sig. Acción</th>
                   <th className="px-2 py-2 text-center text-xs text-slate-400" title="6W2H">6W</th>
                   <th className="px-2 py-2 text-center text-xs text-slate-400" title="BBC">BB</th>
                   <th className="px-2 py-2 text-center text-xs text-slate-400" title="5W">5W</th>
@@ -818,11 +902,195 @@ export default function IPS() {
                   )
                 })}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-500 text-sm">Sin resultados con los filtros aplicados</td></tr>
+                  <tr><td colSpan={13} className="px-4 py-8 text-center text-slate-500 text-sm">Sin resultados con los filtros aplicados</td></tr>
                 )}
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════ Weekly Tracking Section ══════════════ */}
+      {records.length > 0 && cedulaId && (
+        <div className="bg-[#0f1d32] rounded-xl border border-white/5 overflow-hidden">
+          {/* Tracking header with week selector */}
+          <div className="px-4 py-3 border-b border-white/5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-semibold text-white">Seguimiento Semanal</h3>
+              <div className="flex items-center gap-1 bg-[#0a1628] rounded-lg p-0.5">
+                <button onClick={() => shiftWeek(-1)} className="px-2 py-0.5 text-slate-400 hover:text-white text-xs">◂</button>
+                <span className="text-xs text-white font-medium px-2 min-w-[180px] text-center">{getWeekLabel(trackingWeek)}</span>
+                <button onClick={() => shiftWeek(1)} className="px-2 py-0.5 text-slate-400 hover:text-white text-xs">▸</button>
+              </div>
+              <input type="date" value={trackingWeek}
+                onChange={e => {
+                  const d = new Date(e.target.value + 'T12:00:00')
+                  const day = d.getDay()
+                  const diff = day === 0 ? 6 : day - 1
+                  d.setDate(d.getDate() - diff)
+                  setTrackingWeek(d.toISOString().slice(0, 10))
+                }}
+                className="bg-[#0a1628] border border-white/10 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none focus:border-purple-500/50" />
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowIndicators(!showIndicators)}
+                className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors border ${
+                  showIndicators
+                    ? 'bg-purple-500/15 border-purple-500/40 text-purple-300'
+                    : 'bg-[#0a1628] border-white/10 text-slate-400 hover:text-white'
+                }`}>
+                {showIndicators ? '▾ Indicadores' : '▸ Indicadores'}
+              </button>
+            </div>
+          </div>
+
+          {/* Indicator cards + charts panel */}
+          {showIndicators && trackingStats && (
+            <div className="px-4 py-3 border-b border-white/5 space-y-3">
+              {/* Quick cards: by turno */}
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">% Avance por Turno</span>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {Object.entries(trackingStats.by_turno || {}).map(([turno, pct]) => (
+                    <div key={turno} className="bg-[#0a1628] rounded-lg px-3 py-2 min-w-[100px] text-center border border-white/5">
+                      <p className={`text-lg font-bold ${pct === null ? 'text-slate-600' : pct >= 70 ? 'text-green-400' : pct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {pct !== null ? `${pct}%` : 'NA'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{turno}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick cards: by KDF */}
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">% Avance por KDF</span>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {Object.entries(trackingStats.by_kdf || {}).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([kdf, pct]) => (
+                    <div key={kdf} className="bg-[#0a1628] rounded-lg px-3 py-2 min-w-[80px] text-center border border-white/5">
+                      <p className={`text-lg font-bold ${pct === null ? 'text-slate-600' : pct >= 70 ? 'text-green-400' : pct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {pct !== null ? `${pct}%` : 'NA'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">KDF {kdf}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Detailed day-by-day breakdown by turno */}
+              {trackingStats.by_turno_day && Object.keys(trackingStats.by_turno_day).length > 0 && (
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Detalle por día — Turno</span>
+                  <div className="overflow-x-auto mt-1.5">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="px-3 py-1.5 text-left text-slate-500">Turno</th>
+                          {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
+                            <th key={d} className="px-2 py-1.5 text-center text-slate-500 w-12">{d}</th>
+                          ))}
+                          <th className="px-3 py-1.5 text-center text-slate-500 font-semibold">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(trackingStats.by_turno_day).map(([turno, days]) => (
+                          <tr key={turno} className="border-b border-white/5">
+                            <td className="px-3 py-1.5 text-cyan-400 font-medium">{turno}</td>
+                            {['lunes','martes','miercoles','jueves','viernes','sabado','domingo'].map(day => {
+                              const pct = days[day]
+                              return (
+                                <td key={day} className="px-2 py-1.5 text-center">
+                                  <span className={`text-[11px] font-medium ${pct === null ? 'text-slate-600' : pct >= 70 ? 'text-green-400' : pct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                                    {pct !== null ? `${pct}%` : 'NA'}
+                                  </span>
+                                </td>
+                              )
+                            })}
+                            <td className="px-3 py-1.5 text-center">
+                              {(() => {
+                                const total = trackingStats.by_turno?.[turno]
+                                return (
+                                  <span className={`text-xs font-bold ${total === null ? 'text-slate-600' : total >= 70 ? 'text-green-400' : total >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                                    {total !== null ? `${total}%` : 'NA'}
+                                  </span>
+                                )
+                              })()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tracking table */}
+          {trackingLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="px-3 py-2 text-left text-slate-400 font-medium">KDF</th>
+                    <th className="px-3 py-2 text-left text-slate-400 font-medium max-w-[200px]">Título</th>
+                    <th className="px-3 py-2 text-center text-slate-400 font-medium">Turno</th>
+                    <th className="px-3 py-2 text-center text-slate-400 font-medium">Status</th>
+                    {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
+                      <th key={d} className="px-1 py-2 text-center text-slate-400 font-medium w-10">{d}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered
+                    .filter(r => !INACTIVE_STATUSES.has(r.status))
+                    .map(r => {
+                      const t = trackingData.find(td => td.ips_id === r.id) || {}
+                      return (
+                        <tr key={r.id} className="border-b border-white/5 hover:bg-slate-700/10">
+                          <td className="px-3 py-1.5">
+                            <span className="bg-blue-500/15 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 rounded">{r.kdf}</span>
+                          </td>
+                          <td className="px-3 py-1.5 text-white text-[11px] max-w-[200px] truncate" title={r.titulo}>{r.titulo}</td>
+                          <td className="px-3 py-1.5 text-center text-cyan-400 text-[11px]">{r.turno_responsable || '—'}</td>
+                          <td className="px-3 py-1.5 text-center">
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${STATUS_COLORS[r.status] || ''}`}>{r.status}</span>
+                          </td>
+                          {['lunes','martes','miercoles','jueves','viernes','sabado','domingo'].map(day => {
+                            const val = t[day] || null
+                            return (
+                              <td key={day} className="px-1 py-1.5 text-center">
+                                <select
+                                  value={val || ''}
+                                  onChange={e => handleTrackingChange(r.id, day, e.target.value || null)}
+                                  className={`w-10 text-[10px] font-bold rounded border-0 cursor-pointer focus:outline-none text-center py-0.5 ${
+                                    val === '1' ? 'bg-green-500/20 text-green-400' :
+                                    val === '0' ? 'bg-red-500/20 text-red-400' :
+                                    val === 'NA' ? 'bg-slate-500/15 text-slate-500' :
+                                    'bg-transparent text-slate-700'
+                                  }`}>
+                                  <option value="">·</option>
+                                  <option value="1">1</option>
+                                  <option value="0">0</option>
+                                  <option value="NA">NA</option>
+                                </select>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  {filtered.filter(r => !INACTIVE_STATUSES.has(r.status)).length === 0 && (
+                    <tr><td colSpan={11} className="px-4 py-6 text-center text-slate-500 text-sm">No hay IPS activos para esta semana</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -875,14 +1143,17 @@ export default function IPS() {
                   placeholder="Descripción del problema" />
               </div>
 
-              {/* Row 3: Ubicacion + Participants */}
+              {/* Row 3: Turno responsable + Participants */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Ubicación</label>
-                  <input type="text" value={createForm.ubicacion}
-                    onChange={e => setCreateForm(f => ({ ...f, ubicacion: e.target.value }))}
+                  <label className="block text-xs text-slate-400 mb-1">Turno responsable</label>
+                  <input type="text" value={createForm.turno_responsable}
+                    onChange={e => setCreateForm(f => ({ ...f, turno_responsable: e.target.value }))}
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50"
-                    placeholder="Ej: Máquina 3" />
+                    placeholder="Ej: Andres, Mayra" list="turno-list" />
+                  <datalist id="turno-list">
+                    {uniqueTurnos.map(t => <option key={t} value={t} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Participantes (separados por coma)</label>
@@ -891,6 +1162,15 @@ export default function IPS() {
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50"
                     placeholder="Juan, María, Pedro" />
                 </div>
+              </div>
+
+              {/* Row 4: Siguiente acción */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Siguiente acción</label>
+                <input type="text" value={createForm.sig_accion}
+                  onChange={e => setCreateForm(f => ({ ...f, sig_accion: e.target.value }))}
+                  className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50"
+                  placeholder="Ej: Iniciar 5Ws, Retroalimentar BCC" />
               </div>
 
               {/* Sections */}
@@ -1011,10 +1291,14 @@ export default function IPS() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Ubicación</label>
-                  <input type="text" value={editForm.ubicacion}
-                    onChange={e => setEditForm(f => ({ ...f, ubicacion: e.target.value }))}
-                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                  <label className="block text-xs text-slate-400 mb-1">Turno responsable</label>
+                  <input type="text" value={editForm.turno_responsable}
+                    onChange={e => setEditForm(f => ({ ...f, turno_responsable: e.target.value }))}
+                    className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50"
+                    list="turno-edit-list" />
+                  <datalist id="turno-edit-list">
+                    {uniqueTurnos.map(t => <option key={t} value={t} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Participantes (separados por coma)</label>
@@ -1022,6 +1306,13 @@ export default function IPS() {
                     onChange={e => setEditForm(f => ({ ...f, participants: e.target.value }))}
                     className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Siguiente acción</label>
+                <input type="text" value={editForm.sig_accion}
+                  onChange={e => setEditForm(f => ({ ...f, sig_accion: e.target.value }))}
+                  className="w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50"
+                  placeholder="Ej: Iniciar 5Ws, Retroalimentar BCC" />
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-xs text-slate-400">Secciones:</span>
@@ -1093,7 +1384,10 @@ function IPSRow({ record: r, isExpanded, cmTotal, cmDone, expandedCMs, loadingCM
           {r.fecha ? new Date(r.fecha + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : <span className="text-slate-700">—</span>}
         </td>
         <td className="px-3 py-2 text-center">
-          {r.ubicacion ? <span className="text-xs text-cyan-400">{r.ubicacion}</span> : <span className="text-slate-700">—</span>}
+          {r.turno_responsable ? <span className="text-xs text-cyan-400">{r.turno_responsable}</span> : <span className="text-slate-700">—</span>}
+        </td>
+        <td className="px-3 py-2 text-left">
+          {r.sig_accion ? <span className="text-xs text-slate-300 max-w-[180px] truncate block" title={r.sig_accion}>{r.sig_accion}</span> : <span className="text-slate-700">—</span>}
         </td>
         <SectionCell value={r.section_6w2h} onClick={e => { e.stopPropagation(); onSectionToggle(r.id, 'section_6w2h', r.section_6w2h) }} />
         <SectionCell value={r.section_bbc} onClick={e => { e.stopPropagation(); onSectionToggle(r.id, 'section_bbc', r.section_bbc) }} />
@@ -1133,7 +1427,7 @@ function IPSRow({ record: r, isExpanded, cmTotal, cmDone, expandedCMs, loadingCM
       {/* Expanded detail */}
       {isExpanded && (
         <tr>
-          <td colSpan={12} className="px-0 py-0">
+          <td colSpan={13} className="px-0 py-0">
             <div className="bg-[#0a1628] border-y border-purple-500/20">
               {/* Participants */}
               {(r.participants?.length || 0) > 0 && (
